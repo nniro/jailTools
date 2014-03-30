@@ -5,13 +5,9 @@
 
 #include <string.h>
 
-#define DATASIZE 32768
-
 int main (int argc, char **argv)
 {
 	char *result;
-	void *eData = NULL;
-	int eSize = 0;
 	char *salt = NULL;
 
 	if (argc < 2)
@@ -20,8 +16,6 @@ int main (int argc, char **argv)
 		printf("Please input a clear text password and optionally a salt\n");
 		return 1;
 	}
-
-	/*eData = malloc(DATASIZE);*/
 
 	if (argc >= 3)
 	{
@@ -32,15 +26,11 @@ int main (int argc, char **argv)
 	else
 	{
 		salt = malloc(4); /* $1$ + \0 */
-		/* strncpy(salt, "$1$", 4);*/
 		strncpy(salt, "$6$", 4);
 	}
 
-	/*result = crypt_r(argv[1], salt, &eData, &eSize);*/
-	/*result = crypt_rn(argv[1], salt, eData, DATASIZE);*/
 	result = crypt(argv[1], salt);
 	free(salt);
-	/*free(eData);*/
 
 	if (result == NULL)
 	{
