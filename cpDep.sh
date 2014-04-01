@@ -81,7 +81,8 @@ safeCopyFile () {
 }
 
 handle_files () {
-	file=$1
+	local finalDest=$1
+	local file=$2
 
 	#echo about to recurse those input values : $1
 	for i in $file; do
@@ -95,19 +96,22 @@ handle_files () {
 			#if [ ! -d ${destJail}$i ]; then
 				#mkdir ${destJail}$i
 			#fi
-			handle_files "`ls -d $i/*`"
+			#echo "Next cycle destination : $finalDest/`basename $i`"
+			handle_files "$finalDest/`basename $i`" "`ls -d $i/*`"
 			continue
 		fi
-		deps=`bash compDeps.sh $i`
 
+		# the dependencies are copied first
+		deps=`bash compDeps.sh $i`
 		for t in $deps; do
+			#break;
 			safeCopyFile "$t" "$destJail" "`dirname $t`"
 		done
 
-		safeCopyFile "$i" "$destJail" "$destInJail"
+		# the actual directory or files are now copied
+		#echo "Debug : $i -> $finalDest"
+		safeCopyFile "$i" "$destJail" "$finalDest"
 	done
 }
 
-handle_files "$files"
-#handle_files "`echo $files | sed -e "s/\(^\| \)\([^ ]*\)/\1$destInJail\1/g"`"
-#echo $files | sed -e "s%\(^\| \)\([^ ]*\)%\1$destInJail\1%g"
+handle_files "$destInJail" "$files"
