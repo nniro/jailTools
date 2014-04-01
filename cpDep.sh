@@ -49,9 +49,9 @@ createNewDir2 () {
 }
 
 safeCopyFile () {
-	src=$1
-	dstDir=$2
-	dstPath=$3
+	local src=$1
+	local dstDir=$2
+	local dstPath=$3
 	#echo "src=$src dstDir=$dstDir"
 	if [ -h $src ]; then # symbolic link check
 		link=`readlink $src`
@@ -62,12 +62,8 @@ safeCopyFile () {
 			link="`dirname $src`/$link"
 		fi
 		#echo $src is a link to $link
-		safeCopyFile "$link" "$dstDir" "$dstPath"
+		safeCopyFile "$link" "$dstDir" "`dirname $link`"
 	fi
-	# recursive calls to safeCopyFile change src and dstDir
-	# so we assign them correct values
-	src=$1
-	dstDir=$2
 
 	if [ -e ${dstDir}$src ] && [ ! -h $src ] && [ -h ${dstDir}$src ] || [ -e ${dstDir}$src ] && [ -h $src ] && [ ! -h ${dstDir}$src ] || [ ! -e ${dstDir}$src ]; then
 		#echo about to copy $src to ${dstDir}/$src
