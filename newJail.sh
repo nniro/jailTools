@@ -87,8 +87,6 @@ cat >> $1/etc/shadow << EOF
 root:$(./cryptPass `bash gene.sh -f 512` `bash gene.sh -f 50`):0:0:99999:7:::
 $2:!:0:0:99999:7:::
 EOF
-# nsswitch.conf
-# pam.conf
 # shells
 cat >> $1/etc/shells << EOF
 /bin/bash
@@ -99,13 +97,21 @@ echo "Copying minimal locale and gconv data"
 bash cpDep.sh $1 /usr/lib/locale/en_US /usr/lib/locale/en_US
 bash cpDep.sh $1 /usr/lib/gconv /usr/lib/gconv
 
-# special essential shared object
-cp /lib/ld-linux.so.2 ${1}/lib
+echo "Copying terminfo data"
+bash cpDep.sh $1 /usr/share/ /usr/share/{terminfo,misc}
+bash cpDep.sh $1 /etc/ /etc/{termcap,services,protocols,nsswitch.conf,ld.so.cache,inputrc,hostname,resolv.conf,host.conf,hosts}
+
+echo "Copying the nss libraries"
+bash cpDep.sh $1 /lib/ /lib/libnss*
+
+# if you want the standard binaries for using bash scripts
+#bash cpDep.sh $1 /bin/ /bin/{bash,ls,mkdir,cat,chgrp,chmod,chown,cp,grep,ln,kill,rm,rmdir,sed,sh,sleep,touch}
 
 echo "Now creating $1/dev/null, $1/dev/random and $1/dev/urandom"
 echo "This requires root, so we use sudo"
 # create quasi essential special nodes in /dev
 sudo mknod ${1}/dev/null c 1 3
+sudo chmod 666 ${1}/dev/null
 sudo mknod ${1}/dev/random c 1 8
 sudo mknod ${1}/dev/urandom c 1 9
 
