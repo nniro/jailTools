@@ -2,12 +2,12 @@
 
 BINARY=cryptPass
 OBJECTS=cryptPass.o
-CFLAGS=-O2 -pedantic -Wall -std=iso9899:1990 -L/usr/local/musl/lib
+CFLAGS=-O2 -pedantic -Wall -std=iso9899:1990 -Lusr/local/musl/lib
 MUSLGCC=usr/bin/musl-gcc
 MUSLOBJECTS=usr/lib/libc.a
 MUSL=$(MUSLOBJECTS) $(MUSLGCC)
 LIBS=-lcrypt $(MUSLOBJECTS)
-LDFLAGS=
+LDFLAGS=-static
 GCC=$(MUSLGCC)
 PROJECTROOT=$(PWD)
 
