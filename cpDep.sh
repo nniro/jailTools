@@ -1,8 +1,8 @@
 #! /bin/bash
 
-if [ $(($# < 2)) == 1 ]; then
-	echo "Synopsis: $0 [destination jail] [destination for file in jail] [file]"
-	echo "please input a destination root and files to compute and copy"
+if [ $(($# < 3)) == 1 ]; then
+	echo "Synopsis: $0 <chroot directory> <destination directory inside the jail> <file or directory> [files or directories]"
+	echo "please input a destination chroot, a destination and files or directories to compute and copy"
 	exit 1
 fi
 
