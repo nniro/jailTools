@@ -101,7 +101,9 @@ handle_files () {
 		deps=`bash compDeps.sh $i`
 		for t in $deps; do
 			#break;
-			safeCopyFile "$t" "$destJail" "`dirname $t`"
+			if [ -e $t ]; then
+				safeCopyFile "$t" "$destJail" "`dirname $t`"
+			fi
 		done
 
 		# the actual directory or files are now copied
