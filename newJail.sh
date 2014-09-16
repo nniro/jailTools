@@ -48,6 +48,7 @@ fi
 
 if [ "$2" == "" ]; then
 	echo "please also input a service name (for the creation of a username and group)"
+	exit 1
 fi
 
 if [ -e $1 ]; then
