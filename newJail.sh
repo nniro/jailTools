@@ -80,8 +80,8 @@ $2:x:100:
 EOF
 # passwd
 cat >> $1/etc/passwd << EOF
-root:x:0:0:/root:/bin/false
-$2:x:$UID:100:/home:/bin/false
+root:x:0:0::/root:/bin/false
+$2:x:$UID:100::/home:/bin/false
 EOF
 # shadow
 cat >> $1/etc/shadow << EOF
