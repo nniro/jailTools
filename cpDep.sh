@@ -54,6 +54,7 @@ safeCopyFile () {
 	local dstPath=$3
 	#echo "src=$src dstDir=$dstDir"
 	if [ -h $src ]; then # symbolic link check
+		# this ensures that the file that the link points to is also copied
 		link=`readlink $src`
 		if [ "`dirname $link`" == "." ]; then
 			link="`dirname $src`/$link"
@@ -65,11 +66,16 @@ safeCopyFile () {
 		safeCopyFile "$link" "$dstDir" "`dirname $link`"
 	fi
 
-	if [ -e ${dstDir}$src ] && [ ! -h $src ] && [ -h ${dstDir}$src ] || [ -e ${dstDir}$src ] && [ -h $src ] && [ ! -h ${dstDir}$src ] || [ ! -e ${dstDir}$src ]; then
+	local dstPathCmp=$dstDir/$dstPath/`basename $src`
+	#printf "$dstPathCmp is older than $src : "; [ $dstPathCmp -ot $src ] && echo yes || echo no
+
+	if 	([ -e $dstPathCmp ] && [ ! -h $src ] && [ -h $dstPathCmp ]) ||  # this is in case our destination is actually a link, so we replace it with a real file
+		([ -e $dstPathCmp ] && [ -h $src ] && [ ! -h $dstPathCmp ]) ||  # this is in case our destination is not a link, so we replace it with a link
+		[ $dstPathCmp -ot $src ]; then # this is in case the destination does not exist or it is older than the origin
 		#echo about to copy $src to ${dstDir}/$src
 		createNewDir2 "$dstDir/$dstPath"
-		echo "copying $src -> $dstDir/$dstPath/`basename $src`"
-		cp -f --no-dereference $src ${dstDir}/${dstPath}/`basename $src`
+		echo "copying $src -> $dstPathCmp"
+		cp -f --no-dereference --preserve="mode,timestamps" $src $dstPathCmp
 	else
 		#echo destination file already exists
 		return
