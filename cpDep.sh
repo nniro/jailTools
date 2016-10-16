@@ -1,6 +1,6 @@
-#! /bin/bash
+#! /bin/sh
 
-if [ $(($# < 3)) == 1 ]; then
+if [ $(($# < 3)) = 1 ]; then
 	echo "Synopsis: $0 <chroot directory> <destination directory inside the jail> <file or directory> [files or directories]"
 	echo "please input a destination chroot, a destination and files or directories to compute and copy"
 	exit 1
@@ -56,7 +56,7 @@ safeCopyFile () {
 	if [ -h $src ]; then # symbolic link check
 		# this ensures that the file that the link points to is also copied
 		link=`readlink $src`
-		if [ "`dirname $link`" == "." ]; then
+		if [ "`dirname $link`" = "." ]; then
 			link="`dirname $src`/$link"
 		fi
 		if [ ! -e $link ]; then # in case the link is relative and not absolute

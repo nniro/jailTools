@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 a=0
 inp=$1
 inp2=$2
