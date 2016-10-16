@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/sh
 
 BINARY=cryptPass
 OBJECTS=cryptPass.o
@@ -14,7 +14,7 @@ PROJECTROOT=$(PWD)
 ALL: $(MUSL) $(BINARY)
 
 $(MUSL):
-	bash ./configMusl.sh
+	sh ./configMusl.sh
 	make -C musl
 	make -C musl install
 

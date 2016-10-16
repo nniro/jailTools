@@ -104,7 +104,7 @@ handle_files () {
 		fi
 
 		# the dependencies are copied first
-		deps=`bash compDeps.sh $i`
+		deps=`sh compDeps.sh $i`
 		for t in $deps; do
 			#break;
 			if [ -e $t ]; then
