@@ -11,6 +11,8 @@ destInJail=$2
 shift 2
 files=$@
 
+ownPath=$(dirname $0)
+
 echo "$files -> $destJail/$destInJail"
 
 if [ ! -e $destJail ]; then
@@ -104,7 +106,7 @@ handle_files () {
 		fi
 
 		# the dependencies are copied first
-		deps=`sh compDeps.sh $i`
+		deps=`sh $ownPath/compDeps.sh $i`
 		for t in $deps; do
 			#break;
 			if [ -e $t ]; then
