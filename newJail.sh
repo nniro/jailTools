@@ -11,6 +11,7 @@ filesystem="
 /home
 /mnt
 /opt
+/proc
 /sbin
 /sys
 /root
