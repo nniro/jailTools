@@ -15,6 +15,7 @@ filesystem="
 /sys
 /root
 /tmp
+/run
 /usr
 /usr/bin
 /usr/sbin
@@ -35,6 +36,7 @@ filesystem="
 /var/log
 /var/mail
 /var/opt
+/var/pid
 /var/run
 /var/spool
 /var/state
