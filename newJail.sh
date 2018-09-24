@@ -41,6 +41,19 @@ filesystem="
 /var/tmp
 /var/yp
 "
+
+case "$(readlink -f /proc/$$/exe)" in
+	*dash)
+		echo "We don't support dash"
+		exit 1
+	;;
+
+	*)
+		sh="$(readlink -f /proc/$$/exe)"
+		echo "using shell : $sh"
+	;;
+esac
+
 if [ "$1" = "" ]; then
 	echo "please input the name of the new directory to instantiate"
 	exit 1
@@ -72,11 +85,11 @@ for path in $filesystem ; do
 done
 
 echo "Adding /bin/false to the jail"
-sh cpDep.sh $newChrootDir /bin/ /bin/false
+$sh cpDep.sh $newChrootDir /bin/ /bin/false
 
 echo "Populating the /etc configuration files"
 # localtime
-sh cpDep.sh $newChrootDir /etc/ /etc/localtime
+$sh cpDep.sh $newChrootDir /etc/ /etc/localtime
 # group
 cat >> $newChrootDir/etc/group << EOF
 root:x:0:
@@ -89,18 +102,18 @@ $2:x:$UID:100::/home:/bin/false
 EOF
 # shadow
 cat >> $newChrootDir/etc/shadow << EOF
-root:$(./cryptPass `sh gene.sh -f 200` `sh gene.sh -f 50`):0:0:99999:7:::
+root:$(./cryptPass $($sh gene.sh -f 200) $($sh gene.sh -f 50)):0:0:99999:7:::
 $2:!:0:0:99999:7:::
 EOF
 
 # shells
 cat >> $newChrootDir/etc/shells << EOF
-/bin/sh
+$sh
 /bin/false
 EOF
 
 cat > $newChrootHolder/startRoot.sh << EOF
-#! /bin/sh
+#! $sh
 
 if [ \$UID != 0 ]; then
 	echo "This script has to be run with root permissions as it calls the command chroot"
@@ -175,13 +188,13 @@ mkdir $newChrootDir/usr/lib/gconv
 echo "Copying terminfo data"
 mkdir $newChrootDir/usr/share/{terminfo,misc}
 #sh cpDep.sh $newChrootDir /usr/share/ /usr/share/{terminfo,misc}
-sh cpDep.sh $newChrootDir /etc/ /etc/{termcap,services,protocols,nsswitch.conf,ld.so.cache,inputrc,hostname,resolv.conf,host.conf,hosts}
+$sh cpDep.sh $newChrootDir /etc/ /etc/{termcap,services,protocols,nsswitch.conf,ld.so.cache,inputrc,hostname,resolv.conf,host.conf,hosts}
 
 echo "Copying the nss libraries"
-sh cpDep.sh $newChrootDir /lib/ /lib/libnss*
+$sh cpDep.sh $newChrootDir /lib/ /lib/libnss*
 
 # if you want the standard binaries for using sh scripts
-sh cpDep.sh $newChrootDir /bin/ /bin/{sh,ls,mkdir,cat,chgrp,chmod,chown,cp,grep,ln,kill,rm,rmdir,sed,sh,sleep,touch,basename,dirname,uname,mktemp,cmp,md5sum,realpath,mv,id,readlink,env}
+$sh cpDep.sh $newChrootDir /bin/ /bin/{sh,ls,mkdir,cat,chgrp,chmod,chown,cp,grep,ln,kill,rm,rmdir,sed,sh,sleep,touch,basename,dirname,uname,mktemp,cmp,md5sum,realpath,mv,id,readlink,env} $sh
 
 echo "Now creating $newChrootDir/dev/null, $newChrootDir/dev/random and $newChrootDir/dev/urandom"
 echo "This requires root, so we use sudo"
