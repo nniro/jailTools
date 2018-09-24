@@ -132,6 +132,7 @@ read -d '' mountPoints << EOF
 @EOF
 
 function startChroot() {
+	mount --bind root root
 	for mount in \$mountPoints; do
 		# we create the directories for you
 		if [ ! -d root/\$mount ]; then
@@ -144,10 +145,11 @@ function startChroot() {
 
 	# put your chroot starting scripts/instructions here
 	# here's an example
-	env - PATH=/usr/bin:/bin USER=\$2 UID=1000 HOSTNAME=nowhere.here chroot --userspec=1000:100 root /bin/sh
+	env - PATH=/usr/bin:/bin USER=\$2 UID=1000 HOSTNAME=nowhere.here unshare -mpf $sh -c 'mount -tproc none root/proc; chroot --userspec=1000:100 root /bin/sh'
 	# if you need to add logs, just pipe them to the directory : root/run/someLog.log
 
-
+	stopChroot
+	umount root
 }
 
 function stopChroot() {
