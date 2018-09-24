@@ -11,7 +11,11 @@ LDFLAGS=-static
 GCC=$(MUSLGCC)
 PROJECTROOT=$(PWD)
 
-ALL: $(MUSL) $(BINARY)
+ALL: musl/configure $(MUSL) $(BINARY)
+
+musl/configure:
+	git submodule init musl
+	git submodule update musl
 
 $(MUSL):
 	sh ./configMusl.sh
