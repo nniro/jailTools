@@ -215,6 +215,8 @@ sudo mknod $newChrootDir/dev/random c 1 8
 sudo chmod 444 $newChrootDir/dev/random
 sudo mknod $newChrootDir/dev/urandom c 1 9
 sudo chmod 444 $newChrootDir/dev/urandom
+sudo mknod $newChrootDir/dev/zero c 1 5
+sudo chmod 444 $newChrootDir/dev/zero
 
 echo "All done"
 exit 0
