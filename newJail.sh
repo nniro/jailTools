@@ -193,7 +193,7 @@ mkdir $newChrootDir/usr/share/{terminfo,misc}
 $sh cpDep.sh $newChrootDir /etc/ /etc/{termcap,services,protocols,nsswitch.conf,ld.so.cache,inputrc,hostname,resolv.conf,host.conf,hosts}
 
 echo "Copying the nss libraries"
-$sh cpDep.sh $newChrootDir /lib/ /lib/libnss*
+$sh cpDep.sh $newChrootDir /usr/lib/ /lib/libnss*
 
 # if you want the standard binaries for using sh scripts
 $sh cpDep.sh $newChrootDir /bin/ /bin/{sh,ls,mkdir,cat,chgrp,chmod,chown,cp,grep,ln,kill,rm,rmdir,sed,sh,sleep,touch,basename,dirname,uname,mktemp,cmp,md5sum,realpath,mv,id,readlink,env} $sh
