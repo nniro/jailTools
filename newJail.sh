@@ -196,7 +196,7 @@ echo "Copying the nss libraries"
 $sh cpDep.sh $newChrootDir /usr/lib/ /lib/libnss*
 
 # if you want the standard binaries for using sh scripts
-$sh cpDep.sh $newChrootDir /bin/ /bin/{sh,ls,mkdir,cat,chgrp,chmod,chown,cp,grep,ln,kill,rm,rmdir,sed,sh,sleep,touch,basename,dirname,uname,mktemp,cmp,md5sum,realpath,mv,id,readlink,env} $sh
+$sh cpDep.sh $newChrootDir /bin/ /bin/{sh,ls,mkdir,cat,chgrp,chmod,chown,cp,grep,ln,kill,rm,rmdir,sed,sh,sleep,touch,basename,dirname,uname,mktemp,cmp,md5sum,realpath,mv,id,readlink,env,tr,[,fold,which,date,stat} $sh
 
 echo "Now creating $newChrootDir/dev/null, $newChrootDir/dev/random and $newChrootDir/dev/urandom"
 echo "This requires root, so we use sudo"
