@@ -1,5 +1,17 @@
 #! /bin/sh
 
+case "$(readlink -f /proc/$$/exe)" in
+	*dash)
+		echo "We don't support dash"
+		exit 1
+	;;
+
+	*)
+		sh="$(readlink -f /proc/$$/exe)"
+		echo "using shell : $sh"
+	;;
+esac
+
 if [ $(($# < 3)) = 1 ]; then
 	echo "Synopsis: $0 <chroot directory> <destination directory inside the jail> <file or directory> [files or directories]"
 	echo "please input a destination chroot, a destination and files or directories to compute and copy"
@@ -106,7 +118,7 @@ handle_files () {
 		fi
 
 		# the dependencies are copied first
-		deps=`sh $ownPath/compDeps.sh $i`
+		deps=$($sh $ownPath/compDeps.sh $i)
 		for t in $deps; do
 			#break;
 			if [ -e $t ]; then
