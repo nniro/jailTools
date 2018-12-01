@@ -6,8 +6,10 @@ filesystem="
 /dev
 /dev/pts
 /etc
+/etc/pam.d
 /lib
 /lib/tls
+/lib/security
 /home
 /mnt
 /opt
