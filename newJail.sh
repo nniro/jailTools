@@ -125,8 +125,12 @@ if [ \$UID != 0 ]; then
 	exit 1
 fi
 
-# place all the directory mountPoints that you want extra for your chroot directory in this emplacement
-read -d '' mountPoints << EOF
+# dev mount points : read-write, no-exec
+read -d '' devMountPoints << EOF
+@EOF
+
+# read-only mount points with exec
+read -d '' roMountPoints << EOF
 /usr/share/locale
 /usr/lib/locale
 /usr/lib/gconv
@@ -134,17 +138,40 @@ read -d '' mountPoints << EOF
 /usr/share/misc
 @EOF
 
+# read-write mount points with exec
+read -d '' rwMountPoints << EOF
+@EOF
+
+function mountMany() {
+	rootDir=\$1
+	mountOps=\$2
+	shift 2
+
+	for mount in \$@; do
+		if [ ! -d \$rootDir/\$mount ]; then
+			echo \$rootDir/\$mount does not exist, creating it
+			mkdir -p \$rootDir/\$mount
+		fi
+		mountpoint \$rootDir/\$mount > /dev/null || mount \$mountOps --bind \$mount \$rootDir/\$mount
+	done
+}
+
 function startChroot() {
 	mount --bind root root
-	for mount in \$mountPoints; do
-		# we create the directories for you
-		if [ ! -d root/\$mount ]; then
-			mkdir -p root/\$mount
-		fi
+	#for mount in \$mountPoints; do
+	#	# we create the directories for you
+	#	if [ ! -d root/\$mount ]; then
+	#		mkdir -p root/\$mount
+	#	fi
 
-		chmod 755 root/\$mount
-		mountpoint root/\$mount > /dev/null || mount -o defaults --bind \$mount root/\$mount
-	done
+	#	chmod 755 root/\$mount
+	#	mountpoint root/\$mount > /dev/null || mount -o defaults --bind \$mount root/\$mount
+	#done
+
+	# dev
+	mountMany root "-o rw,noexec" \$devMountPoints
+	mountMany root "-o ro,exec" \$roMountPoints
+	mountMany root "-o defaults" \$rwMountPoints
 
 	# put your chroot starting scripts/instructions here
 	# here's an example
@@ -156,7 +183,7 @@ function startChroot() {
 }
 
 function stopChroot() {
-	for mount in \$mountPoints; do
+	for mount in \$devMountPoints \$roMountPoints \$rwMountPoints; do
 		mountpoint root/\$mount > /dev/null && umount root/\$mount
 	done
 }
