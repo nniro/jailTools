@@ -74,6 +74,8 @@ if [ -e $1 ]; then
 	exit 1
 fi
 
+ownPath=$(dirname $0)
+
 newChrootHolder=$1
 newChrootDir=$newChrootHolder/root
 echo "Instantiating directory : " $newChrootDir
@@ -82,6 +84,8 @@ mkdir $newChrootHolder
 mkdir $newChrootHolder/run
 mkdir $newChrootDir
 
+touch $newChrootHolder/startRoot.sh # this is to make cpDep detect the new style jail
+
 for path in $filesystem ; do
 	mkdir $newChrootDir/$path
 	chmod 704 $newChrootDir/$path
@@ -89,12 +93,15 @@ for path in $filesystem ; do
 	#chgrp 0 ${1}/$path
 done
 
+echo "Linking /lib to /lib64"
+ln -s /lib $newChrootDir/lib64
+
 echo "Adding /bin/false to the jail"
-$sh cpDep.sh $newChrootDir /bin/ /bin/false
+$sh $ownPath/cpDep.sh $newChrootHolder /bin/ /bin/false
 
 echo "Populating the /etc configuration files"
 # localtime
-$sh cpDep.sh $newChrootDir /etc/ /etc/localtime
+$sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/localtime
 # group
 cat >> $newChrootDir/etc/group << EOF
 root:x:0:
@@ -107,7 +114,7 @@ $2:x:$UID:100::/home:/bin/false
 EOF
 # shadow
 cat >> $newChrootDir/etc/shadow << EOF
-root:$(./cryptPass $($sh gene.sh -f 200) $($sh gene.sh -f 50)):0:0:99999:7:::
+root:$($ownPath/cryptPass $($sh $ownPath/gene.sh -f 200) $($sh $ownPath/gene.sh -f 50)):0:0:99999:7:::
 $2:!:0:0:99999:7:::
 EOF
 
@@ -213,22 +220,25 @@ EOF
 # we fix the EOF inside the script
 sed -e "s/^\@EOF$/EOF/g" -i $newChrootHolder/startRoot.sh
 
+echo "Copying pam security libraries"
+#sh cpDep.sh $newChrootHolder /lib/security /lib/security/*
+
 #echo "Copying minimal locale and gconv data"
 mkdir $newChrootDir/usr/lib/locale
-#sh cpDep.sh $newChrootDir /usr/lib/locale/en_US /usr/lib/locale/en_US
+#sh cpDep.sh $newChrootHolder /usr/lib/locale/en_US /usr/lib/locale/en_US
 mkdir $newChrootDir/usr/lib/gconv
-#sh cpDep.sh $newChrootDir /usr/lib/gconv /usr/lib/gconv
+#sh cpDep.sh $newChrootHolder /usr/lib/gconv /usr/lib/gconv
 
 echo "Copying terminfo data"
 mkdir $newChrootDir/usr/share/{terminfo,misc}
-#sh cpDep.sh $newChrootDir /usr/share/ /usr/share/{terminfo,misc}
-$sh cpDep.sh $newChrootDir /etc/ /etc/{termcap,services,protocols,nsswitch.conf,ld.so.cache,inputrc,hostname,resolv.conf,host.conf,hosts}
+#sh cpDep.sh $newChrootHolder /usr/share/ /usr/share/{terminfo,misc}
+$sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/{termcap,services,protocols,nsswitch.conf,ld.so.cache,inputrc,hostname,resolv.conf,host.conf,hosts}
 
 echo "Copying the nss libraries"
-$sh cpDep.sh $newChrootDir /usr/lib/ /lib/libnss*
+$sh $ownPath/cpDep.sh $newChrootHolder /usr/lib/ /lib/libnss*
 
 # if you want the standard binaries for using sh scripts
-$sh cpDep.sh $newChrootDir /bin/ /bin/{sh,ls,mkdir,cat,chgrp,chmod,chown,cp,grep,ln,kill,rm,rmdir,sed,sh,sleep,touch,basename,dirname,uname,mktemp,cmp,md5sum,realpath,mv,id,readlink,env,tr,[,fold,which,date,stat} $sh
+$sh $ownPath/cpDep.sh $newChrootHolder /bin/ /bin/{sh,ls,mkdir,cat,chgrp,chmod,chown,cp,grep,ln,kill,rm,rmdir,sed,sh,sleep,touch,basename,dirname,uname,mktemp,cmp,md5sum,realpath,mv,id,readlink,env,tr,[,fold,which,date,stat} $sh
 
 echo "Now creating $newChrootDir/dev/null, $newChrootDir/dev/random and $newChrootDir/dev/urandom"
 echo "This requires root, so we use sudo"
@@ -249,6 +259,10 @@ sudo mknod $newChrootDir/dev/urandom c 1 9
 sudo chmod 444 $newChrootDir/dev/urandom
 sudo mknod $newChrootDir/dev/zero c 1 5
 sudo chmod 444 $newChrootDir/dev/zero
+
+# we append these to update.sh
+echo "# end basic dependencies" >> $newChrootHolder/update.sh
+echo "" >> $newChrootHolder/update.sh
 
 echo "All done"
 exit 0

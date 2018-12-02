@@ -18,6 +18,7 @@ if [ $(($# < 3)) = 1 ]; then
 	exit 1
 fi
 
+newStyleJail=0
 destJail=$1
 destInJail=$2
 shift 2
@@ -31,6 +32,19 @@ if [ ! -e $destJail ]; then
 	#echo "destination root does not exist, please create one first"
 	#exit 1
 	mkdir $destJail
+fi
+
+if [ -d $destJail/root ] && [ -d $destJail/run ] && [ -f $destJail/startRoot.sh ]; then
+	echo "New style jail directory detected"
+	destJail=$destJail/root
+	newStyleJail=1
+else
+	if [ ! -d $destJail/dev ] || [ ! -d $destJail/usr ] || [ ! -d $destJail/home ] || [ ! -d $destJail/etc ] || [ ! -d $destJail/bin ] || [ ! -d $destJail/sbin ] || [ ! -d $destJail/var ]; then
+		echo "The directory '$destJail\` does not seem to be a valid jail filesystem, bailing out." 
+		exit 1
+	fi
+
+	echo "Direct jail directory detected"
 fi
 
 createNewDir () {
@@ -133,3 +147,39 @@ handle_files () {
 }
 
 handle_files "$destInJail" "$files"
+
+if [ "$newStyleJail" = "1" ]; then
+	# parent
+	pDir=$(dirname $destJail)
+	scriptName=$(basename $0)
+
+	if [ ! -e $pDir/update.sh ]; then
+		jtPath=""
+
+		if [ "${ownPath[1]:0:1}" != "/" ]; then # it's a relative path, we need absolute here
+			if [ -e $PWD/$scriptName ]; then
+				jtPath=$PWD
+			else # we couldn't find cpDep.sh in $PWD so we use the relative path after all
+				jtPath=../$ownPath
+			fi
+		else
+			jtPath=$ownPath
+		fi
+
+cat > $pDir/update.sh << EOF
+#! $sh
+
+# This script contains all the dependencies copies and such and can be
+# reran at any time to update what was copied to the jail.
+ownPath=\$(dirname \$0)
+
+# change this path to what you prefer
+jailToolsPath=$jtPath
+
+EOF
+		#echo "#! $sh\n\n# This script contains all the dependencies copies and such and can be reran at any time to update what was copied to the jail.\n# change this path to what you prefer\njailToolsPath=$jtPath\n" > $pDir/update.sh
+
+	fi
+
+	echo "$sh \$jailToolsPath/$scriptName \$ownPath/root $destInJail $files" >> $pDir/update.sh
+fi
