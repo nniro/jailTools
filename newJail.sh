@@ -141,8 +141,6 @@ read -d '' roMountPoints << EOF
 /usr/share/locale
 /usr/lib/locale
 /usr/lib/gconv
-/usr/share/terminfo
-/usr/share/misc
 @EOF
 
 # read-write mount points with exec
@@ -182,7 +180,7 @@ function startChroot() {
 
 	# put your chroot starting scripts/instructions here
 	# here's an example
-	env - PATH=/usr/bin:/bin USER=\$2 UID=1000 HOSTNAME=nowhere.here unshare -mpf $sh -c 'mount -tproc none root/proc; chroot --userspec=1000:100 root /bin/sh'
+	env - PATH=/usr/bin:/bin USER=$2 UID=1000 HOSTNAME=nowhere.here unshare -mpf $sh -c 'mount -tproc none root/proc; chroot --userspec=1000:100 root /bin/sh'
 	# if you need to add logs, just pipe them to the directory : root/run/someLog.log
 
 	stopChroot
@@ -231,7 +229,7 @@ mkdir $newChrootDir/usr/lib/gconv
 
 echo "Copying terminfo data"
 mkdir $newChrootDir/usr/share/{terminfo,misc}
-#sh cpDep.sh $newChrootHolder /usr/share/ /usr/share/{terminfo,misc}
+sh cpDep.sh $newChrootHolder /usr/share/ /usr/share/{terminfo,misc}
 $sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/{termcap,services,protocols,nsswitch.conf,ld.so.cache,inputrc,hostname,resolv.conf,host.conf,hosts}
 
 echo "Copying the nss libraries"
