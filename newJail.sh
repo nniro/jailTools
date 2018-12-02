@@ -228,7 +228,7 @@ mkdir $newChrootDir/usr/lib/gconv
 #sh cpDep.sh $newChrootHolder /usr/lib/gconv /usr/lib/gconv
 
 echo "Copying terminfo data"
-cp -Rf /usr/share/{terminfo,misc} $newChrootDir/usr/share
+cp -RL /usr/share/{terminfo,misc} $newChrootDir/usr/share
 $sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/{termcap,services,protocols,nsswitch.conf,ld.so.cache,inputrc,hostname,resolv.conf,host.conf,hosts}
 
 echo "Copying the nss libraries"
