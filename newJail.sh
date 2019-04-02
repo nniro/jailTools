@@ -149,6 +149,34 @@ read -d '' roMountPoints << EOF
 read -d '' rwMountPoints << EOF
 @EOF
 
+# mkdir -p with a mode only applies the mode to the last child dir... this function applies the mode to all directories
+function cmkdir() {
+	args=$@
+
+	mode=$(echo $args | sed -e 's/ /\n/g' | sed -ne '/^-m$/ {N; s/-m\n//g; p;q}' -e '/--mode/ {s/--mode=//; p; q}')
+	modeLess=$(echo $args | sed -e 's/ /\n/g' | sed -e '/^-m$/ {N; s/.*//g; d}' -e '/--mode/ {s/.*//; d}')
+
+	callArgs=""
+	if [ "$mode" != "" ]; then
+		callArgs="$callArgs --mode=$mode"
+	fi
+
+	for dir in $modeLess; do
+		subdirs=$(echo $dir | sed -e 's/\//\n/g')
+		parentdir=""
+		for subdir in $subdirs; do
+			if [ ! -d $parentdir$subdir ]; then
+				mkdir $callArgs $parentdir$subdir
+			fi
+			if [ "$parentdir" = "" ]; then
+				parentdir="$subdir/"
+			else
+				parentdir="$parentdir$subdir/"
+			fi
+		done
+	done
+}
+
 function mountMany() {
 	rootDir=\$1
 	mountOps=\$2
@@ -157,7 +185,7 @@ function mountMany() {
 	for mount in \$@; do
 		if [ ! -d \$rootDir/\$mount ]; then
 			echo \$rootDir/\$mount does not exist, creating it
-			mkdir -p \$rootDir/\$mount
+			cmkdir -m 755 \$rootDir/\$mount
 		fi
 		mountpoint \$rootDir/\$mount > /dev/null || mount \$mountOps --bind \$mount \$rootDir/\$mount
 	done
