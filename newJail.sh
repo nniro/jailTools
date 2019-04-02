@@ -151,27 +151,27 @@ read -d '' rwMountPoints << EOF
 
 # mkdir -p with a mode only applies the mode to the last child dir... this function applies the mode to all directories
 function cmkdir() {
-	args=$@
+	args=\$@
 
-	mode=$(echo $args | sed -e 's/ /\n/g' | sed -ne '/^-m$/ {N; s/-m\n//g; p;q}' -e '/--mode/ {s/--mode=//; p; q}')
-	modeLess=$(echo $args | sed -e 's/ /\n/g' | sed -e '/^-m$/ {N; s/.*//g; d}' -e '/--mode/ {s/.*//; d}')
+	mode=\$(echo \$args | sed -e 's/ /\n/g' | sed -ne '/^-m$/ {N; s/-m\n//g; p;q}' -e '/--mode/ {s/--mode=//; p; q}')
+	modeLess=\$(echo \$args | sed -e 's/ /\n/g' | sed -e '/^-m$/ {N; s/.*//g; d}' -e '/--mode/ {s/.*//; d}')
 
 	callArgs=""
-	if [ "$mode" != "" ]; then
-		callArgs="$callArgs --mode=$mode"
+	if [ "\$mode" != "" ]; then
+		callArgs="\$callArgs --mode=\$mode"
 	fi
 
-	for dir in $modeLess; do
-		subdirs=$(echo $dir | sed -e 's/\//\n/g')
+	for dir in \$modeLess; do
+		subdirs=\$(echo \$dir | sed -e 's/\//\n/g')
 		parentdir=""
-		for subdir in $subdirs; do
-			if [ ! -d $parentdir$subdir ]; then
-				mkdir $callArgs $parentdir$subdir
+		for subdir in \$subdirs; do
+			if [ ! -d \$parentdir\$subdir ]; then
+				mkdir \$callArgs \$parentdir\$subdir
 			fi
-			if [ "$parentdir" = "" ]; then
-				parentdir="$subdir/"
+			if [ "\$parentdir" = "" ]; then
+				parentdir="\$subdir/"
 			else
-				parentdir="$parentdir$subdir/"
+				parentdir="\$parentdir\$subdir/"
 			fi
 		done
 	done
