@@ -132,6 +132,8 @@ if [ \$UID != 0 ]; then
 	exit 1
 fi
 
+user=$2
+
 # dev mount points : read-write, no-exec
 read -d '' devMountPoints << EOF
 @EOF
@@ -180,7 +182,7 @@ function startChroot() {
 
 	# put your chroot starting scripts/instructions here
 	# here's an example
-	env - PATH=/usr/bin:/bin USER=$2 UID=1000 HOSTNAME=nowhere.here unshare -mpf $sh -c 'mount -tproc none root/proc; chroot --userspec=1000:100 root /bin/sh'
+	env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=1000 HOSTNAME=nowhere.here unshare -mpf $sh -c 'mount -tproc none root/proc; chroot --userspec=1000:100 root /bin/sh'
 	# if you need to add logs, just pipe them to the directory : root/run/someLog.log
 
 	stopChroot
