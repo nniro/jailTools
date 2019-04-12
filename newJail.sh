@@ -126,11 +126,18 @@ EOF
 
 cat > $newChrootHolder/startRoot.sh << EOF
 #! $sh
+# Don't change anything in this script! Use rootCustomConfig.sh for your changes!
+
+_JAILTOOLS_RUNNING=1
 
 if [ \$UID != 0 ]; then
 	echo "This script has to be run with root permissions as it calls the command chroot"
 	exit 1
 fi
+
+ownPath=\$(dirname \$0)
+
+. \$ownPath/rootCustomConfig.sh
 
 user=$2
 
@@ -151,19 +158,19 @@ read -d '' rwMountPoints << EOF
 
 # mkdir -p with a mode only applies the mode to the last child dir... this function applies the mode to all directories
 function cmkdir() {
-	args=\$@
+	local args=\$@
 
-	mode=\$(echo \$args | sed -e 's/ /\n/g' | sed -ne '/^-m$/ {N; s/-m\n//g; p;q}' -e '/--mode/ {s/--mode=//; p; q}')
-	modeLess=\$(echo \$args | sed -e 's/ /\n/g' | sed -e '/^-m$/ {N; s/.*//g; d}' -e '/--mode/ {s/.*//; d}')
+	local mode=\$(echo \$args | sed -e 's/ /\n/g' | sed -ne '/^-m$/ {N; s/-m\n//g; p;q}' -e '/--mode/ {s/--mode=//; p; q}')
+	local modeLess=\$(echo \$args | sed -e 's/ /\n/g' | sed -e '/^-m$/ {N; s/.*//g; d}' -e '/--mode/ {s/.*//; d}')
 
-	callArgs=""
+	local callArgs=""
 	if [ "\$mode" != "" ]; then
-		callArgs="\$callArgs --mode=\$mode"
+		local callArgs="\$callArgs --mode=\$mode"
 	fi
 
 	for dir in \$modeLess; do
-		subdirs=\$(echo \$dir | sed -e 's/\//\n/g')
-		parentdir=""
+		local subdirs=\$(echo \$dir | sed -e 's/\//\n/g')
+		local parentdir=""
 		for subdir in \$subdirs; do
 			if [ ! -d \$parentdir\$subdir ]; then
 				mkdir \$callArgs \$parentdir\$subdir
@@ -178,8 +185,8 @@ function cmkdir() {
 }
 
 function mountMany() {
-	rootDir=\$1
-	mountOps=\$2
+	local rootDir=\$1
+	local mountOps=\$2
 	shift 2
 
 	for mount in \$@; do
@@ -191,62 +198,129 @@ function mountMany() {
 	done
 }
 
-function startChroot() {
-	mount --bind root root
-	#for mount in \$mountPoints; do
-	#	# we create the directories for you
-	#	if [ ! -d root/\$mount ]; then
-	#		mkdir -p root/\$mount
-	#	fi
-
-	#	chmod 755 root/\$mount
-	#	mountpoint root/\$mount > /dev/null || mount -o defaults --bind \$mount root/\$mount
-	#done
+function prepareChroot() {
+	local rootDir=\$1
+	mount --bind root \$rootDir/root
 
 	# dev
-	mountMany root "-o rw,noexec" \$devMountPoints
-	mountMany root "-o ro,exec" \$roMountPoints
-	mountMany root "-o defaults" \$rwMountPoints
+	mountMany \$rootDir/root "-o rw,noexec" \$devMountPoints
+	mountMany \$rootDir/root "-o ro,exec" \$roMountPoints
+	mountMany \$rootDir/root "-o defaults" \$rwMountPoints
+
+	mountMany \$rootDir/root "-o rw,noexec" \$devMountPoints_CUSTOM
+	mountMany \$rootDir/root "-o ro,exec" \$roMountPoints_CUSTOM
+	mountMany \$rootDir/root "-o defaults" \$rwMountPoints_CUSTOM
 
 	# put your chroot starting scripts/instructions here
 	# here's an example
-	env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=1000 HOSTNAME=nowhere.here unshare -mpf $sh -c 'mount -tproc none root/proc; chroot --userspec=1000:100 root /bin/sh'
+	#env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=1000 HOSTNAME=nowhere.here unshare -mpf $sh -c "mount -tproc none \$rootDir/root/proc; chroot --userspec=1000:100 \$rootDir/root /bin/sh"
 	# if you need to add logs, just pipe them to the directory : root/run/someLog.log
+}
 
-	stopChroot
-	umount root
+function startChroot() {
+	local rootDir=\$1
+
+	prepareChroot \$rootDir
+
+	startCustom \$rootDir \$user
+	# if you need to add logs, just pipe them to the directory : root/run/someLog.log
+}
+
+function runShell() {
+	local rootDir=\$1
+	prepareChroot \$rootDir
+
+	env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=1000 HOSTNAME=nowhere.here unshare -mpf $sh -c "mount -tproc none \$rootDir/root/proc; chroot --userspec=1000:100 \$rootDir/root /bin/sh"
+	stopChroot \$rootDir
 }
 
 function stopChroot() {
-	for mount in \$devMountPoints \$roMountPoints \$rwMountPoints; do
-		mountpoint root/\$mount > /dev/null && umount root/\$mount
+	local rootDir=\$1
+	for mount in \$devMountPoints \$roMountPoints \$rwMountPoints \$devMountPoints_CUSTOM \$roMountPoints_CUSTOM \$rwMountPoints_CUSTOM; do
+		mountpoint \$rootDir/root/\$mount > /dev/null && umount \$rootDir/root/\$mount
 	done
+	mountpoint \$rootDir/root > /dev/null && umount \$rootDir/root
+
+	stopCustom \$roodDir
 }
 
-case \$1 in
+cmdParse \$1 \$ownPath
 
-	start)
-		startChroot
-	;;
+EOF
 
-	stop)
-		stopChroot
-	;;
+cat > $newChrootHolder/rootCustomConfig.sh << EOF
+#! $sh
 
-	restart)
-		stopChroot
-		startChroot
-	;;
+# this is the file in which you can put your custom jail's configuration in shell script form
 
-	*)
-		echo "\$0 : start|stop|restart"
-	;;
-esac
+if [ "\$_JAILTOOLS_RUNNING" = "" ]; then
+	echo "Don\'t run this script directly, run startRoot.sh instead"
+	exit 1
+fi
+
+# dev mount points : read-write, no-exec
+read -d '' devMountPoints_CUSTOM << EOF
+@EOF
+
+# read-only mount points with exec
+read -d '' roMountPoints_CUSTOM << EOF
+@EOF
+
+# read-write mount points with exec
+read -d '' rwMountPoints_CUSTOM << EOF
+@EOF
+
+function startCustom() {
+	local rootDir=\$1
+	local user=\$2
+
+	# put your chroot starting scripts/instructions here
+	# here's an example, by default this is the same as the shell command.
+	env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=1000 HOSTNAME=nowhere.here unshare -mpf $sh -c "mount -tproc none \$rootDir/root/proc; chroot --userspec=1000:100 \$rootDir/root /bin/sh"
+}
+
+function stopCustom() {
+	local rootDir=\$1
+	# put your stop instructions here (shouldn't need any normally)
+}
+
+function cmdParse() {
+	local args=\$1
+	local ownPath=\$2
+
+	case \$args in
+
+		start)
+			startChroot \$ownPath
+			stopChroot \$ownPath
+		;;
+
+		stop)
+			stopChroot \$ownPath
+		;;
+
+		shell)
+			runShell \$ownPath
+			stopChroot \$ownPath
+		;;
+
+		restart)
+			stopChroot \$ownPath
+			startChroot \$ownPath
+		;;
+
+		*)
+			echo "\$0 : start|stop|restart|shell"
+		;;
+	esac
+}
 
 EOF
 
 # we fix the EOF inside the script
 sed -e "s/^\@EOF$/EOF/g" -i $newChrootHolder/startRoot.sh
+
+sed -e "s/^\@EOF$/EOF/g" -i $newChrootHolder/rootCustomConfig.sh
 
 echo "Copying pam security libraries"
 #sh cpDep.sh $newChrootHolder /lib/security /lib/security/*
