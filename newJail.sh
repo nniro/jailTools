@@ -200,7 +200,7 @@ function mountMany() {
 
 function prepareChroot() {
 	local rootDir=\$1
-	mount --bind root \$rootDir/root
+	mount --bind \$rootDir/root \$rootDir/root
 
 	# dev
 	mountMany \$rootDir/root "-o rw,noexec" \$devMountPoints
