@@ -241,7 +241,7 @@ function stopChroot() {
 	done
 	mountpoint \$rootDir/root > /dev/null && umount \$rootDir/root
 
-	stopCustom \$roodDir
+	stopCustom \$rootDir
 }
 
 cmdParse \$1 \$ownPath
