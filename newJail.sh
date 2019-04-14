@@ -93,8 +93,12 @@ for path in $filesystem ; do
 	#chgrp 0 ${1}/$path
 done
 
-echo "Linking /lib to /lib64"
-ln -s /lib $newChrootDir/lib64
+if [ -h /lib64 ]; then
+	echo "Linking /lib to /lib64"
+	ln -s /lib $newChrootDir/lib64
+else
+	mkdir $newChrootDir/lib64
+fi
 
 echo "Adding /bin/false to the jail"
 $sh $ownPath/cpDep.sh $newChrootHolder /bin/ /bin/false
