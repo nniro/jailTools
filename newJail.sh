@@ -299,10 +299,10 @@ function runChroot() {
 	if [ "\$jailNet" = "true" ]; then
 		env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$UID HOSTNAME=nowhere.here \\
 			ip netns exec \$netnsId \\
-			unshare -mpf /usr/bin/bash -c "mount -tproc none \$rootDir/root/proc; chroot --userspec=$UID:$GID \$rootDir/root /bin/sh \$args"
+			unshare -mpf $sh -c "mount -tproc none \$rootDir/root/proc; chroot --userspec=$UID:$GID \$rootDir/root $sh \$args"
 	else
 		env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$UID HOSTNAME=nowhere.here \\
-			unshare -mpf /usr/bin/bash -c "mount -tproc none \$rootDir/root/proc; chroot --userspec=$UID:$GID \$rootDir/root /bin/sh \$args"
+			unshare -mpf $sh -c "mount -tproc none \$rootDir/root/proc; chroot --userspec=$UID:$GID \$rootDir/root $sh \$args"
 	fi
 
 }
