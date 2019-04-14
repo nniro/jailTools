@@ -253,8 +253,6 @@ function prepareChroot() {
 						echo "MASQUERADE \$bridgeName \$snatEth" > \$firewallPath/snat.d/\$bridgeName.snat
 					fi
 					echo "" > \$firewallPath/rules.d/\$bridgeName.rules
-
-					shorewall restart > /dev/null 2> /dev/null
 				;;
 
 				"iptables")
@@ -274,6 +272,9 @@ function prepareChroot() {
 		fi
 	fi
 
+	prepCustom \$rootDir
+
+	[ "\$firewallType" = "shorewall" ] && shorewall restart > /dev/null 2> /dev/null
 }
 
 function startChroot() {
@@ -438,6 +439,12 @@ read -d '' rwMountPoints_CUSTOM << EOF
 
 ################ Functions ###################
 
+# this is called before the shell command and of course the start command
+# put your firewall rules here
+function prepCustom() {
+	local rootDir=$1
+}
+
 function startCustom() {
 	local rootDir=\$1
 
@@ -451,7 +458,7 @@ function startCustom() {
 
 function stopCustom() {
 	local rootDir=\$1
-	# put your stop instructions here (shouldn't need any normally)
+	# put your stop instructions here
 }
 
 function cmdParse() {
