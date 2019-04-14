@@ -257,6 +257,15 @@ function prepareChroot() {
 				;;
 
 				"iptables")
+					baseAddr=\$(echo \$ipInt | sed -e 's/\.[0-9]*$/\.0/') # convert 192.168.xxx.xxx to 192.168.xxx.0
+
+					iptables -t nat -N \${snatEth}_\${bridgeName}_masq
+					iptables -t nat -A POSTROUTING -o \$snatEth -j \${snatEth}_test_masq
+					iptables -t nat -A \${snatEth}_\${bridgeName}_masq -s \$baseAddr/\$ipIntBitmask -j MASQUERADE
+
+					iptables -t filter -I FORWARD -i \$bridgeName -o \$snatEth -j ACCEPT
+					iptables -t filter -I FORWARD -i \$snatEth -o \$bridgeName -m state --state ESTABLISHED,RELATED -j ACCEPT
+
 				;;
 
 				*)
@@ -323,6 +332,12 @@ function stopChroot() {
 				;;
 
 				"iptables")
+					iptables -t nat -D POSTROUTING -o \$snatEth -j \${snatEth}_test_masq
+					iptables -t nat -D \${snatEth}_\${bridgeName}_masq -s \$baseAddr/\$ipIntBitmask -j MASQUERADE
+
+					iptables -t filter -D FORWARD -i \$bridgeName -o \$snatEth -j ACCEPT
+					iptables -t filter -D FORWARD -i \$snatEth -o \$bridgeName -m state --state ESTABLISHED,RELATED -j ACCEPT
+					iptables -t nat -X \${snatEth}_\${bridgeName}_masq
 				;;
 
 				*)
@@ -367,7 +382,16 @@ bridgeIp=192.168.12.1
 bridgeIpBitmask=24
 
 # firewall select
-# we support : shorewall, iptables(not yet implemented)
+# we support : shorewall, iptables
+# Any other value will disable basic automatic firewall
+# masquerade (forwarding) configuration.
+# Note that both the iptables and shorewall implementations
+# only allow outbound connections (and their response). It
+# does not allow any inbound connections by themselves. For
+# that you have to push in your own rules.
+# Ideally, you should push these rules from the
+# rootCustomConfig script because rules are deleted after the
+# jail is closed, by default.
 firewallType=shorewall
 
 # shorewall specific options Section
