@@ -252,6 +252,7 @@ function prepareChroot() {
 					if [ "\$snatEth" != "" ]; then
 						echo "MASQUERADE \$bridgeName \$snatEth" > \$firewallPath/snat.d/\$bridgeName.snat
 					fi
+					echo "" > \$firewallPath/rules.d/\$bridgeName.rules
 
 					shorewall restart > /dev/null 2> /dev/null
 				;;
@@ -265,7 +266,6 @@ function prepareChroot() {
 
 					iptables -t filter -I FORWARD -i \$bridgeName -o \$snatEth -j ACCEPT
 					iptables -t filter -I FORWARD -i \$snatEth -o \$bridgeName -m state --state ESTABLISHED,RELATED -j ACCEPT
-
 				;;
 
 				*)
@@ -325,7 +325,7 @@ function stopChroot() {
 
 			case "\$firewallType" in
 				"shorewall")
-					for fwSection in zones interfaces policy snat ; do
+					for fwSection in zones interfaces policy snat rules; do
 						[ -e \$firewallPath/\$fwSection.d/\$bridgeName.\$fwSection ] && rm \$firewallPath/\$fwSection.d/\$bridgeName.\$fwSection
 					done
 					shorewall restart > /dev/null 2> /dev/null
