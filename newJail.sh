@@ -211,10 +211,56 @@ function prepareChroot() {
 	mountMany \$rootDir/root "-o ro,exec" \$roMountPoints_CUSTOM
 	mountMany \$rootDir/root "-o defaults" \$rwMountPoints_CUSTOM
 
-	# put your chroot starting scripts/instructions here
-	# here's an example
-	#env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=1000 HOSTNAME=nowhere.here unshare -mpf $sh -c "mount -tproc none \$rootDir/root/proc; chroot --userspec=1000:100 \$rootDir/root /bin/sh"
-	# if you need to add logs, just pipe them to the directory : root/run/someLog.log
+	if [ "\$jailNet" = "true" ]; then
+		if [ "\$createBridge" = "true" ]; then
+			# setting up the bridge
+			brctl addbr \$bridgeName
+			ip addr add \$bridgeIp/\$bridgeIpBitmask dev \$bridgeName scope link
+			ip link set up \$bridgeName
+		fi
+
+		# setting up the network interface
+		if [ "\$creatensId" = "true" ]; then
+			ip netns add \$netnsId
+		fi
+		ip link add \$vethExt type veth peer name \$vethInt
+		ip link set \$vethExt up
+		ip link set \$vethInt netns \$netnsId
+		ip netns exec \$netnsId ip link set \$vethInt up
+		ip netns exec \$netnsId ip addr add \$ipInt/\$ipIntBitmask dev \$vethInt scope link
+		ip netns exec \$netnsId ip route add default via \$bridgeIp dev \$vethInt proto kernel src \$ipInt
+
+		brctl addif \$bridgeName \$vethExt
+
+		if [ "\$createBridge" = "true" ]; then
+
+			case "\$firewallType" in
+				"shorewall")
+					for pth in zones interfaces policy snat ; do
+						if [ ! -d \$firewallPath/\${pth}.d ]; then
+							mkdir \$firewallPath/\${pth}.d
+						fi
+					done
+
+					echo "\$firewallZoneName ipv4" > \$firewallPath/zones.d/\$bridgeName.zones
+					echo "\$firewallZoneName \$bridgeName" > \$firewallPath/interfaces.d/\$bridgeName.interfaces
+					echo "\$firewallZoneName \$firewallNetZone ACCEPT" > \$firewallPath/policy.d/\$bridgeName.policy
+					if [ "\$snatEth" != "" ]; then
+						echo "MASQUERADE \$bridgeName \$snatEth" > \$firewallPath/snat.d/\$bridgeName.snat
+					fi
+
+					shorewall restart > /dev/null 2> /dev/null
+				;;
+
+				"iptables")
+				;;
+
+				*)
+				;;
+			esac
+		fi
+	fi
+
 }
 
 function startChroot() {
@@ -226,16 +272,61 @@ function startChroot() {
 	# if you need to add logs, just pipe them to the directory : root/run/someLog.log
 }
 
+function runChroot() {
+	local rootDir=\$1
+	shift 1
+	local cmds=\$@
+
+	if [ "\$cmds" = "" ]; then
+		local args=""
+	else
+		local args="-c \"\$cmds\""
+	fi
+
+	if [ "\$jailNet" = "true" ]; then
+		env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=1000 HOSTNAME=nowhere.here \\
+			ip netns exec \$netnsId \\
+			unshare -mpf /usr/bin/bash -c "mount -tproc none \$rootDir/root/proc; chroot --userspec=1000:100 \$rootDir/root /bin/sh \$args"
+	else
+		env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=1000 HOSTNAME=nowhere.here \\
+			unshare -mpf /usr/bin/bash -c "mount -tproc none \$rootDir/root/proc; chroot --userspec=1000:100 \$rootDir/root /bin/sh \$args"
+	fi
+
+}
+
 function runShell() {
 	local rootDir=\$1
 	prepareChroot \$rootDir
 
-	env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=1000 HOSTNAME=nowhere.here unshare -mpf $sh -c "mount -tproc none \$rootDir/root/proc; chroot --userspec=1000:100 \$rootDir/root /bin/sh"
-	stopChroot \$rootDir
+	runChroot \$rootDir
 }
 
 function stopChroot() {
 	local rootDir=\$1
+
+	if [ "\$jailNet" = "true" ]; then
+		if [ "\$createBridge" = "true" ]; then
+			ip netns delete \$bridgeName
+			ip link set down \$bridgeName
+			brctl delbr \$bridgeName
+
+			case "\$firewallType" in
+				"shorewall")
+					for fwSection in zones interfaces policy snat ; do
+						[ -e \$firewallPath/\$fwSection.d/\$bridgeName.\$fwSection ] && rm \$firewallPath/\$fwSection.d/\$bridgeName.\$fwSection
+					done
+					shorewall restart > /dev/null 2> /dev/null
+				;;
+
+				"iptables")
+				;;
+
+				*)
+				;;
+			esac
+		fi
+	fi
+
 	for mount in \$devMountPoints \$roMountPoints \$rwMountPoints \$devMountPoints_CUSTOM \$roMountPoints_CUSTOM \$rwMountPoints_CUSTOM; do
 		mountpoint \$rootDir/root/\$mount > /dev/null && umount \$rootDir/root/\$mount
 	done
@@ -258,6 +349,53 @@ if [ "\$_JAILTOOLS_RUNNING" = "" ]; then
 	exit 1
 fi
 
+################# Configuration ###############
+
+# if you set to false, the chroot will have exactly the same
+# network access as the base system.
+jailNet=true
+# If set to true, we will create a new bridge with the name
+# bridgeName(see below), otherwise we will join an existing
+# bridge with the name set in the variable bridgeName(below)
+createBridge=true
+# only used if createBridge=true
+bridgeIp=192.168.12.1
+bridgeIpBitmask=24
+
+# firewall select
+# we support : shorewall, iptables(not yet implemented)
+firewallType=shorewall
+
+# shorewall specific options Section
+firewallPath=/etc/shorewall
+firewallNetZone=net
+firewallZoneName=jl1
+
+# all firewalls options section
+# the network interface by which we will masquerade our
+# connection
+snatEth=enp1s0
+
+# create the namespace ID. If you intend this to be combined
+# with an already existing namespace, put false here and write
+# the namespace name to join to netnsId
+creatensId=true
+netnsId=$newChrootHolder
+
+# this is the bridge we will either create if createBridge=true
+# or join if it is false
+bridgeName=$newChrootHolder
+# chroot internal IP
+ipInt=192.168.12.2
+# chroot internal IP mask
+ipIntBitmask=24
+# the external veth interface name
+vethExt=veth0
+# the internal veth interface name
+vethInt=veth1
+
+################# Mount Points ################
+
 # dev mount points : read-write, no-exec
 read -d '' devMountPoints_CUSTOM << EOF
 @EOF
@@ -270,13 +408,17 @@ read -d '' roMountPoints_CUSTOM << EOF
 read -d '' rwMountPoints_CUSTOM << EOF
 @EOF
 
+################ Functions ###################
+
 function startCustom() {
 	local rootDir=\$1
-	local user=\$2
 
 	# put your chroot starting scripts/instructions here
 	# here's an example, by default this is the same as the shell command.
-	env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=1000 HOSTNAME=nowhere.here unshare -mpf $sh -c "mount -tproc none \$rootDir/root/proc; chroot --userspec=1000:100 \$rootDir/root /bin/sh"
+	# just supply your commands to it's arguments.
+	runChroot \$rootDir
+
+	# if you need to add logs, just pipe them to the directory : \$rootDir/run/someLog.log
 }
 
 function stopCustom() {
