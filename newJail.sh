@@ -511,6 +511,9 @@ mkdir $newChrootDir/usr/lib/gconv
 echo "Copying terminfo data"
 cp -RL /usr/share/{terminfo,misc} $newChrootDir/usr/share
 $sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/{termcap,services,protocols,nsswitch.conf,ld.so.cache,inputrc,hostname,resolv.conf,host.conf,hosts}
+if [ -e /etc/terminfo ]; then
+	$sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/terminfo
+fi
 
 echo "Copying the nss libraries"
 $sh $ownPath/cpDep.sh $newChrootHolder /usr/lib/ /lib/libnss*
