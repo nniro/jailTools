@@ -600,10 +600,11 @@ fi
 #$sh $ownPath/cpDep.sh $newChrootHolder /bin/ /bin/{sh,ls,mkdir,cat,chgrp,chmod,chown,cp,grep,ln,kill,rm,rmdir,sed,sh,sleep,touch,basename,dirname,uname,mktemp,cmp,md5sum,realpath,mv,id,readlink,env,tr,[,fold,which,date,stat}
 #$sh $ownPath/cpDep.sh $newChrootHolder $(dirname $sh) $sh
 
-make -C $ownPath/busybox CC=$PWD/usr/bin/musl-gcc CONFIG_PREFIX=$PWD/$newChrootDir install
-sh $ownPath/cpDep.sh $newChrootHolder /bin busybox/busybox
+sh $ownPath/cpDep.sh $newChrootHolder /bin $ownPath/busybox/busybox
 
-exit 0
+for app in $(busybox/busybox --list-full); do
+	ln -s /bin/busybox ${newChrootDir}/$app
+done
 
 echo "Now creating $newChrootDir/dev/null, $newChrootDir/dev/random and $newChrootDir/dev/urandom"
 echo "This requires root, so we use sudo"
