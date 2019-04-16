@@ -220,28 +220,46 @@ function prepareChroot() {
 	mountMany \$rootDir/root "-o defaults" \$rwMountPoints_CUSTOM
 
 	if [ "\$jailNet" = "true" ]; then
-		if [ "\$createBridge" = "true" ]; then
-			# setting up the bridge
-			brctl addbr \$bridgeName
-			ip addr add \$bridgeIp/\$bridgeIpBitmask dev \$bridgeName scope link
-			ip link set up \$bridgeName
-		fi
-
 		# setting up the network interface
 		if [ "\$creatensId" = "true" ]; then
 			ip netns add \$netnsId
 		fi
+
+		if [ "\$createBridge" = "true" ]; then
+			# setting up the bridge
+			ip netns exec \$netnsId brctl addbr \$bridgeName
+			ip netns exec \$netnsId ip addr add \$bridgeIp/\$bridgeIpBitmask dev \$bridgeName scope link
+			ip netns exec \$netnsId ip link set up \$bridgeName
+		fi
+
 		ip link add \$vethExt type veth peer name \$vethInt
 		ip link set \$vethExt up
 		ip link set \$vethInt netns \$netnsId
 		ip netns exec \$netnsId ip link set \$vethInt up
-		ip netns exec \$netnsId ip addr add \$ipInt/\$ipIntBitmask dev \$vethInt scope link
-		ip netns exec \$netnsId ip route add default via \$bridgeIp dev \$vethInt proto kernel src \$ipInt
 
-		brctl addif \$bridgeName \$vethExt
+		if [ "\$joinBridge" = "true" ]; then
+			masterBridgeIp=\$(ip netns exec \$extNetnsId ip addr show \$extBridgeName | grep 'inet ' | grep "scope link" | sed -e 's/^.*inet \([^/]*\)\/.*$/\1/')
+			masterBridgeIpCore=\$(echo \$masterBridgeIp | sed -e 's/\(.*\)\.[0-9]*$/\1/')
+			intIpNum=\$(echo \$ipInt | sed -e 's/.*\.\([0-9]*\)$/\1/')
+			newIntIp=\${masterBridgeIpCore}.\$intIpNum
 
-		if [ "\$createBridge" = "true" ]; then
+			if [ "\$extNetnsId" = "" ]; then
+				ip addr add \$newIntIp/\$ipIntBitmask dev \$vethInt scope link
+			else
+				ip link set \$vethExt netns \$extNetnsId
+				ip netns exec \$extNetnsId ip link set \$vethExt up
+				ip netns exec \$netnsId ip addr add \$newIntIp/\$ipIntBitmask dev \$vethInt scope link
+			fi
+		else
+			ip netns exec \$netnsId ip addr add \$ipInt/\$ipIntBitmask dev \$vethInt scope link
+		fi
 
+		if [ "\$joinBridge" = "false" ]; then
+			ip addr add \$extIp/\$extIpBitmask dev \$vethExt scope link
+			ip link set \$vethExt up
+			ip netns exec \$netnsId ip route add default via \$extIp dev \$vethInt proto kernel src \$ipInt
+
+			shortJailName=\${jailName:0:13}
 			case "\$firewallType" in
 				"shorewall")
 					for pth in zones interfaces policy snat ; do
@@ -250,35 +268,44 @@ function prepareChroot() {
 						fi
 					done
 
-					echo "\$firewallZoneName ipv4" > \$firewallPath/zones.d/\$bridgeName.zones
-					echo "\$firewallZoneName \$bridgeName" > \$firewallPath/interfaces.d/\$bridgeName.interfaces
-					echo "\$firewallZoneName \$firewallNetZone ACCEPT" > \$firewallPath/policy.d/\$bridgeName.policy
+					echo "\$firewallZoneName ipv4" > \$firewallPath/zones.d/\$shortJailName.zones
+					echo "\$firewallZoneName \$vethExt" > \$firewallPath/interfaces.d/\$shortJailName.interfaces
+					echo "\$firewallZoneName \$firewallNetZone ACCEPT" > \$firewallPath/policy.d/\$shortJailName.policy
 					if [ "\$snatEth" != "" ]; then
-						echo "MASQUERADE \$bridgeName \$snatEth" > \$firewallPath/snat.d/\$bridgeName.snat
+						echo "MASQUERADE \$vethExt \$snatEth" > \$firewallPath/snat.d/\$shortJailName.snat
 					fi
-					echo "" > \$firewallPath/rules.d/\$bridgeName.rules
+					echo "" > \$firewallPath/rules.d/\$shortJailName.rules
 				;;
 
 				"iptables")
 					baseAddr=\$(echo \$ipInt | sed -e 's/\.[0-9]*$/\.0/') # convert 192.168.xxx.xxx to 192.168.xxx.0
 
-					iptables -t nat -N \${snatEth}_\${bridgeName}_masq
-					iptables -t nat -A POSTROUTING -o \$snatEth -j \${snatEth}_\${jailName}_masq
-					iptables -t nat -A \${snatEth}_\${bridgeName}_masq -s \$baseAddr/\$ipIntBitmask -j MASQUERADE
+					iptables -t nat -N \${snatEth}_\${shortJailName}_masq
+					iptables -t nat -A POSTROUTING -o \$snatEth -j \${snatEth}_\${shortJailName}_masq
+					iptables -t nat -A \${snatEth}_\${shortJailName}_masq -s \$baseAddr/\$ipIntBitmask -j MASQUERADE
 
-					iptables -t filter -I FORWARD -i \$bridgeName -o \$snatEth -j ACCEPT
-					iptables -t filter -I FORWARD -i \$snatEth -o \$bridgeName -m state --state ESTABLISHED,RELATED -j ACCEPT
+					iptables -t filter -I FORWARD -i \$vethExt -o \$snatEth -j ACCEPT
+					iptables -t filter -I FORWARD -i \$snatEth -o \$vethExt -m state --state ESTABLISHED,RELATED -j ACCEPT
 				;;
 
 				*)
 				;;
 			esac
+		else # joinBridge = true
+			ip netns exec \$netnsId ip route add default via \$masterBridgeIp dev \$vethInt proto kernel src \$newIntIp
+
+			if [ "\$extNetnsId" = "" ]; then
+				brctl addif \$extBridgeName \$vethExt
+			else
+				ip netns exec \$extNetnsId brctl addif \$extBridgeName \$vethExt
+			fi
 		fi
 	fi
 
+
 	prepCustom \$rootDir
 
-	[ "\$firewallType" = "shorewall" ] && shorewall restart > /dev/null 2> /dev/null
+	[ "\$firewallType" = "shorewall" ] && [ "\$joinBridge" = "false" ] && shorewall restart > /dev/null 2> /dev/null
 }
 
 function startChroot() {
@@ -324,30 +351,41 @@ function stopChroot() {
 
 	if [ "\$jailNet" = "true" ]; then
 		if [ "\$createBridge" = "true" ]; then
-			ip netns delete \$bridgeName
-			ip link set down \$bridgeName
-			brctl delbr \$bridgeName
+			ip netns exec \$netnsId ip link set down \$bridgeName
+			ip netns exec \$netnsId brctl delbr \$bridgeName
 
+			#ip link set down \$bridgeName
+			#brctl delbr \$bridgeName
+		fi
+
+		if [ "\$creatensId" = "true" ]; then
+			ip netns delete \$netnsId
+		fi
+
+		if [ "\$joinBridge" = "false" ]; then
+			shortJailName=\${jailName:0:13}
 			case "\$firewallType" in
 				"shorewall")
 					for fwSection in zones interfaces policy snat rules; do
-						[ -e \$firewallPath/\$fwSection.d/\$bridgeName.\$fwSection ] && rm \$firewallPath/\$fwSection.d/\$bridgeName.\$fwSection
+						[ -e \$firewallPath/\$fwSection.d/\$shortJailName.\$fwSection ] && rm \$firewallPath/\$fwSection.d/\$shortJailName.\$fwSection
 					done
 					shorewall restart > /dev/null 2> /dev/null
-				;;
+									;;
 
 				"iptables")
-					iptables -t nat -D POSTROUTING -o \$snatEth -j \${snatEth}_\${jailName}_masq
-					iptables -t nat -D \${snatEth}_\${bridgeName}_masq -s \$baseAddr/\$ipIntBitmask -j MASQUERADE
+					iptables -t nat -D POSTROUTING -o \$snatEth -j \${snatEth}_\${shortJailName}_masq
+					iptables -t nat -D \${snatEth}_\${shortJailName}_masq -s \$baseAddr/\$ipIntBitmask -j MASQUERADE
 
-					iptables -t filter -D FORWARD -i \$bridgeName -o \$snatEth -j ACCEPT
-					iptables -t filter -D FORWARD -i \$snatEth -o \$bridgeName -m state --state ESTABLISHED,RELATED -j ACCEPT
-					iptables -t nat -X \${snatEth}_\${bridgeName}_masq
+					iptables -t filter -D FORWARD -i \$vethExt -o \$snatEth -j ACCEPT
+					iptables -t filter -D FORWARD -i \$snatEth -o \$vethExt -m state --state ESTABLISHED,RELATED -j ACCEPT
+					iptables -t nat -X \${snatEth}_\${shortJailName}_masq
 				;;
 
 				*)
 				;;
 			esac
+		else # joinBridge = true
+			ip netns exec \$extNetnsId brctl delif \$extBridgeName \$vethExt
 		fi
 	fi
 
@@ -359,7 +397,12 @@ function stopChroot() {
 	stopCustom \$rootDir
 }
 
-cmdParse \$1 \$ownPath
+case \$1 in
+
+	*)
+		cmdParse \$1 \$ownPath
+	;;
+esac
 
 EOF
 
@@ -381,12 +424,32 @@ jailName=$jailName
 # network access as the base system.
 jailNet=true
 # If set to true, we will create a new bridge with the name
-# bridgeName(see below), otherwise we will join an existing
-# bridge with the name set in the variable bridgeName(below)
+# bridgeName(see below) in our ns creatensId. This permits
+# external sources to join it and potentially gaining access
+# to services on this jail.
 createBridge=true
 # only used if createBridge=true
-bridgeIp=192.168.12.1
+bridgeIp=192.168.99.1
 bridgeIpBitmask=24
+
+# for the external connection, we can either connect to an existing
+# bridge with the netnsId of extNetnsId or just get our external
+# interface masqueraded to the base system's network interface.
+joinBridge=false
+# only valid if joinBridge=true
+# put the name of the bridge you want to join
+# in which case the IP of the external bridge will automatically
+# be assigned the last values of intIp
+# for example you put 2 to intIp and the external bridgeName is
+# 192.168.88 the script will automatically combine these 2 to create
+# 192.168.88.2
+extBridgeName=
+# this is the netnsId of where the bridge resides. If the bridge
+# is on the base system, leave empty.
+extNetnsId=
+# this is the external IP we use only if joinBridge=false
+extIp=192.168.12.1
+extIpBitmask=24
 
 # firewall select
 # we support : shorewall, iptables
@@ -399,35 +462,43 @@ bridgeIpBitmask=24
 # Ideally, you should push these rules from the
 # rootCustomConfig script because rules are deleted after the
 # jail is closed, by default.
+# only used if joinBridge=false
 firewallType=shorewall
 
-# shorewall specific options Section
+# shorewall specific options Section, only used if
+# joinBridge=false
 firewallPath=/etc/shorewall
 firewallNetZone=net
-firewallZoneName=jl1
+firewallZoneName=\${jailName:0:5}
 
 # all firewalls options section
 # the network interface by which we will masquerade our
-# connection
+# connection (only used if joinBridge=false)
 snatEth=enp1s0
 
+# OBSOLETE, these 2 will need to be removed as we will _always_
+# create a NS for each jail
 # create the namespace ID. If you intend this to be combined
 # with an already existing namespace, put false here and write
 # the namespace name to join to netnsId
 creatensId=true
-netnsId=\$jailName
+netnsId=\${jailName:0:13}
 
 # this is the bridge we will either create if createBridge=true
 # or join if it is false
-bridgeName=\$jailName
+bridgeName=\${jailName:0:13}
 # chroot internal IP
-ipInt=192.168.12.2
+# the one liner script is to make sure it is of the same network
+# class as the bridgeIp.
+# Just change the ending number to set the IP.
+# defaults to "2"
+ipInt=\$(echo \$extIp | sed -e 's/^\(.*\)\.[0-9]*$/\1\./')2
 # chroot internal IP mask
 ipIntBitmask=24
-# the external veth interface name
-vethExt=veth0
-# the internal veth interface name
-vethInt=veth1
+# the external veth interface name (only 15 characters maximum)
+vethExt=\${jailName:0:13}ex
+# the internal veth interface name (only 15 characters maximum)
+vethInt=\${jailName:0:13}in
 
 ################# Mount Points ################
 
