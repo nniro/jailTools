@@ -595,7 +595,7 @@ sed -e "s/^\@EOF$/EOF/g" -i $newChrootHolder/rootCustomConfig.sh
 echo "Copying pam security libraries"
 #sh cpDep.sh $newChrootHolder /lib/security /lib/security/*
 
-echo "Copying terminfo data"
+echo "Copying /etc data"
 $sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/{termcap,services,protocols,nsswitch.conf,ld.so.cache,inputrc,hostname,resolv.conf,host.conf,hosts}
 if [ -e /etc/terminfo ]; then
 	$sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/terminfo
