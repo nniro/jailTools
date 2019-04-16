@@ -74,6 +74,9 @@ if [ -e $1 ]; then
 	exit 1
 fi
 
+uid=$(id -u)
+gid=$(id -g)
+
 ownPath=$(dirname $0)
 
 jailName=$1
@@ -110,12 +113,12 @@ $sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/localtime
 # group
 cat >> $newChrootDir/etc/group << EOF
 root:x:0:
-$2:x:$GID:
+$2:x:$gid:
 EOF
 # passwd
 cat >> $newChrootDir/etc/passwd << EOF
 root:x:0:0::/root:/bin/false
-$2:x:$UID:$GID::/home:/bin/false
+$2:x:$uid:$gid::/home:/bin/false
 EOF
 # shadow
 cat >> $newChrootDir/etc/shadow << EOF
@@ -299,12 +302,12 @@ function runChroot() {
 	fi
 
 	if [ "\$jailNet" = "true" ]; then
-		env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$UID HOSTNAME=nowhere.here \\
+		env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$uid HOSTNAME=nowhere.here \\
 			ip netns exec \$netnsId \\
-			unshare -mpf $sh -c "mount -tproc none \$rootDir/root/proc; chroot --userspec=$UID:$GID \$rootDir/root $sh \$args"
+			unshare -mpf $sh -c "mount -tproc none \$rootDir/root/proc; chroot --userspec=$uid:$gid \$rootDir/root $sh \$args"
 	else
-		env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$UID HOSTNAME=nowhere.here \\
-			unshare -mpf $sh -c "mount -tproc none \$rootDir/root/proc; chroot --userspec=$UID:$GID \$rootDir/root $sh \$args"
+		env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$uid HOSTNAME=nowhere.here \\
+			unshare -mpf $sh -c "mount -tproc none \$rootDir/root/proc; chroot --userspec=$uid:$gid \$rootDir/root $sh \$args"
 	fi
 
 }
