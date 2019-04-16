@@ -595,28 +595,11 @@ sed -e "s/^\@EOF$/EOF/g" -i $newChrootHolder/rootCustomConfig.sh
 echo "Copying pam security libraries"
 #sh cpDep.sh $newChrootHolder /lib/security /lib/security/*
 
-#echo "Copying minimal locale and gconv data"
-mkdir $newChrootDir/usr/lib/locale
-#sh cpDep.sh $newChrootHolder /usr/lib/locale/en_US /usr/lib/locale/en_US
-mkdir $newChrootDir/usr/lib/gconv
-#sh cpDep.sh $newChrootHolder /usr/lib/gconv /usr/lib/gconv
-
 echo "Copying terminfo data"
-cp -RL /usr/share/{terminfo,misc} $newChrootDir/usr/share
 $sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/{termcap,services,protocols,nsswitch.conf,ld.so.cache,inputrc,hostname,resolv.conf,host.conf,hosts}
 if [ -e /etc/terminfo ]; then
 	$sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/terminfo
 fi
-
-#echo "Copying the nss libraries"
-#$sh $ownPath/cpDep.sh $newChrootHolder /usr/lib/ /lib/libnss*
-
-#echo "Adding /bin/false to the jail"
-#$sh $ownPath/cpDep.sh $newChrootHolder /bin/ /bin/false
-
-# if you want the standard binaries for using sh scripts
-#$sh $ownPath/cpDep.sh $newChrootHolder /bin/ /bin/{sh,ls,mkdir,cat,chgrp,chmod,chown,cp,grep,ln,kill,rm,rmdir,sed,sh,sleep,touch,basename,dirname,uname,mktemp,cmp,md5sum,realpath,mv,id,readlink,env,tr,[,fold,which,date,stat}
-#$sh $ownPath/cpDep.sh $newChrootHolder $(dirname $sh) $sh
 
 sh $ownPath/cpDep.sh $newChrootHolder /bin $ownPath/busybox/busybox
 
