@@ -104,8 +104,6 @@ else
 	mkdir $newChrootDir/lib64
 fi
 
-echo "Adding /bin/false to the jail"
-$sh $ownPath/cpDep.sh $newChrootHolder /bin/ /bin/false
 
 echo "Populating the /etc configuration files"
 # localtime
@@ -331,10 +329,10 @@ function runChroot() {
 	if [ "\$jailNet" = "true" ]; then
 		env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$uid HOSTNAME=nowhere.here \\
 			ip netns exec \$netnsId \\
-			unshare -mpfiuC $sh -c "mount -tproc none \$rootDir/root/proc; chroot --userspec=$uid:$gid \$rootDir/root $sh \$args"
+			unshare -mpfiuC $sh -c "mount -tproc none \$rootDir/root/proc; chroot --userspec=$uid:$gid \$rootDir/root /bin/sh \$args"
 	else
 		env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$uid HOSTNAME=nowhere.here \\
-			unshare -mpfiuC $sh -c "mount -tproc none \$rootDir/root/proc; chroot --userspec=$uid:$gid \$rootDir/root $sh \$args"
+			unshare -mpfiuC $sh -c "mount -tproc none \$rootDir/root/proc; chroot --userspec=$uid:$gid \$rootDir/root /bin/sh \$args"
 	fi
 
 }
@@ -592,12 +590,20 @@ if [ -e /etc/terminfo ]; then
 	$sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/terminfo
 fi
 
-echo "Copying the nss libraries"
-$sh $ownPath/cpDep.sh $newChrootHolder /usr/lib/ /lib/libnss*
+#echo "Copying the nss libraries"
+#$sh $ownPath/cpDep.sh $newChrootHolder /usr/lib/ /lib/libnss*
+
+#echo "Adding /bin/false to the jail"
+#$sh $ownPath/cpDep.sh $newChrootHolder /bin/ /bin/false
 
 # if you want the standard binaries for using sh scripts
-$sh $ownPath/cpDep.sh $newChrootHolder /bin/ /bin/{sh,ls,mkdir,cat,chgrp,chmod,chown,cp,grep,ln,kill,rm,rmdir,sed,sh,sleep,touch,basename,dirname,uname,mktemp,cmp,md5sum,realpath,mv,id,readlink,env,tr,[,fold,which,date,stat}
-$sh $ownPath/cpDep.sh $newChrootHolder $(dirname $sh) $sh
+#$sh $ownPath/cpDep.sh $newChrootHolder /bin/ /bin/{sh,ls,mkdir,cat,chgrp,chmod,chown,cp,grep,ln,kill,rm,rmdir,sed,sh,sleep,touch,basename,dirname,uname,mktemp,cmp,md5sum,realpath,mv,id,readlink,env,tr,[,fold,which,date,stat}
+#$sh $ownPath/cpDep.sh $newChrootHolder $(dirname $sh) $sh
+
+make -C $ownPath/busybox CC=$PWD/usr/bin/musl-gcc CONFIG_PREFIX=$PWD/$newChrootDir install
+sh $ownPath/cpDep.sh $newChrootHolder /bin busybox/busybox
+
+exit 0
 
 echo "Now creating $newChrootDir/dev/null, $newChrootDir/dev/random and $newChrootDir/dev/urandom"
 echo "This requires root, so we use sudo"
