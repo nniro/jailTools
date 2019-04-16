@@ -79,6 +79,24 @@ gid=$(id -g)
 
 ownPath=$(dirname $0)
 
+# convert the path of this script to an absolute path
+if [ "$ownPath" = "." ]; then
+	ownPath=$PWD
+else
+	if [ "${ownPath:0:1}" = "/" ]; then
+		# absolute path, we do nothing
+		break;
+	else
+		# relative path
+		ownPath=$PWD/$ownPath
+	fi
+fi
+
+if [ ! -e $ownPath/busybox/busybox ]; then
+	echo "Please run make in $ownPath to compile the necessary dependencies"
+	exit 1
+fi
+
 jailName=$1
 newChrootHolder=$1
 newChrootDir=$newChrootHolder/root
