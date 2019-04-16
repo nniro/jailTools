@@ -76,6 +76,7 @@ fi
 
 ownPath=$(dirname $0)
 
+jailName=$1
 newChrootHolder=$1
 newChrootDir=$newChrootHolder/root
 echo "Instantiating directory : " $newChrootDir
@@ -259,7 +260,7 @@ function prepareChroot() {
 					baseAddr=\$(echo \$ipInt | sed -e 's/\.[0-9]*$/\.0/') # convert 192.168.xxx.xxx to 192.168.xxx.0
 
 					iptables -t nat -N \${snatEth}_\${bridgeName}_masq
-					iptables -t nat -A POSTROUTING -o \$snatEth -j \${snatEth}_test_masq
+					iptables -t nat -A POSTROUTING -o \$snatEth -j \${snatEth}_\${jailName}_masq
 					iptables -t nat -A \${snatEth}_\${bridgeName}_masq -s \$baseAddr/\$ipIntBitmask -j MASQUERADE
 
 					iptables -t filter -I FORWARD -i \$bridgeName -o \$snatEth -j ACCEPT
@@ -333,7 +334,7 @@ function stopChroot() {
 				;;
 
 				"iptables")
-					iptables -t nat -D POSTROUTING -o \$snatEth -j \${snatEth}_test_masq
+					iptables -t nat -D POSTROUTING -o \$snatEth -j \${snatEth}_\${jailName}_masq
 					iptables -t nat -D \${snatEth}_\${bridgeName}_masq -s \$baseAddr/\$ipIntBitmask -j MASQUERADE
 
 					iptables -t filter -D FORWARD -i \$bridgeName -o \$snatEth -j ACCEPT
@@ -370,6 +371,8 @@ if [ "\$_JAILTOOLS_RUNNING" = "" ]; then
 fi
 
 ################# Configuration ###############
+
+jailName=$jailName
 
 # if you set to false, the chroot will have exactly the same
 # network access as the base system.
@@ -409,11 +412,11 @@ snatEth=enp1s0
 # with an already existing namespace, put false here and write
 # the namespace name to join to netnsId
 creatensId=true
-netnsId=$newChrootHolder
+netnsId=\$jailName
 
 # this is the bridge we will either create if createBridge=true
 # or join if it is false
-bridgeName=$newChrootHolder
+bridgeName=\$jailName
 # chroot internal IP
 ipInt=192.168.12.2
 # chroot internal IP mask
