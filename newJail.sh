@@ -535,7 +535,7 @@ read -d '' rwMountPoints_CUSTOM << EOF
 # this is called before the shell command and of course the start command
 # put your firewall rules here
 function prepCustom() {
-	local rootDir=$1
+	local rootDir=\$1
 }
 
 function startCustom() {
