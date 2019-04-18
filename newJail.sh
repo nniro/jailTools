@@ -97,7 +97,7 @@ if [ ! -e $ownPath/busybox/busybox ]; then
 	exit 1
 fi
 
-jailName=$1
+jailName=$(basename $1)
 newChrootHolder=$1
 newChrootDir=$newChrootHolder/root
 echo "Instantiating directory : " $newChrootDir
