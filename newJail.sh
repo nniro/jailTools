@@ -603,7 +603,7 @@ fi
 
 sh $ownPath/cpDep.sh $newChrootHolder /bin $ownPath/busybox/busybox
 
-for app in $(busybox/busybox --list-full); do
+for app in $($ownPath/busybox/busybox --list-full); do
 	ln -s /bin/busybox ${newChrootDir}/$app
 done
 
