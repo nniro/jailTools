@@ -365,6 +365,8 @@ function runShell() {
 function stopChroot() {
 	local rootDir=\$1
 
+	stopCustom \$rootDir
+
 	if [ "\$jailNet" = "true" ]; then
 		if [ "\$createBridge" = "true" ]; then
 			ip netns exec \$netnsId ip link set down \$bridgeName
@@ -409,8 +411,6 @@ function stopChroot() {
 		mountpoint \$rootDir/root/\$mount > /dev/null && umount \$rootDir/root/\$mount
 	done
 	mountpoint \$rootDir/root > /dev/null && umount \$rootDir/root
-
-	stopCustom \$rootDir
 }
 
 case \$1 in
