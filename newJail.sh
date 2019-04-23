@@ -444,6 +444,9 @@ jailNet=true
 # external sources to join it and potentially gaining access
 # to services on this jail.
 createBridge=true
+# this is the bridge we will either create if createBridge=true
+# or join if it is false
+bridgeName=\${jailName:0:13}
 # only used if createBridge=true
 bridgeIp=192.168.99.1
 bridgeIpBitmask=24
@@ -500,9 +503,6 @@ snatEth=enp1s0
 creatensId=true
 netnsId=\${jailName:0:13}
 
-# this is the bridge we will either create if createBridge=true
-# or join if it is false
-bridgeName=\${jailName:0:13}
 # chroot internal IP
 # the one liner script is to make sure it is of the same network
 # class as the bridgeIp.
