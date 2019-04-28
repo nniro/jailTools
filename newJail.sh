@@ -331,7 +331,7 @@ function startChroot() {
 	prepareChroot \$rootDir
 
 	startCustom \$rootDir \$user
-	# if you need to add logs, just pipe them to the directory : root/run/someLog.log
+	# if you need to add logs, just pipe them to the directory : run/someLog.log
 }
 
 function runChroot() {
@@ -372,9 +372,6 @@ function stopChroot() {
 		if [ "\$createBridge" = "true" ]; then
 			ip netns exec \$netnsId ip link set down \$bridgeName
 			ip netns exec \$netnsId brctl delbr \$bridgeName
-
-			#ip link set down \$bridgeName
-			#brctl delbr \$bridgeName
 		fi
 
 		ip netns delete \$netnsId
@@ -469,6 +466,7 @@ extBridgeName=
 # this is the netnsId of where the bridge resides. If the bridge
 # is on the base system, leave empty.
 extNetnsId=
+
 # this is the external IP we use only if joinBridge=false
 extIp=192.168.12.1
 extIpBitmask=24
@@ -496,11 +494,11 @@ firewallZoneName=\${jailName:0:5}
 # all firewalls options section
 # the network interface by which we will masquerade our
 # connection (only used if joinBridge=false)
-snatEth=enp1s0
+snatEth=eth0
 
 # chroot internal IP
 # the one liner script is to make sure it is of the same network
-# class as the bridgeIp.
+# class as the extIp.
 # Just change the ending number to set the IP.
 # defaults to "2"
 ipInt=\$(echo \$extIp | sed -e 's/^\(.*\)\.[0-9]*$/\1\./')2
