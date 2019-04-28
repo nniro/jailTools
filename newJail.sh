@@ -284,6 +284,75 @@ function leaveBridge() {
 
 }
 
+# jailLocation - The jail that hosts a bridge you wish to connect to.
+# isDefaultRoute - Route all packets through this bridge, you can only do that on a single bridge (valid values : "true" or "false")
+# internalIpNum - internalIpNum - a number from 1 to 254 assigned to the vethInternal device. In the same class C network as the bridge.
+# this loads data from a jail automatically and connects to their bridge
+function joinBridgeByJail() {
+	local jailLocation=\$1
+	local isDefaultRoute=\$2
+	local internalIpNum=\$3
+
+	if [ -d \$jailLocation/root ] && [ -d \$jailLocation/run ] && [ -f \$jailLocation/startRoot.sh ] && [ -f \$jailLocation/rootCustomConfig.sh ]; then
+		local confPath=\$jailLocation/rootCustomConfig.sh
+
+		local neededConfig=\$(cat \$confPath | sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p; /^bridgeIp=/ p; /^bridgeIpBitmask=/ p; /^netnsId=/ p;')
+
+		local remJailName=\$(echo \$neededConfig | sed -e 's/\([^=]*=[^ ]* \)\{0\}\([^=]*=[^ ]*\).*/\2/' | sed -e 's/[^=]*=\(.*\)$/\1/')
+		local remIsCreateBridge=\$(echo \$neededConfig | sed -e 's/\([^=]*=[^ ]* \)\{1\}\([^=]*=[^ ]*\).*/\2/' | sed -e 's/[^=]*=\(.*\)$/\1/')
+		local remBridgeName=\$(echo \$neededConfig | sed -e 's/\([^=]*=[^ ]* \)\{2\}\([^=]*=[^ ]*\).*/\2/' | sed -e 's/[^=]*=\(.*\)$/\1/')
+		local remBridgeIp=\$(echo \$neededConfig | sed -e 's/\([^=]*=[^ ]* \)\{3\}\([^=]*=[^ ]*\).*/\2/' | sed -e 's/[^=]*=\(.*\)$/\1/')
+		local remBridgeIpBitmask=\$(echo \$neededConfig | sed -e 's/\([^=]*=[^ ]* \)\{4\}\([^=]*=[^ ]*\).*/\2/' | sed -e 's/[^=]*=\(.*\)$/\1/')
+		local remNetnsId=\$(echo \$neededConfig | sed -e 's/\([^=]*=[^ ]* \)\{5\}\([^=]*=[^ ]*\).*/\2/' | sed -e 's/[^=]*=\(.*\)$/\1/')
+
+		if [ "\$remIsCreateBridge" != "true" ]; then
+			echo "This jail does not have a bridge, bailing out."
+			return
+		fi
+
+		if [ "\$remBridgeName" = '\${jailName:0:13}' ]; then
+			local remBridgeName=\${remJailName:0:13}
+		fi
+		if [ "\$remNetnsId" = '\${jailName:0:13}' ]; then
+			local remNetnsId=\${remJailName:0:13}
+		fi
+
+		joinBridge "\$isDefaultRoute" "\$remJailName" "\$jailName" "\$remNetnsId" "\$remBridgeName" "\$internalIpNum"
+	else
+		echo "Supplied jail path is not a valid supported jail."
+	fi
+}
+
+# jailLocation - The jail that hosts a bridge you wish to disconnect from.
+function leaveBridgeByJail() {
+	local jailLocation=\$1
+
+	if [ -d \$jailLocation/root ] && [ -d \$jailLocation/run ] && [ -f \$jailLocation/startRoot.sh ] && [ -f \$jailLocation/rootCustomConfig.sh ]; then
+		local confPath=\$jailLocation/rootCustomConfig.sh
+
+		local neededConfig=\$(cat \$confPath | sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p; /^bridgeIp=/ p; /^bridgeIpBitmask=/ p; /^netnsId=/ p;')
+
+		local remJailName=\$(echo \$neededConfig | sed -e 's/\([^=]*=[^ ]* \)\{0\}\([^=]*=[^ ]*\).*/\2/' | sed -e 's/[^=]*=\(.*\)$/\1/')
+		local remIsCreateBridge=\$(echo \$neededConfig | sed -e 's/\([^=]*=[^ ]* \)\{1\}\([^=]*=[^ ]*\).*/\2/' | sed -e 's/[^=]*=\(.*\)$/\1/')
+		local remBridgeName=\$(echo \$neededConfig | sed -e 's/\([^=]*=[^ ]* \)\{2\}\([^=]*=[^ ]*\).*/\2/' | sed -e 's/[^=]*=\(.*\)$/\1/')
+		local remNetnsId=\$(echo \$neededConfig | sed -e 's/\([^=]*=[^ ]* \)\{5\}\([^=]*=[^ ]*\).*/\2/' | sed -e 's/[^=]*=\(.*\)$/\1/')
+
+		if [ "\$remIsCreateBridge" != "true" ]; then
+			echo "This jail does not have a bridge, bailing out."
+			return
+		fi
+
+		if [ "\$remBridgeName" = '\${jailName:0:13}' ]; then
+			local remBridgeName=\${remJailName:0:13}
+		fi
+		if [ "\$remNetnsId" = '\${jailName:0:13}' ]; then
+			local remNetnsId=\${remJailName:0:13}
+		fi
+
+		leaveBridge "\$jailName" "\$remNetnsId" "\$remBridgeName"
+	fi
+}
+
 function prepareChroot() {
 	local rootDir=\$1
 	mount --bind \$rootDir/root \$rootDir/root
