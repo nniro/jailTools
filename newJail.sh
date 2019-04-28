@@ -239,6 +239,8 @@ function prepareChroot() {
 		# setting up the network interface
 		ip netns add \$netnsId
 
+		# loopback device is activated
+		ip netns exec \$netnsId ip link set up lo
 
 		if [ "\$createBridge" = "true" ]; then
 			# setting up the bridge
