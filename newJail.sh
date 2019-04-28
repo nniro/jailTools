@@ -609,6 +609,12 @@ vethInt=\${jailName:0:13}in
 
 ################# Mount Points ################
 
+# it's important to note that these mount points will *only* mount a directory
+# exactly at the same location as the base system but inside the jail.
+# so if you put /etc/ssl in the read-only mount points, the place it will be mounted
+# is /etc/ssl in the jail. If you want more flexibility, you will have to mount
+# manually like the Xauthority example in the function prepCustom.
+
 # dev mount points : read-write, no-exec
 read -d '' devMountPoints_CUSTOM << EOF
 @EOF
@@ -627,10 +633,65 @@ read -d '' rwMountPoints_CUSTOM << EOF
 # put your firewall rules here
 function prepCustom() {
 	local rootDir=\$1
+
+	# Note : We use the path /home/yourUser as a place holder for your home directory.
+	# It is necessary to use a full path rather than the \$HOME env. variable because
+	# don't forget that this is being run as root.
+
+	# mounting Xauthority manually (crucial for supporting X11)
+	# mount --bind /home/yourUser/.Xauthority \$rootDir/root/home/.Xauthority
+
+	# To join an already running jail called tor at the path, we don't set it
+	# as our default internet route and we assign the interface the last IP bit of 3
+	# so for example if tor's bridge's IP is 192.168.11.1 we are automatically assigned
+	# the IP : 192.168.11.3
+	# joinBridgeByJail /home/yourUser/jails/tor "false" "3"
+
+	# To join a bridge not from a jail.
+	# The 1st argument is for if we want to route our internet through that bridge.
+	# the 2nd and 3rd arguments : intInt and extInt are the interface names for the
+	# internal interface and the external interface respecfully.
+	# We left the 4th argument empty because this bridge is on the base system. If it
+	# was in it's own namespace, we would use the namespace name there.
+	# The 5th argument is the bridge's device name
+	# The 6th argument is the last IP bit. For example if tor's bridge's IP is 192.168.11.1
+	# we are automatically assigned the IP : 192.168.11.3
+	# joinBridge "false" "intInt" "extInt" "" "br0" "3"
+
+	# firewall shorewall examples :
+	# Note : There is no need to remove these from stopCustom as they are automatically removed.
+	# Note : won't work unless configNet=true and firewallType=shorewall
+
+	# incoming
+
+	# We allow the base system to connect to our jail (all ports) :
+	# echo "fw \$firewallZoneName ACCEPT" >> \$firewallPath/policy.d/\$jailName.policy
+
+	# We allow the base system to connect to our jail specifically only to the port 8000 :
+	# echo "ACCEPT	fw	\$firewallZoneName tcp 8000" >> \$firewallPath/rules.d/\$jailName.rules
+
+	# We allow the net to connect to our jail specifically to the port 8000 from the port 80 (by dnat) :
+	# internet -> port 80 -> firewall's dnat -> jail's port 8000
+	# echo "DNAT \$firewallNetZone \$firewallZoneName:\$extIp:8000 tcp 80" >> \$firewallPath/rules.d/\$jailName.rules
+
+	# outgoing
+
+	# We allow the jail all access to the net zone (all ports) :
+	# echo "\$firewallZoneName \$firewallNetZone ACCEPT" >> \$firewallPath/policy.d/\$jailName.policy
+
+	# We allow the jail all access to the base system (all ports) :
+	# echo "\$firewallZoneName fw ACCEPT" >> \$firewallPath/policy.d/\$jailName.policy
+
+	# We allow the jail only access to the base system's port 25 :
+	# echo "ACCEPT \$firewallZoneName fw tcp 25" >> \$firewallPath/rules.d/\$jailName.rules
+
 }
 
 function startCustom() {
 	local rootDir=\$1
+
+	# if you want both the "shell" command and this "start" command to have the same parameters,
+	# place your instructions in prepCustom and only place "start" specific instructions here.
 
 	# put your chroot starting scripts/instructions here
 	# here's an example, by default this is the same as the shell command.
@@ -643,6 +704,15 @@ function startCustom() {
 function stopCustom() {
 	local rootDir=\$1
 	# put your stop instructions here
+
+	# this is to be used in combination with the mount --bind example in prepCustom
+	# mountpoint \$rootDir/root/home/.Xauthority > /dev/null && umount \$rootDir/root/home/.Xauthority
+
+	# this is to be used in combination with the joinBridgeByJail line in prepCustom
+	# leaveBridgeByJail /home/yourUser/jails/tor
+
+	# this is to be used in combination with the joinBridge line in prepCustom
+	# leaveBridgeByJail "extInt" "" "br0"
 }
 
 function cmdParse() {
