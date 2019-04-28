@@ -1,0 +1,197 @@
+JailTools - helper script for creating jails
+============================================
+
+What is JailTools?
+------------------
+
+Targeting specifically GNU/linux, it is a toolkit for easily creating a jail for your services using chroot and namespaces.
+
+Purpose
+-------
+
+To make it easy and painless to create chroots for specific purposes and also tools to help
+when copying applications and libraries to the jail, so as to also copy the shared objects
+they depend on to run correctly.
+The idea is to create a minimal filesystem (about 60MB in size) which is meant to include
+only the bare minimum for applications or libraries to do their job. This way, in case
+the service is compromized, the adversary will only get access to that filesystem rather
+than the whole underlying/host system.
+
+Tutorial
+--------
+
+*The main scripts*
+~~~~~~~~~~~~~~~~~~
+There are 2 useful scripts : 
+
+. *newJail.sh*
+
+	Used to create new jails (as the name implies).
+
+. *cpDep.sh*
+
+	Used to copy binaries or libraries to the jail and it does
+	it's best to copy dependencies with it too (only shared objects).
+
+*How to use newJail*
+~~~~~~~~~~~~~~~~~~~~
+This is how you can create a new jail :
+
+----
+sh newJail.sh <new jail name> <internal jail's main username> <internal jail's main group>
+----
+
+both internal username and group are actually for inside the jail itself, they
+will be added to /etc/\{passwd,shadow\} and /etc/group respectively, inside the
+chroot. The main user will be exactly the same UID as the user that created
+the jail, same goes for the group.
+
+The jail name is simply a directory of that name that will be created and any
+reference of the jail internally is done with that name.
+
+so for example :
+
+----
+sh newJail.sh example foo bar
+----
+
+[NOTE] 
+sudo is used at the end of the script to create a few necessary device nodes.
+
+This will create a new directory called example containing the jail and once running, the user's
+UID and GID will be mapped to foo and bar respectively. Inside that directory
+there are 2 notable scripts (as of this writing there are 3 total),
+startRoot.sh (start the jail using that script) and rootCustomConfig.sh (where
+you place your configuration and custom scripting). The script startRoot.sh
+is meant not to be edited, only make your changes in the script
+rootCustomConfig.sh. 
+
+As is, the system created a jail with only basic apps and a shell.
+
+*The generated jail*
+~~~~~~~~~~~~~~~~~~~~
+A newly created jail includes 2 ways to start the chroot : 
+
+
+. sh startRoot.sh shell 
+
+	Used to get shell access to do your commands inside the jail.
+
+. sh startRoot.sh start
+
+	Used to start your services and such. By default it does the same
+	as the command shell.
+
+////
+sudo sh startRoot.sh shell
+
+this will move you inside the chroot filesystem in which you can
+do basic commands.
+////
+
+Now, if you want to add more applications to the jail, you have to
+use cpDep.sh. 
+
+Here we show how to copy the application telnet to the jail :
+
+----
+sh <pathToJailTools>/cpDep.sh <pathToJail>/example /usr/bin /usr/bin/telnet
+----
+
+I'll leave out the first 2 arguments to sh as they are obvious (example being
+the jail directory we created earlier). 
+
+Now here we have /usr/bin and then /usr/bin/telnet.  Here's what they mean :
+
+* /usr/bin
+
+	The first path is actually the destination path *inside* the
+	jail that you want to copy your binary to. We could have put /bin if we wanted
+	or any path you want (as long as you take care of setting the PATH correctly
+	in the jail). 
+
+* /usr/bin/telnet
+
+	This is the path on your base system for the telnet application, which, in our
+	case is in our /usr/bin directory.
+
+cpDep.sh will check all shared object dependencies that telnet requires to run
+and copy them along with the binary itself. This way, you will be able to run
+the application without doing any more work than that.
+
+*How to Customize the jail*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are 4 vectors of customization for jails. Each
+in their own section in rootCustomConfig.sh.
+
+The 4 sections in rootCustomConfig.sh :
+
+. The configuration variables
+
+	These are used to toggle features provided in the jail and set various values
+	for setting for example the firewall.
+
+. The mount points
+
+	These are used specifically to mount external directories inside the jail itself,
+	making the files/directories accessible to the jailed applications. There are 3 kinds
+	of mount points each with their section.
+
+. the functions
+
+	These are used to customize firewall rules, mount extra files (those that are out of
+	scope of the mount points section) and set up your own start instructions so the
+	jail can run the service you want.
+
+. startRoot.sh CUI commands
+
+	Use this to set up your own startRoot.sh commands.
+
+Tips and Tricks
+---------------
+
+*shorewall specific*
+~~~~~~~~~~~~~~~~~~~~
+
+how to open a port
+^^^^^^^^^^^^^^^^^^
+Shorewall custom INBOUND configuration : 
+in rootCustomConfig.sh, in the function prepCustom, add these lines :
+
+****
+	cat >> $firewallPath/rules.d/$bridgeName.rules << EOF
+ACCEPT  fw      $firewallZoneName       tcp     10922
+DNAT    lan     $firewallZoneName:$ipInt tcp    10922
+EOF
+****
+
+this is an example where we open the port 10922 for access from the
+localhost and also the lan network. Notice that for the lan network (external
+to the main host) we have to use a DNAT to our internal chroot.
+
+how to prepare shorewall for jailTools
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+With shorewall, jailTools adds it's changes to a directory ending with '.d' like 'rules.d'.
+These are not standard issue with shorewall, to make use of their content, it is necessary to
+add a single line in all the configuration files that potentially will get extra configurations
+in these. (As of this writing, these configuration files need modifications : 
+	zones, interfaces, policy and snat, we create one for rules too strictly as a service for
+	the user as jailtools does not add anything to it directly).
+
+Here's how you can actually make your configuration file load all the content of the 'x.d' directory
+(for example here zones -> zones.d).
+
+----
+SHELL cat /etc/shorewall/zones.d/*.zones 2> /dev/null || true
+----
+
+And that's it, this loads all the .zones files in zones.d and the last part of the instruction is to ensure
+everything works correctly even if the directory is empty.
+
+It's exactly the same line for all the other configuration files except the 2 occurences of 'zones' which need
+to be changed to the configuration's name : like rules.d/*.rules
+
+Noteworthy : in pretty much all configuration files you can add this line at the end, except for policy.
+This one will need to have the inclusion before the last line that rejects everything.
