@@ -380,16 +380,14 @@ function prepareChroot() {
 			ip netns exec \$netnsId ip link set up \$bridgeName
 		fi
 
-		if [ "\$joinBridge" != "true" ]; then
+		if [ "\$configNet" = "true" ]; then
 			ip link add \$vethExt type veth peer name \$vethInt
 			ip link set \$vethExt up
 			ip link set \$vethInt netns \$netnsId
 			ip netns exec \$netnsId ip link set \$vethInt up
 
 			ip netns exec \$netnsId ip addr add \$ipInt/\$ipIntBitmask dev \$vethInt scope link
-		fi
 
-		if [ "\$joinBridge" = "false" ]; then
 			ip addr add \$extIp/\$extIpBitmask dev \$vethExt scope link
 			ip link set \$vethExt up
 			ip netns exec \$netnsId ip route add default via \$extIp dev \$vethInt proto kernel src \$ipInt
@@ -426,15 +424,12 @@ function prepareChroot() {
 				*)
 				;;
 			esac
-		else # joinBridge = true
-			intIpNum=\$(echo \$ipInt | sed -e 's/.*\.\([0-9]*\)$/\1/')
-			joinBridge "true" "\$vethInt" "\$vethExt" "\$extNetnsId" "\$extBridgeName" "\$intIpNum"
 		fi
 	fi
 
 	prepCustom \$rootDir
 
-	[ "\$firewallType" = "shorewall" ] && [ "\$joinBridge" = "false" ] && shorewall restart > /dev/null 2> /dev/null
+	[ "\$firewallType" = "shorewall" ] && [ "\$configNet" = "true" ] && shorewall restart > /dev/null 2> /dev/null
 }
 
 function startChroot() {
@@ -488,7 +483,7 @@ function stopChroot() {
 
 		ip netns delete \$netnsId
 
-		if [ "\$joinBridge" = "false" ]; then
+		if [ "\$configNet" = "true" ]; then
 			shortJailName=\${jailName:0:13}
 			case "\$firewallType" in
 				"shorewall")
@@ -510,8 +505,6 @@ function stopChroot() {
 				*)
 				;;
 			esac
-		else # joinBridge = true
-			leaveBridge "\$vethExt" "\$extNetnsId" "\$extBridgeName"
 		fi
 	fi
 
@@ -563,23 +556,16 @@ bridgeName=\${jailName:0:13}
 bridgeIp=192.168.99.1
 bridgeIpBitmask=24
 
-# for the external connection, we can either connect to an existing
-# bridge with the netnsId of extNetnsId or just get our external
-# interface masqueraded to the base system's network interface.
-joinBridge=false
-# only valid if joinBridge=true
-# put the name of the bridge you want to join
-# in which case the IP of the external bridge will automatically
-# be assigned the last values of intIp
-# for example you put 2 to intIp and the external bridgeName is
-# 192.168.88 the script will automatically combine these 2 to create
-# 192.168.88.2
-extBridgeName=
-# this is the netnsId of where the bridge resides. If the bridge
-# is on the base system, leave empty.
-extNetnsId=
+# If you put true here the script will create a veth pair on the base
+# namespace and in the jail and do it's best to allow the internet through
+# these. The default routing will pass through this device to potentially
+# give internet access through it, depending on your choice of firewall below.
+# When it's false, you can still manually connect to the net if you like or
+# join a bridge to gain fine grained access to ressources.
+# Only valid if jailNet=true
+configNet=false
 
-# this is the external IP we use only if joinBridge=false
+# this is the external IP we use only if configNet=true
 extIp=192.168.12.1
 extIpBitmask=24
 
@@ -594,18 +580,18 @@ extIpBitmask=24
 # Ideally, you should push these rules from the
 # rootCustomConfig script because rules are deleted after the
 # jail is closed, by default.
-# only used if joinBridge=false
+# only used if configNet=true
 firewallType=shorewall
 
 # shorewall specific options Section, only used if
-# joinBridge=false
+# configNet=true
 firewallPath=/etc/shorewall
 firewallNetZone=net
 firewallZoneName=\${jailName:0:5}
 
 # all firewalls options section
 # the network interface by which we will masquerade our
-# connection (only used if joinBridge=false)
+# connection (only used if configNet=true)
 snatEth=eth0
 
 # chroot internal IP
