@@ -278,7 +278,7 @@ function prepareChroot() {
 			shortJailName=\${jailName:0:13}
 			case "\$firewallType" in
 				"shorewall")
-					for pth in zones interfaces policy snat ; do
+					for pth in zones interfaces policy snat rules; do
 						if [ ! -d \$firewallPath/\${pth}.d ]; then
 							mkdir \$firewallPath/\${pth}.d
 						fi
