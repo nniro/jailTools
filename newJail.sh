@@ -237,9 +237,8 @@ function prepareChroot() {
 
 	if [ "\$jailNet" = "true" ]; then
 		# setting up the network interface
-		if [ "\$creatensId" = "true" ]; then
-			ip netns add \$netnsId
-		fi
+		ip netns add \$netnsId
+
 
 		if [ "\$createBridge" = "true" ]; then
 			# setting up the bridge
@@ -376,9 +375,7 @@ function stopChroot() {
 			#brctl delbr \$bridgeName
 		fi
 
-		if [ "\$creatensId" = "true" ]; then
-			ip netns delete \$netnsId
-		fi
+		ip netns delete \$netnsId
 
 		if [ "\$joinBridge" = "false" ]; then
 			shortJailName=\${jailName:0:13}
@@ -436,9 +433,13 @@ fi
 
 jailName=$jailName
 
+# the namespace name for this jail
+netnsId=\${jailName:0:13}
+
 # if you set to false, the chroot will have exactly the same
 # network access as the base system.
 jailNet=true
+
 # If set to true, we will create a new bridge with the name
 # bridgeName(see below) in our ns creatensId. This permits
 # external sources to join it and potentially gaining access
@@ -494,14 +495,6 @@ firewallZoneName=\${jailName:0:5}
 # the network interface by which we will masquerade our
 # connection (only used if joinBridge=false)
 snatEth=enp1s0
-
-# OBSOLETE, these 2 will need to be removed as we will _always_
-# create a NS for each jail
-# create the namespace ID. If you intend this to be combined
-# with an already existing namespace, put false here and write
-# the namespace name to join to netnsId
-creatensId=true
-netnsId=\${jailName:0:13}
 
 # chroot internal IP
 # the one liner script is to make sure it is of the same network
