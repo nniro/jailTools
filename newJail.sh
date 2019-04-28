@@ -222,6 +222,68 @@ function mountMany() {
 	done
 }
 
+# isDefaultRoute - Route all packets through this bridge, you can only do that on a single bridge (valid values : "true" or "false")
+# vethInternal - The inter jail veth device name.
+# vethExternal - The bridge's veth device name connected to the remote bridge.
+# externalNetnsId - The remote bridge's netns id name.
+# externalBridgeName - The remote bridge's device name.
+# internalIpNum - a number from 1 to 254 assigned to the vethInternal device. In the same class C network as the bridge.
+# leave externalNetnsId empty if it's to connect to a bridge on the namespace 0 (base system)
+function joinBridge() {
+	local isDefaultRoute=\$1
+	local vethInternal=\$2
+	local vethExternal=\$3
+	local externalNetnsId=\$4
+	local externalBridgeName=\$5
+	local internalIpNum=\$6
+	local ipIntBitmask=24 # hardcoded for now, we set this very rarely
+	# this function makes use of the netnsId global variable
+
+	ip link add \$vethExternal type veth peer name \$vethInternal
+	ip link set \$vethExternal up
+	ip link set \$vethInternal netns \$netnsId
+	ip netns exec \$netnsId ip link set \$vethInternal up
+
+	if [ "\$externalNetnsId" = "" ]; then
+		local masterBridgeIp=\$(ip addr show \$externalBridgeName | grep 'inet ' | grep "scope link" | sed -e 's/^.*inet \([^/]*\)\/.*$/\1/')
+	else
+		local masterBridgeIp=\$(ip netns exec \$externalNetnsId ip addr show \$externalBridgeName | grep 'inet ' | grep "scope link" | sed -e 's/^.*inet \([^/]*\)\/.*$/\1/')
+	fi
+	local masterBridgeIpCore=\$(echo \$masterBridgeIp | sed -e 's/\(.*\)\.[0-9]*$/\1/')
+	local newIntIp=\${masterBridgeIpCore}.\$internalIpNum
+
+	if [ "\$externalNetnsId" = "" ]; then
+		ip netns exec \$netnsId ip addr add \$newIntIp/\$ipIntBitmask dev \$vethInternal scope link
+	else
+		ip link set \$vethExternal netns \$externalNetnsId
+		ip netns exec \$externalNetnsId ip link set \$vethExternal up
+		ip netns exec \$netnsId ip addr add \$newIntIp/\$ipIntBitmask dev \$vethInternal scope link
+	fi
+
+	if [ "\$isDefaultRoute" = "true" ]; then
+		ip netns exec \$netnsId ip route add default via \$masterBridgeIp dev \$vethInternal proto kernel src \$newIntIp
+	fi
+
+	if [ "\$externalNetnsId" = "" ]; then
+		brctl addif \$externalBridgeName \$vethExternal
+	else
+		ip netns exec \$externalNetnsId brctl addif \$externalBridgeName \$vethExternal
+	fi
+}
+
+function leaveBridge() {
+	local vethExternal=\$1
+	local externalNetnsId=\$2
+	local externalBridgeName=\$3
+
+	if [ "\$externalNetnsId" = "" ]; then
+		brctl delif \$externalBridgeName \$vethExternal
+	else
+		ip netns exec \$externalNetnsId brctl delif \$externalBridgeName \$vethExternal
+	fi
+
+}
+
 function prepareChroot() {
 	local rootDir=\$1
 	mount --bind \$rootDir/root \$rootDir/root
@@ -249,25 +311,12 @@ function prepareChroot() {
 			ip netns exec \$netnsId ip link set up \$bridgeName
 		fi
 
-		ip link add \$vethExt type veth peer name \$vethInt
-		ip link set \$vethExt up
-		ip link set \$vethInt netns \$netnsId
-		ip netns exec \$netnsId ip link set \$vethInt up
+		if [ "\$joinBridge" != "true" ]; then
+			ip link add \$vethExt type veth peer name \$vethInt
+			ip link set \$vethExt up
+			ip link set \$vethInt netns \$netnsId
+			ip netns exec \$netnsId ip link set \$vethInt up
 
-		if [ "\$joinBridge" = "true" ]; then
-			masterBridgeIp=\$(ip netns exec \$extNetnsId ip addr show \$extBridgeName | grep 'inet ' | grep "scope link" | sed -e 's/^.*inet \([^/]*\)\/.*$/\1/')
-			masterBridgeIpCore=\$(echo \$masterBridgeIp | sed -e 's/\(.*\)\.[0-9]*$/\1/')
-			intIpNum=\$(echo \$ipInt | sed -e 's/.*\.\([0-9]*\)$/\1/')
-			newIntIp=\${masterBridgeIpCore}.\$intIpNum
-
-			if [ "\$extNetnsId" = "" ]; then
-				ip addr add \$newIntIp/\$ipIntBitmask dev \$vethInt scope link
-			else
-				ip link set \$vethExt netns \$extNetnsId
-				ip netns exec \$extNetnsId ip link set \$vethExt up
-				ip netns exec \$netnsId ip addr add \$newIntIp/\$ipIntBitmask dev \$vethInt scope link
-			fi
-		else
 			ip netns exec \$netnsId ip addr add \$ipInt/\$ipIntBitmask dev \$vethInt scope link
 		fi
 
@@ -309,16 +358,10 @@ function prepareChroot() {
 				;;
 			esac
 		else # joinBridge = true
-			ip netns exec \$netnsId ip route add default via \$masterBridgeIp dev \$vethInt proto kernel src \$newIntIp
-
-			if [ "\$extNetnsId" = "" ]; then
-				brctl addif \$extBridgeName \$vethExt
-			else
-				ip netns exec \$extNetnsId brctl addif \$extBridgeName \$vethExt
-			fi
+			intIpNum=\$(echo \$ipInt | sed -e 's/.*\.\([0-9]*\)$/\1/')
+			joinBridge "true" "\$vethInt" "\$vethExt" "\$extNetnsId" "\$extBridgeName" "\$intIpNum"
 		fi
 	fi
-
 
 	prepCustom \$rootDir
 
@@ -399,7 +442,7 @@ function stopChroot() {
 				;;
 			esac
 		else # joinBridge = true
-			ip netns exec \$extNetnsId brctl delif \$extBridgeName \$vethExt
+			leaveBridge "\$vethExt" "\$extNetnsId" "\$extBridgeName"
 		fi
 	fi
 
