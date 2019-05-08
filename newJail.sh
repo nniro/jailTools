@@ -298,12 +298,12 @@ function joinBridgeByJail() {
 
 		local neededConfig=\$(cat \$confPath | sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p; /^bridgeIp=/ p; /^bridgeIpBitmask=/ p; /^netnsId=/ p;')
 
-		local remJailName=\$(echo \$neededConfig | sed -e 's/\([^=]*=[^ ]* \)\{0\}\([^=]*=[^ ]*\).*/\2/' | sed -e 's/[^=]*=\(.*\)$/\1/')
-		local remIsCreateBridge=\$(echo \$neededConfig | sed -e 's/\([^=]*=[^ ]* \)\{1\}\([^=]*=[^ ]*\).*/\2/' | sed -e 's/[^=]*=\(.*\)$/\1/')
-		local remBridgeName=\$(echo \$neededConfig | sed -e 's/\([^=]*=[^ ]* \)\{2\}\([^=]*=[^ ]*\).*/\2/' | sed -e 's/[^=]*=\(.*\)$/\1/')
-		local remBridgeIp=\$(echo \$neededConfig | sed -e 's/\([^=]*=[^ ]* \)\{3\}\([^=]*=[^ ]*\).*/\2/' | sed -e 's/[^=]*=\(.*\)$/\1/')
-		local remBridgeIpBitmask=\$(echo \$neededConfig | sed -e 's/\([^=]*=[^ ]* \)\{4\}\([^=]*=[^ ]*\).*/\2/' | sed -e 's/[^=]*=\(.*\)$/\1/')
-		local remNetnsId=\$(echo \$neededConfig | sed -e 's/\([^=]*=[^ ]* \)\{5\}\([^=]*=[^ ]*\).*/\2/' | sed -e 's/[^=]*=\(.*\)$/\1/')
+		local remJailName=\$(echo \$neededConfig | sed -e 's/^.*jailName=\([^ ]*\).*$/\1/')
+		local remIsCreateBridge=\$(echo \$neededConfig | sed -e 's/^.*createBridge=\([^ ]*\).*$/\1/')
+		local remBridgeName=\$(echo \$neededConfig | sed -e 's/^.*bridgeName=\([^ ]*\).*$/\1/')
+		local remBridgeIp=\$(echo \$neededConfig | sed -e 's/^.*bridgeIp=\([^ ]*\).*$/\1/')
+		local remBridgeIpBitmask=\$(echo \$neededConfig | sed -e 's/^.*bridgeIpBitmask=\([^ ]*\).*$/\1/')
+		local remNetnsId=\$(echo \$neededConfig | sed -e 's/^.*netnsId=\([^ ]*\).*$/\1/')
 
 		if [ "\$remIsCreateBridge" != "true" ]; then
 			echo "This jail does not have a bridge, bailing out."
@@ -332,10 +332,10 @@ function leaveBridgeByJail() {
 
 		local neededConfig=\$(cat \$confPath | sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p; /^bridgeIp=/ p; /^bridgeIpBitmask=/ p; /^netnsId=/ p;')
 
-		local remJailName=\$(echo \$neededConfig | sed -e 's/\([^=]*=[^ ]* \)\{0\}\([^=]*=[^ ]*\).*/\2/' | sed -e 's/[^=]*=\(.*\)$/\1/')
-		local remIsCreateBridge=\$(echo \$neededConfig | sed -e 's/\([^=]*=[^ ]* \)\{1\}\([^=]*=[^ ]*\).*/\2/' | sed -e 's/[^=]*=\(.*\)$/\1/')
-		local remBridgeName=\$(echo \$neededConfig | sed -e 's/\([^=]*=[^ ]* \)\{2\}\([^=]*=[^ ]*\).*/\2/' | sed -e 's/[^=]*=\(.*\)$/\1/')
-		local remNetnsId=\$(echo \$neededConfig | sed -e 's/\([^=]*=[^ ]* \)\{5\}\([^=]*=[^ ]*\).*/\2/' | sed -e 's/[^=]*=\(.*\)$/\1/')
+		local remJailName=\$(echo \$neededConfig | sed -e 's/^.*jailName=\([^ ]*\).*$/\1/')
+		local remIsCreateBridge=\$(echo \$neededConfig | sed -e 's/^.*createBridge=\([^ ]*\).*$/\1/')
+		local remBridgeName=\$(echo \$neededConfig | sed -e 's/^.*bridgeName=\([^ ]*\).*$/\1/')
+		local remNetnsId=\$(echo \$neededConfig | sed -e 's/^.*netnsId=\([^ ]*\).*$/\1/')
 
 		if [ "\$remIsCreateBridge" != "true" ]; then
 			echo "This jail does not have a bridge, bailing out."
@@ -712,7 +712,7 @@ function stopCustom() {
 	# leaveBridgeByJail /home/yourUser/jails/tor
 
 	# this is to be used in combination with the joinBridge line in prepCustom
-	# leaveBridgeByJail "extInt" "" "br0"
+	# leaveBridge "extInt" "" "br0"
 }
 
 function cmdParse() {
