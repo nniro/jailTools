@@ -122,6 +122,11 @@ else
 	mkdir $newChrootDir/lib64
 fi
 
+function genPass() {
+	len=$1
+	cat /dev/urandom | head -c $(($len * 2)) | base64 | tr '/' '@' | head -c $len
+}
+
 
 echo "Populating the /etc configuration files"
 # localtime
@@ -138,7 +143,7 @@ $2:x:$uid:$gid::/home:/bin/false
 EOF
 # shadow
 cat >> $newChrootDir/etc/shadow << EOF
-root:$($ownPath/cryptPass $($sh $ownPath/gene.sh -f 200) $($sh $ownPath/gene.sh -f 50)):0:0:99999:7:::
+root:$($ownPath/cryptPass $(genPass 200) $(genPass 50)):0:0:99999:7:::
 $2:!:0:0:99999:7:::
 EOF
 
