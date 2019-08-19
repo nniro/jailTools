@@ -136,6 +136,7 @@ cat >> $newChrootDir/etc/group << EOF
 root:x:0:
 $2:x:$gid:
 EOF
+chmod 644 $newChrootDir/etc/group
 # passwd
 cat >> $newChrootDir/etc/passwd << EOF
 root:x:0:0::/root:/bin/false
@@ -146,6 +147,7 @@ cat >> $newChrootDir/etc/shadow << EOF
 root:$($ownPath/cryptPass $(genPass 200) $(genPass 50)):0:0:99999:7:::
 $2:!:0:0:99999:7:::
 EOF
+chmod 600 $newChrootDir/etc/shadow
 
 # shells
 cat >> $newChrootDir/etc/shells << EOF
@@ -361,6 +363,16 @@ function leaveBridgeByJail() {
 function prepareChroot() {
 	local rootDir=\$1
 	mount --bind \$rootDir/root \$rootDir/root
+
+	if [ "\$(stat -c %u \$rootDir/root/etc/shadow)" != "0" ]; then
+		chown root:root \$rootDir/root/etc/shadow
+	fi
+	if [ "\$(stat -c %u \$rootDir/root/etc/group)" != "0" ]; then
+		chown root:root \$rootDir/root/etc/group
+	fi
+	if [ "\$(stat -c %u \$rootDir/root/etc/passwd)" != "0" ]; then
+		chown root:root \$rootDir/root/etc/passwd
+	fi
 
 	# dev
 	mountMany \$rootDir/root "-o rw,noexec" \$devMountPoints
@@ -773,25 +785,9 @@ for app in $($ownPath/busybox/busybox --list-full); do
 	ln -s /bin/busybox ${newChrootDir}/$app
 done
 
-echo "Now creating $newChrootDir/dev/null, $newChrootDir/dev/random and $newChrootDir/dev/urandom"
-echo "This requires root, so we use sudo"
 
-# this is the section we need root
 
-sudo chown root $newChrootDir/etc/shadow
-sudo chmod 600 $newChrootDir/etc/shadow
-sudo chown root $newChrootDir/etc/group
-sudo chmod 644 $newChrootDir/etc/group
 
-# create quasi essential special nodes in /dev
-sudo mknod $newChrootDir/dev/null c 1 3
-sudo chmod 666 $newChrootDir/dev/null
-sudo mknod $newChrootDir/dev/random c 1 8
-sudo chmod 444 $newChrootDir/dev/random
-sudo mknod $newChrootDir/dev/urandom c 1 9
-sudo chmod 444 $newChrootDir/dev/urandom
-sudo mknod $newChrootDir/dev/zero c 1 5
-sudo chmod 444 $newChrootDir/dev/zero
 
 # we append these to update.sh
 echo "# end basic dependencies" >> $newChrootHolder/update.sh
