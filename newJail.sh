@@ -140,11 +140,13 @@ chmod 644 $newChrootDir/etc/group
 # passwd
 cat >> $newChrootDir/etc/passwd << EOF
 root:x:0:0::/root:/bin/false
+nobody:x:99:99::/dev/null:/bin/false
 $2:x:$uid:$gid::/home:/bin/false
 EOF
 # shadow
 cat >> $newChrootDir/etc/shadow << EOF
 root:$($ownPath/cryptPass $(genPass 200) $(genPass 50)):0:0:99999:7:::
+nobody:!:0:0:99999:7:::
 $2:!:0:0:99999:7:::
 EOF
 chmod 600 $newChrootDir/etc/shadow
