@@ -34,7 +34,7 @@ if [ ! -e $destJail ]; then
 	mkdir $destJail
 fi
 
-if [ -d $destJail/root ] && [ -d $destJail/run ] && [ -f $destJail/startRoot.sh ]; then
+if [ -d $destJail/root ] && [ -d $destJail/run ] && [ -f $destJail/startRoot.sh ] && [ -f $destJail/rootCustomConfig.sh ]; then
 	echo "New style jail directory detected"
 	destJail=$destJail/root
 	newStyleJail=1

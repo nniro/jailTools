@@ -107,6 +107,7 @@ mkdir $newChrootHolder/run
 mkdir $newChrootDir
 
 touch $newChrootHolder/startRoot.sh # this is to make cpDep detect the new style jail
+touch $newChrootHolder/rootCustomConfig.sh
 
 for path in $filesystem ; do
 	mkdir $newChrootDir/$path
