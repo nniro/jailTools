@@ -613,6 +613,8 @@ firewallZoneName=\${jailName:0:5}
 # all firewalls options section
 # the network interface by which we will masquerade our
 # connection (only used if configNet=true)
+# leave it empty if you don't want to masquerade your connection
+# through any interface.
 snatEth=eth0
 
 # chroot internal IP
