@@ -85,7 +85,7 @@ if [ "$ownPath" = "." ]; then
 else
 	if [ "${ownPath:0:1}" = "/" ]; then
 		# absolute path, we do nothing
-		break;
+		:
 	else
 		# relative path
 		ownPath=$PWD/$ownPath
