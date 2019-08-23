@@ -15,8 +15,8 @@ if [ "$1" != "" ]; then
 		cat $scriptsDir/jailtools | sed -e "s@jailToolsPath=ScriptPath@jailToolsPath=$scriptsDir@" > $1/jailtools
 		ln -sfT $1/jailtools $1/jtools
 		ln -sfT $1/jailtools $1/jt
-		chmod u+x,g+x $scriptsDir/jailtools
-		echo "Done. You may have to do : chmod +x $scriptsDir/jailtools  to run it seemlessly"
+		chmod u+x $1/jailtools
+		echo "Done. Installed \`jailtools' and the symlinks \`jtools' and \`jt' in $1"
 	fi
 else
 	echo "Please input a directory where you want to install the \`jailtools' master script"
