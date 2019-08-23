@@ -785,7 +785,7 @@ if [ -e /etc/terminfo ]; then
 	$sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/terminfo
 fi
 
-sh $ownPath/cpDep.sh $newChrootHolder /bin $ownPath/busybox/busybox
+$sh $ownPath/cpDep.sh $newChrootHolder /bin $ownPath/busybox/busybox
 
 for app in $($ownPath/busybox/busybox --list-full); do
 	ln -s /bin/busybox ${newChrootDir}/$app
