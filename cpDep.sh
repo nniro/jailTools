@@ -6,6 +6,12 @@ case "$(readlink -f /proc/$$/exe)" in
 		exit 1
 	;;
 
+	*zsh)
+		setopt shwordsplit
+		sh="$(readlink -f /proc/$$/exe)"
+		echo "using shell : $sh"
+	;;
+
 	*)
 		sh="$(readlink -f /proc/$$/exe)"
 		echo "using shell : $sh"
