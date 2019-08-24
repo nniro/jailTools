@@ -65,7 +65,7 @@ createNewDir () {
 createNewDir2 () {
 	local distDir=$1
 
-	local parent=`dirname $distDir`
+	local parent=$(dirname $distDir)
 	if [ ! -d $distDir ]; then
 		createNewDir2 $parent
 		echo "$distDir -> directory $distDir doesn't exist"
@@ -83,18 +83,18 @@ safeCopyFile () {
 	#echo "src=$src dstDir=$dstDir"
 	if [ -h $src ]; then # symbolic link check
 		# this ensures that the file that the link points to is also copied
-		link=`readlink $src`
-		if [ "`dirname $link`" = "." ]; then
-			link="`dirname $src`/$link"
+		link=$(readlink $src)
+		if [ "$(dirname $link)" = "." ]; then
+			link="$(dirname $src)/$link"
 		fi
 		if [ ! -e $link ]; then # in case the link is relative and not absolute
-			link="`dirname $src`/$link"
+			link="$(dirname $src)/$link"
 		fi
 		#echo $src is a link to $link
-		safeCopyFile "$link" "$dstDir" "`dirname $link`"
+		safeCopyFile "$link" "$dstDir" "$(dirname $link)"
 	fi
 
-	local dstPathCmp=$dstDir/$dstPath/`basename $src`
+	local dstPathCmp=$dstDir/$dstPath/$(basename $src)
 	#printf "$dstPathCmp is older than $src : "; [ $dstPathCmp -ot $src ] && echo yes || echo no
 
 	if 	([ -e $dstPathCmp ] && [ ! -h $src ] && [ -h $dstPathCmp ]) ||  # this is in case our destination is actually a link, so we replace it with a real file
@@ -123,11 +123,8 @@ handle_files () {
 		#echo cycle $i
 		if [ -d $i ]; then
 			echo recursively handle the directory $i
-			#if [ ! -d ${destJail}$i ]; then
-				#mkdir ${destJail}$i
-			#fi
-			#echo "Next cycle destination : $finalDest/`basename $i`"
-			handle_files "$finalDest/`basename $i`" "`ls -d $i/*`"
+			#echo "Next cycle destination : $finalDest/$(basename $i)"
+			handle_files "$finalDest/$(basename $i)" "$(ls -d $i/*)"
 			continue
 		fi
 
@@ -136,7 +133,7 @@ handle_files () {
 		for t in $deps; do
 			#break;
 			if [ -e $t ]; then
-				safeCopyFile "$t" "$destJail" "`dirname $t`"
+				safeCopyFile "$t" "$destJail" "$(dirname $t)"
 			fi
 		done
 
@@ -177,8 +174,6 @@ ownPath=\$(dirname \$0)
 jailToolsPath=$jtPath
 
 EOF
-		#echo "#! $sh\n\n# This script contains all the dependencies copies and such and can be reran at any time to update what was copied to the jail.\n# change this path to what you prefer\njailToolsPath=$jtPath\n" > $pDir/update.sh
-
 	fi
 
 	echo "$sh \$jailToolsPath/$scriptName \$ownPath/root $destInJail $files" >> $pDir/update.sh
