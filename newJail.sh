@@ -97,6 +97,18 @@ if [ ! -e $ownPath/busybox/busybox ]; then
 	exit 1
 fi
 
+# check for mandatory commands
+for cmd in chroot unshare mount umount mountpoint ip; do
+	cmdPath="${cmd}Path"
+	declare "$cmdPath"="$(command which $cmd 2>/dev/null)"
+	eval "cmdPath=\${$cmdPath}"
+
+	if [ "$cmdPath" = "" ]; then
+		echo "Cannot find the command \`$cmd'. It is mandatory, bailing out."
+		exit 1
+	fi
+done
+
 jailName=$(basename $1)
 newChrootHolder=$1
 newChrootDir=$newChrootHolder/root
