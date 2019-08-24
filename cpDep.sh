@@ -65,7 +65,7 @@ safeCopyFile () {
 	local src=$1
 	local dstDir=$2
 	local dstPath=$3
-	#echo "src=$src dstDir=$dstDir"
+	#echo "src=$src dstDir=$dstDir dstPath=$dstPath"
 	if [ -h $src ]; then # symbolic link check
 		# this ensures that the file that the link points to is also copied
 		link=$(readlink $src)
@@ -80,19 +80,15 @@ safeCopyFile () {
 	fi
 
 	local dstPathCmp=$dstDir/$dstPath/$(basename $src)
-	#printf "$dstPathCmp is older than $src : "; [ $dstPathCmp -ot $src ] && echo yes || echo no
-
 	if 	[ ! -e $dstPathCmp ] || # if it just doesn't exist we copy it
 		([ -e $dstPathCmp ] && [ ! -h $src ] && [ -h $dstPathCmp ]) ||  # this is in case our destination is actually a link, so we replace it with a real file
 		([ -e $dstPathCmp ] && [ -h $src ] && [ ! -h $dstPathCmp ]) ||  # this is in case our destination is not a link, so we replace it with a link
 		[ $dstPathCmp -ot $src ]; then # this is in case the destination does not exist or it is older than the origin
-		#echo about to copy $src to ${dstDir}/$src
 		createNewDir "$dstDir/$dstPath"
 		echo "copying $src -> $dstPathCmp"
 		cp -f --no-dereference --preserve="mode,timestamps" $src $dstPathCmp
-	else
-		#echo destination file already exists
-		return
+	else # destination file already exists
+		:
 	fi
 }
 
