@@ -1,5 +1,12 @@
 #! /bin/sh
 
+case "$(readlink -f /proc/$$/exe)" in
+	*)
+		sh="$(readlink -f /proc/$$/exe)"
+		echo "using shell : $sh"
+	;;
+esac
+
 if [ "$1" != "" ]; then
 	if [ ! -d $1 ]; then
 		echo "Please ensure the path is a directory and is writable"
