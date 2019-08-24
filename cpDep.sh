@@ -48,26 +48,11 @@ else
 fi
 
 createNewDir () {
-	local src=$1
-	local distDir=$2
-
-	local dir=`dirname $src`
-	if [ ! -d $distDir/$dir ]; then
-		#echo "$distDir -> directory $dir exist"
-	#else
-		echo "$distDir -> directory $dir doesn't exist"
-		createNewDir $dir $distDir
-		echo "$distDir -> creating directory $dir"
-		mkdir $distDir/$dir
-	fi
-}
-
-createNewDir2 () {
 	local distDir=$1
 
 	local parent=$(dirname $distDir)
 	if [ ! -d $distDir ]; then
-		createNewDir2 $parent
+		createNewDir $parent
 		echo "$distDir -> directory $distDir doesn't exist"
 		echo "$distDir -> creating directory $distDir"
 		mkdir $distDir
@@ -101,7 +86,7 @@ safeCopyFile () {
 		([ -e $dstPathCmp ] && [ -h $src ] && [ ! -h $dstPathCmp ]) ||  # this is in case our destination is not a link, so we replace it with a link
 		[ $dstPathCmp -ot $src ]; then # this is in case the destination does not exist or it is older than the origin
 		#echo about to copy $src to ${dstDir}/$src
-		createNewDir2 "$dstDir/$dstPath"
+		createNewDir "$dstDir/$dstPath"
 		echo "copying $src -> $dstPathCmp"
 		cp -f --no-dereference --preserve="mode,timestamps" $src $dstPathCmp
 	else
