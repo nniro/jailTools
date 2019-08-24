@@ -82,7 +82,8 @@ safeCopyFile () {
 	local dstPathCmp=$dstDir/$dstPath/$(basename $src)
 	#printf "$dstPathCmp is older than $src : "; [ $dstPathCmp -ot $src ] && echo yes || echo no
 
-	if 	([ -e $dstPathCmp ] && [ ! -h $src ] && [ -h $dstPathCmp ]) ||  # this is in case our destination is actually a link, so we replace it with a real file
+	if 	[ ! -e $dstPathCmp ] || # if it just doesn't exist we copy it
+		([ -e $dstPathCmp ] && [ ! -h $src ] && [ -h $dstPathCmp ]) ||  # this is in case our destination is actually a link, so we replace it with a real file
 		([ -e $dstPathCmp ] && [ -h $src ] && [ ! -h $dstPathCmp ]) ||  # this is in case our destination is not a link, so we replace it with a link
 		[ $dstPathCmp -ot $src ]; then # this is in case the destination does not exist or it is older than the origin
 		#echo about to copy $src to ${dstDir}/$src
