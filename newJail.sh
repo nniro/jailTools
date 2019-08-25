@@ -53,6 +53,12 @@ case "$(readlink -f /proc/$$/exe)" in
 		exit 1
 	;;
 
+	*zsh)
+		setopt shwordsplit
+		sh="$(readlink -f /proc/$$/exe)"
+		echo "using shell : $sh"
+	;;
+
 	*)
 		sh="$(readlink -f /proc/$$/exe)"
 		echo "using shell : $sh"
@@ -153,11 +159,9 @@ mkdir $newChrootDir
 touch $newChrootHolder/startRoot.sh # this is to make cpDep detect the new style jail
 touch $newChrootHolder/rootCustomConfig.sh
 
-for path in $filesystem ; do
-	mkdir $newChrootDir/$path
-	chmod 704 $newChrootDir/$path
-	#chown 0 ${1}/$path
-	#chgrp 0 ${1}/$path
+for fPath in $filesystem; do
+	mkdir $newChrootDir/$fPath
+	chmod 704 $newChrootDir/$fPath
 done
 
 if [ -h /lib64 ]; then
@@ -172,6 +176,7 @@ function genPass() {
 	cat /dev/urandom | head -c $(($len * 2)) | base64 | tr '/' '@' | head -c $len
 }
 
+lineGlob="\\"
 
 echo "Populating the /etc configuration files"
 # localtime
@@ -250,31 +255,29 @@ read -d '' rwMountPoints << EOF
 @EOF
 
 # mkdir -p with a mode only applies the mode to the last child dir... this function applies the mode to all directories
-function cmkdir() {
-	local args=\$@
+cmkdir() {
+        local mode="\$(echo "\$@" | sed -e 's/ /\n/g' | sed -ne '/^-m$/ {N; s/-m\n//g; p;q}' -e '/--mode/ {s/--mode=//; p; q}')"
+        local modeLess="\$(echo "\$@" | sed -e 's/ /\n/g' | sed -e '/^-m$/ {N; s/.*//g; d}' -e '/--mode/ {s/.*//; d}' | sed -e 's/\/\//\//g')"
 
-	local mode=\$(echo \$args | sed -e 's/ /\n/g' | sed -ne '/^-m$/ {N; s/-m\n//g; p;q}' -e '/--mode/ {s/--mode=//; p; q}')
-	local modeLess=\$(echo \$args | sed -e 's/ /\n/g' | sed -e '/^-m$/ {N; s/.*//g; d}' -e '/--mode/ {s/.*//; d}')
+        local callArgs=""
+        if [ "\$mode" != "" ]; then
+                local callArgs="--mode=\$mode"
+        fi
 
-	local callArgs=""
-	if [ "\$mode" != "" ]; then
-		local callArgs="\$callArgs --mode=\$mode"
-	fi
-
-	for dir in \$modeLess; do
-		local subdirs=\$(echo \$dir | sed -e 's/\//\n/g')
-		local parentdir=""
-		for subdir in \$subdirs; do
-			if [ ! -d \$parentdir\$subdir ]; then
-				mkdir \$callArgs \$parentdir\$subdir
-			fi
-			if [ "\$parentdir" = "" ]; then
-				parentdir="\$subdir/"
-			else
-				parentdir="\$parentdir\$subdir/"
-			fi
-		done
-	done
+        for dir in \$(echo \$modeLess); do
+                local subdirs="\$(echo \$dir | sed -e 's/\//\n/g')"
+                local parentdir=""
+                for subdir in \$(echo \$subdirs); do
+                        if [ ! -d \$parentdir\$subdir ]; then
+                                mkdir \$callArgs \$parentdir\$subdir
+                        fi
+                        if [ "\$parentdir" = "" ]; then
+                                local parentdir="\$subdir/"
+                        else
+                                local parentdir="\$parentdir\$subdir/"
+                        fi
+                done
+        done
 }
 
 function mountMany() {
@@ -282,12 +285,12 @@ function mountMany() {
 	local mountOps=\$2
 	shift 2
 
-	for mount in \$@; do
+	for mount in \$(echo \$@); do
 		if [ ! -d \$rootDir/\$mount ]; then
 			echo \$rootDir/\$mount does not exist, creating it
 			cmkdir -m 755 \$rootDir/\$mount
 		fi
-		$mountpointPath \$rootDir/\$mount > /dev/null || $mountPath \$mountOps --bind \$mount \$rootDir/\$mount
+		$mountpointPath \$rootDir/\$mount > /dev/null || $mountPath -o \$mountOps --bind \$mount \$rootDir/\$mount
 	done
 }
 
@@ -431,13 +434,13 @@ function prepareChroot() {
 	done
 
 	# dev
-	mountMany \$rootDir/root "-o rw,noexec" \$devMountPoints
-	mountMany \$rootDir/root "-o ro,exec" \$roMountPoints
-	mountMany \$rootDir/root "-o defaults" \$rwMountPoints
+	mountMany \$rootDir/root "rw,noexec" \$devMountPoints
+	mountMany \$rootDir/root "ro,exec" \$roMountPoints
+	mountMany \$rootDir/root "defaults" \$rwMountPoints
 
-	mountMany \$rootDir/root "-o rw,noexec" \$devMountPoints_CUSTOM
-	mountMany \$rootDir/root "-o ro,exec" \$roMountPoints_CUSTOM
-	mountMany \$rootDir/root "-o defaults" \$rwMountPoints_CUSTOM
+	mountMany \$rootDir/root "rw,noexec" \$devMountPoints_CUSTOM
+	mountMany \$rootDir/root "ro,exec" \$roMountPoints_CUSTOM
+	mountMany \$rootDir/root "defaults" \$rwMountPoints_CUSTOM
 
 	if [ "\$jailNet" = "true" ]; then
 		# setting up the network interface
@@ -526,11 +529,11 @@ function runChroot() {
 	fi
 
 	if [ "\$jailNet" = "true" ]; then
-		env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$uid HOSTNAME=nowhere.here \\
-			$ipPath netns exec \$netnsId \\
+		env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$uid HOSTNAME=nowhere.here $lineGlob
+			$ipPath netns exec \$netnsId $lineGlob
 			$unsharePath -${unshareSupport}f $sh -c "$mountPath -tproc none \$rootDir/root/proc; $chrootPath --userspec=$uid:$gid \$rootDir/root /bin/sh \$args"
 	else
-		env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$uid HOSTNAME=nowhere.here \\
+		env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$uid HOSTNAME=nowhere.here $lineGlob
 			$unsharePath -${unshareSupport}f $sh -c "$mountPath -tproc none \$rootDir/root/proc; $chrootPath --userspec=$uid:$gid \$rootDir/root /bin/sh \$args"
 	fi
 
@@ -581,7 +584,7 @@ function stopChroot() {
 		fi
 	fi
 
-	for mount in \$devMountPoints \$roMountPoints \$rwMountPoints \$devMountPoints_CUSTOM \$roMountPoints_CUSTOM \$rwMountPoints_CUSTOM; do
+	for mount in \$(echo \$devMountPoints \$roMountPoints \$rwMountPoints \$devMountPoints_CUSTOM \$roMountPoints_CUSTOM \$rwMountPoints_CUSTOM); do
 		$mountpointPath \$rootDir/root/\$mount > /dev/null && $umountPath \$rootDir/root/\$mount
 	done
 	$mountpointPath \$rootDir/root > /dev/null 2>/dev/null && $umountPath \$rootDir/root

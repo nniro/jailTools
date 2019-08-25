@@ -100,10 +100,9 @@ safeCopyFile () {
 
 handle_files () {
 	local finalDest=$1
-	local file=$2
 
 	#echo about to recurse those input values : $1
-	for i in $file; do
+	for i in $(echo "$2"); do
 		if [ ! -e $i ]; then
 			echo "$i - No Such file or directory"
 			continue
