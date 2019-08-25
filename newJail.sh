@@ -109,6 +109,17 @@ for cmd in chroot unshare mount umount mountpoint ip; do
 	fi
 done
 
+# optional commands
+
+brctlPath=$(command which brctl 2>/dev/null)
+
+if [ "$brctlPath" = "" ]; then
+	hasBrctl=false
+	brctlPath=brctl
+else
+	hasBrctl=true
+fi
+
 jailName=$(basename $1)
 newChrootHolder=$1
 newChrootDir=$newChrootHolder/root
@@ -241,7 +252,7 @@ function mountMany() {
 			echo \$rootDir/\$mount does not exist, creating it
 			cmkdir -m 755 \$rootDir/\$mount
 		fi
-		mountpoint \$rootDir/\$mount > /dev/null || mount \$mountOps --bind \$mount \$rootDir/\$mount
+		$mountpointPath \$rootDir/\$mount > /dev/null || $mountPath \$mountOps --bind \$mount \$rootDir/\$mount
 	done
 }
 
@@ -262,35 +273,35 @@ function joinBridge() {
 	local ipIntBitmask=24 # hardcoded for now, we set this very rarely
 	# this function makes use of the netnsId global variable
 
-	ip link add \$vethExternal type veth peer name \$vethInternal
-	ip link set \$vethExternal up
-	ip link set \$vethInternal netns \$netnsId
-	ip netns exec \$netnsId ip link set \$vethInternal up
+	$ipPath link add \$vethExternal type veth peer name \$vethInternal
+	$ipPath link set \$vethExternal up
+	$ipPath link set \$vethInternal netns \$netnsId
+	$ipPath netns exec \$netnsId $ipPath link set \$vethInternal up
 
 	if [ "\$externalNetnsId" = "" ]; then
-		local masterBridgeIp=\$(ip addr show \$externalBridgeName | grep 'inet ' | grep "scope link" | sed -e 's/^.*inet \([^/]*\)\/.*$/\1/')
+		local masterBridgeIp=\$($ipPath addr show \$externalBridgeName | grep 'inet ' | grep "scope link" | sed -e 's/^.*inet \([^/]*\)\/.*$/\1/')
 	else
-		local masterBridgeIp=\$(ip netns exec \$externalNetnsId ip addr show \$externalBridgeName | grep 'inet ' | grep "scope link" | sed -e 's/^.*inet \([^/]*\)\/.*$/\1/')
+		local masterBridgeIp=\$($ipPath netns exec \$externalNetnsId $ipPath addr show \$externalBridgeName | grep 'inet ' | grep "scope link" | sed -e 's/^.*inet \([^/]*\)\/.*$/\1/')
 	fi
 	local masterBridgeIpCore=\$(echo \$masterBridgeIp | sed -e 's/\(.*\)\.[0-9]*$/\1/')
 	local newIntIp=\${masterBridgeIpCore}.\$internalIpNum
 
 	if [ "\$externalNetnsId" = "" ]; then
-		ip netns exec \$netnsId ip addr add \$newIntIp/\$ipIntBitmask dev \$vethInternal scope link
+		$ipPath netns exec \$netnsId $ipPath addr add \$newIntIp/\$ipIntBitmask dev \$vethInternal scope link
 	else
-		ip link set \$vethExternal netns \$externalNetnsId
-		ip netns exec \$externalNetnsId ip link set \$vethExternal up
-		ip netns exec \$netnsId ip addr add \$newIntIp/\$ipIntBitmask dev \$vethInternal scope link
+		$ipPath link set \$vethExternal netns \$externalNetnsId
+		$ipPath netns exec \$externalNetnsId $ipPath link set \$vethExternal up
+		$ipPath netns exec \$netnsId $ipPath addr add \$newIntIp/\$ipIntBitmask dev \$vethInternal scope link
 	fi
 
 	if [ "\$isDefaultRoute" = "true" ]; then
-		ip netns exec \$netnsId ip route add default via \$masterBridgeIp dev \$vethInternal proto kernel src \$newIntIp
+		$ipPath netns exec \$netnsId $ipPath route add default via \$masterBridgeIp dev \$vethInternal proto kernel src \$newIntIp
 	fi
 
 	if [ "\$externalNetnsId" = "" ]; then
-		brctl addif \$externalBridgeName \$vethExternal
+		$brctlPath addif \$externalBridgeName \$vethExternal
 	else
-		ip netns exec \$externalNetnsId brctl addif \$externalBridgeName \$vethExternal
+		$ipPath netns exec \$externalNetnsId $brctlPath addif \$externalBridgeName \$vethExternal
 	fi
 }
 
@@ -300,9 +311,9 @@ function leaveBridge() {
 	local externalBridgeName=\$3
 
 	if [ "\$externalNetnsId" = "" ]; then
-		brctl delif \$externalBridgeName \$vethExternal
+		$brctlPath delif \$externalBridgeName \$vethExternal
 	else
-		ip netns exec \$externalNetnsId brctl delif \$externalBridgeName \$vethExternal
+		$ipPath netns exec \$externalNetnsId $brctlPath delif \$externalBridgeName \$vethExternal
 	fi
 
 }
@@ -378,7 +389,7 @@ function leaveBridgeByJail() {
 
 function prepareChroot() {
 	local rootDir=\$1
-	mount --bind \$rootDir/root \$rootDir/root
+	$mountPath --bind \$rootDir/root \$rootDir/root
 
 	if [ "\$(stat -c %u \$rootDir/root/etc/shadow)" != "0" ]; then
 		chown root:root \$rootDir/root/etc/shadow
@@ -401,29 +412,29 @@ function prepareChroot() {
 
 	if [ "\$jailNet" = "true" ]; then
 		# setting up the network interface
-		ip netns add \$netnsId
+		$ipPath netns add \$netnsId
 
 		# loopback device is activated
-		ip netns exec \$netnsId ip link set up lo
+		$ipPath netns exec \$netnsId $ipPath link set up lo
 
 		if [ "\$createBridge" = "true" ]; then
 			# setting up the bridge
-			ip netns exec \$netnsId brctl addbr \$bridgeName
-			ip netns exec \$netnsId ip addr add \$bridgeIp/\$bridgeIpBitmask dev \$bridgeName scope link
-			ip netns exec \$netnsId ip link set up \$bridgeName
+			$ipPath netns exec \$netnsId $brctlPath addbr \$bridgeName
+			$ipPath netns exec \$netnsId $ipPath addr add \$bridgeIp/\$bridgeIpBitmask dev \$bridgeName scope link
+			$ipPath netns exec \$netnsId $ipPath link set up \$bridgeName
 		fi
 
 		if [ "\$configNet" = "true" ]; then
-			ip link add \$vethExt type veth peer name \$vethInt
-			ip link set \$vethExt up
-			ip link set \$vethInt netns \$netnsId
-			ip netns exec \$netnsId ip link set \$vethInt up
+			$ipPath link add \$vethExt type veth peer name \$vethInt
+			$ipPath link set \$vethExt up
+			$ipPath link set \$vethInt netns \$netnsId
+			$ipPath netns exec \$netnsId $ipPath link set \$vethInt up
 
-			ip netns exec \$netnsId ip addr add \$ipInt/\$ipIntBitmask dev \$vethInt scope link
+			$ipPath netns exec \$netnsId $ipPath addr add \$ipInt/\$ipIntBitmask dev \$vethInt scope link
 
-			ip addr add \$extIp/\$extIpBitmask dev \$vethExt scope link
-			ip link set \$vethExt up
-			ip netns exec \$netnsId ip route add default via \$extIp dev \$vethInt proto kernel src \$ipInt
+			$ipPath addr add \$extIp/\$extIpBitmask dev \$vethExt scope link
+			$ipPath link set \$vethExt up
+			$ipPath netns exec \$netnsId $ipPath route add default via \$extIp dev \$vethInt proto kernel src \$ipInt
 
 			shortJailName=\${jailName:0:13}
 			case "\$firewallType" in
@@ -487,11 +498,11 @@ function runChroot() {
 
 	if [ "\$jailNet" = "true" ]; then
 		env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$uid HOSTNAME=nowhere.here \\
-			ip netns exec \$netnsId \\
-			unshare -mpfiuC $sh -c "mount -tproc none \$rootDir/root/proc; chroot --userspec=$uid:$gid \$rootDir/root /bin/sh \$args"
+			$ipPath netns exec \$netnsId \\
+			$unsharePath -mpfiuC $sh -c "$mountPath -tproc none \$rootDir/root/proc; $chrootPath --userspec=$uid:$gid \$rootDir/root /bin/sh \$args"
 	else
 		env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$uid HOSTNAME=nowhere.here \\
-			unshare -mpfiuC $sh -c "mount -tproc none \$rootDir/root/proc; chroot --userspec=$uid:$gid \$rootDir/root /bin/sh \$args"
+			$unsharePath -mpfiuC $sh -c "$mountPath -tproc none \$rootDir/root/proc; $chrootPath --userspec=$uid:$gid \$rootDir/root /bin/sh \$args"
 	fi
 
 }
@@ -510,11 +521,11 @@ function stopChroot() {
 
 	if [ "\$jailNet" = "true" ]; then
 		if [ "\$createBridge" = "true" ]; then
-			ip netns exec \$netnsId ip link set down \$bridgeName
-			ip netns exec \$netnsId brctl delbr \$bridgeName
+			$ipPath netns exec \$netnsId $ipPath link set down \$bridgeName
+			$ipPath netns exec \$netnsId $brctlPath delbr \$bridgeName
 		fi
 
-		ip netns delete \$netnsId
+		$ipPath netns delete \$netnsId
 
 		if [ "\$configNet" = "true" ]; then
 			shortJailName=\${jailName:0:13}
@@ -542,9 +553,9 @@ function stopChroot() {
 	fi
 
 	for mount in \$devMountPoints \$roMountPoints \$rwMountPoints \$devMountPoints_CUSTOM \$roMountPoints_CUSTOM \$rwMountPoints_CUSTOM; do
-		mountpoint \$rootDir/root/\$mount > /dev/null && umount \$rootDir/root/\$mount
+		$mountpointPath \$rootDir/root/\$mount > /dev/null && $umountPath \$rootDir/root/\$mount
 	done
-	mountpoint \$rootDir/root > /dev/null && umount \$rootDir/root
+	$mountpointPath \$rootDir/root > /dev/null 2>/dev/null && $umountPath \$rootDir/root
 }
 
 case \$1 in
