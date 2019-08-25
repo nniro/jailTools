@@ -391,15 +391,9 @@ function prepareChroot() {
 	local rootDir=\$1
 	$mountPath --bind \$rootDir/root \$rootDir/root
 
-	if [ "\$(stat -c %u \$rootDir/root/etc/shadow)" != "0" ]; then
-		chown root:root \$rootDir/root/etc/shadow
-	fi
-	if [ "\$(stat -c %u \$rootDir/root/etc/group)" != "0" ]; then
-		chown root:root \$rootDir/root/etc/group
-	fi
-	if [ "\$(stat -c %u \$rootDir/root/etc/passwd)" != "0" ]; then
-		chown root:root \$rootDir/root/etc/passwd
-	fi
+	for etcF in shadow group passwd; do # makes sure these files are owned by root
+		[ "\$(stat -c %u \$rootDir/root/etc/\$etcF)" != "0" ] && chown root:root \$rootDir/root/etc/\$etcF
+	done
 
 	# dev
 	mountMany \$rootDir/root "-o rw,noexec" \$devMountPoints
