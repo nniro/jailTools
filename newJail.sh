@@ -109,6 +109,27 @@ for cmd in chroot unshare mount umount mountpoint ip; do
 	fi
 done
 
+# check the kernel's namespace support
+unshareSupport=$($sh $ownPath/testUnshare.sh $unsharePath)
+
+if $(echo $unshareSupport | sed -ne '/n/ q 0; q 1'); then # check for network namespace support
+	netNS=true
+	# we remove this bit from the variable because we use it differently from the other namespaces.
+	unshareSupport=$(echo $unshareSupport | sed -e 's/n//')
+else
+	netNS=false
+fi
+
+if $(echo $unshareSupport | sed -ne '/m/ q 1; q 0'); then # check for mount namespace support
+	echo "Linux kernel Mount namespace support was not detected. It mandatory to use this tool. Bailing out."
+	exit 1
+fi
+
+if $(echo $unshareSupport | sed -ne '/U/ q 0; q 1'); then # check for user namespace support
+	# we remove this bit from the variable because we do not yet support it.
+	unshareSupport=$(echo $unshareSupport | sed -e 's/U//')
+fi
+
 # optional commands
 
 brctlPath=$(command which brctl 2>/dev/null)
@@ -198,6 +219,20 @@ ownPath=\$(dirname \$0)
 . \$ownPath/rootCustomConfig.sh
 
 user=$2
+
+netNS=$netNS
+hasBrctl=$hasBrctl
+
+if [ "\$netNS" = "false" ] && [ "\$jailNet" = "true" ]; then
+	jailNet=false
+	echo "jailNet is set to false automatically as it needs network namespace support which is not available."
+fi
+
+if [ "\$hasBrctl" = "false" ] && [ "\$createBridge" = "true" ]; then
+	createBridge=false
+	echo "The variable createBridge is set to true but it needs the command \\\`brctl' which is not available. Setting createBridge to false."
+fi
+
 
 # dev mount points : read-write, no-exec
 read -d '' devMountPoints << EOF
