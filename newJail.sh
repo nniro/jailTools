@@ -1,6 +1,6 @@
 #! /bin/sh
 
-filesystem="
+filesystem=$(cat << EOF
 /bin
 /boot
 /dev
@@ -45,14 +45,10 @@ filesystem="
 /var/state
 /var/tmp
 /var/yp
-"
+EOF
+)
 
 case "$(readlink -f /proc/$$/exe)" in
-	*dash)
-		echo "We don't support dash"
-		exit 1
-	;;
-
 	*zsh)
 		setopt shwordsplit
 		sh="$(readlink -f /proc/$$/exe)"
@@ -85,11 +81,19 @@ gid=$(id -g)
 
 ownPath=$(dirname $0)
 
+# substring offset <optional length> string
+# cuts a string at the starting offset and wanted length.
+substring() {
+        local init=$1; shift
+        if [ "$2" != "" ]; then toFetch="\(.\{$1\}\).*"; shift; else local toFetch="\(.*\)"; fi
+        echo "$1" | sed -e "s/^.\{$init\}$toFetch$/\1/"
+}
+
 # convert the path of this script to an absolute path
 if [ "$ownPath" = "." ]; then
 	ownPath=$PWD
 else
-	if [ "${ownPath:0:1}" = "/" ]; then
+	if [ "$(substring 0 1 $ownPath)" = "/" ]; then
 		# absolute path, we do nothing
 		:
 	else
@@ -106,7 +110,7 @@ fi
 # check for mandatory commands
 for cmd in chroot unshare mount umount mountpoint ip; do
 	cmdPath="${cmd}Path"
-	declare "$cmdPath"="$(command which $cmd 2>/dev/null)"
+	eval "$cmdPath"="$(command which $cmd 2>/dev/null)"
 	eval "cmdPath=\${$cmdPath}"
 
 	if [ "$cmdPath" = "" ]; then
@@ -171,7 +175,7 @@ else
 	mkdir $newChrootDir/lib64
 fi
 
-function genPass() {
+genPass() {
 	len=$1
 	cat /dev/urandom | head -c $(($len * 2)) | base64 | tr '/' '@' | head -c $len
 }
@@ -214,7 +218,7 @@ cat > $newChrootHolder/startRoot.sh << EOF
 
 _JAILTOOLS_RUNNING=1
 
-if [ \$UID != 0 ]; then
+if [ "\$(id -u)" != "0" ]; then
 	echo "This script has to be run with root permissions as it calls the command chroot"
 	exit 1
 fi
@@ -238,21 +242,23 @@ if [ "\$hasBrctl" = "false" ] && [ "\$createBridge" = "true" ]; then
 	echo "The variable createBridge is set to true but it needs the command \\\`brctl' which is not available. Setting createBridge to false."
 fi
 
-
 # dev mount points : read-write, no-exec
-read -d '' devMountPoints << EOF
+devMountPoints=\$(cat << EOF
 @EOF
+)
 
 # read-only mount points with exec
-read -d '' roMountPoints << EOF
+roMountPoints=\$(cat << EOF
 /usr/share/locale
 /usr/lib/locale
 /usr/lib/gconv
 @EOF
+)
 
 # read-write mount points with exec
-read -d '' rwMountPoints << EOF
+rwMountPoints=\$(cat << EOF
 @EOF
+)
 
 # mkdir -p with a mode only applies the mode to the last child dir... this function applies the mode to all directories
 cmkdir() {
@@ -280,13 +286,13 @@ cmkdir() {
         done
 }
 
-function mountMany() {
+mountMany() {
 	local rootDir=\$1
 	local mountOps=\$2
 	shift 2
 
 	for mount in \$(echo \$@); do
-		if [ ! -d \$rootDir/\$mount ]; then
+		if [ ! -d "\$rootDir/\$mount" ]; then
 			echo \$rootDir/\$mount does not exist, creating it
 			cmkdir -m 755 \$rootDir/\$mount
 		fi
@@ -301,7 +307,7 @@ function mountMany() {
 # externalBridgeName - The remote bridge's device name.
 # internalIpNum - a number from 1 to 254 assigned to the vethInternal device. In the same class C network as the bridge.
 # leave externalNetnsId empty if it's to connect to a bridge on the namespace 0 (base system)
-function joinBridge() {
+joinBridge() {
 	local isDefaultRoute=\$1
 	local vethInternal=\$2
 	local vethExternal=\$3
@@ -343,7 +349,7 @@ function joinBridge() {
 	fi
 }
 
-function leaveBridge() {
+leaveBridge() {
 	local vethExternal=\$1
 	local externalNetnsId=\$2
 	local externalBridgeName=\$3
@@ -360,7 +366,7 @@ function leaveBridge() {
 # isDefaultRoute - Route all packets through this bridge, you can only do that on a single bridge (valid values : "true" or "false")
 # internalIpNum - internalIpNum - a number from 1 to 254 assigned to the vethInternal device. In the same class C network as the bridge.
 # this loads data from a jail automatically and connects to their bridge
-function joinBridgeByJail() {
+joinBridgeByJail() {
 	local jailLocation=\$1
 	local isDefaultRoute=\$2
 	local internalIpNum=\$3
@@ -382,11 +388,11 @@ function joinBridgeByJail() {
 			return
 		fi
 
-		if [ "\$remBridgeName" = '\${jailName:0:13}' ]; then
-			local remBridgeName=\${remJailName:0:13}
+		if [ "\$remBridgeName" = '\$(substring 0 13 \$jailName)' ]; then
+			local remBridgeName=\$(substring 0 13 \$remJailName)
 		fi
-		if [ "\$remNetnsId" = '\${jailName:0:13}' ]; then
-			local remNetnsId=\${remJailName:0:13}
+		if [ "\$remNetnsId" = '\$(substring 0 13 \$jailName)' ]; then
+			local remNetnsId=\$(substring 0 13 \$remJailName)
 		fi
 
 		joinBridge "\$isDefaultRoute" "\$remJailName" "\$jailName" "\$remNetnsId" "\$remBridgeName" "\$internalIpNum"
@@ -396,7 +402,7 @@ function joinBridgeByJail() {
 }
 
 # jailLocation - The jail that hosts a bridge you wish to disconnect from.
-function leaveBridgeByJail() {
+leaveBridgeByJail() {
 	local jailLocation=\$1
 
 	if [ -d \$jailLocation/root ] && [ -d \$jailLocation/run ] && [ -f \$jailLocation/startRoot.sh ] && [ -f \$jailLocation/rootCustomConfig.sh ]; then
@@ -414,18 +420,18 @@ function leaveBridgeByJail() {
 			return
 		fi
 
-		if [ "\$remBridgeName" = '\${jailName:0:13}' ]; then
-			local remBridgeName=\${remJailName:0:13}
+		if [ "\$remBridgeName" = '\$(substring 0 13 \$jailName)' ]; then
+			local remBridgeName=\$(substring 0 13 \$remJailName)
 		fi
-		if [ "\$remNetnsId" = '\${jailName:0:13}' ]; then
-			local remNetnsId=\${remJailName:0:13}
+		if [ "\$remNetnsId" = '\$(substring 0 13 \$jailName)' ]; then
+			local remNetnsId=\$(substring 0 13 \$remJailName)
 		fi
 
 		leaveBridge "\$jailName" "\$remNetnsId" "\$remBridgeName"
 	fi
 }
 
-function prepareChroot() {
+prepareChroot() {
 	local rootDir=\$1
 	$mountPath --bind \$rootDir/root \$rootDir/root
 
@@ -468,7 +474,7 @@ function prepareChroot() {
 			$ipPath link set \$vethExt up
 			$ipPath netns exec \$netnsId $ipPath route add default via \$extIp dev \$vethInt proto kernel src \$ipInt
 
-			shortJailName=\${jailName:0:13}
+			shortJailName=\$(substring 0 13 \$jailName)
 			case "\$firewallType" in
 				"shorewall")
 					for pth in zones interfaces policy snat rules; do
@@ -508,7 +514,7 @@ function prepareChroot() {
 	[ "\$firewallType" = "shorewall" ] && [ "\$configNet" = "true" ] && shorewall restart > /dev/null 2> /dev/null
 }
 
-function startChroot() {
+startChroot() {
 	local rootDir=\$1
 
 	prepareChroot \$rootDir
@@ -517,7 +523,7 @@ function startChroot() {
 	# if you need to add logs, just pipe them to the directory : run/someLog.log
 }
 
-function runChroot() {
+runChroot() {
 	local rootDir=\$1
 	shift 1
 	local cmds=\$@
@@ -539,14 +545,14 @@ function runChroot() {
 
 }
 
-function runShell() {
+runShell() {
 	local rootDir=\$1
 	prepareChroot \$rootDir
 
 	runChroot \$rootDir
 }
 
-function stopChroot() {
+stopChroot() {
 	local rootDir=\$1
 
 	stopCustom \$rootDir
@@ -560,7 +566,7 @@ function stopChroot() {
 		$ipPath netns delete \$netnsId
 
 		if [ "\$configNet" = "true" ]; then
-			shortJailName=\${jailName:0:13}
+			shortJailName=\$(substring 0 13 \$jailName)
 			case "\$firewallType" in
 				"shorewall")
 					for fwSection in zones interfaces policy snat rules; do
@@ -609,12 +615,20 @@ if [ "\$_JAILTOOLS_RUNNING" = "" ]; then
 	exit 1
 fi
 
+# substring offset <optional length> string
+# cuts a string at the starting offset and wanted length.
+substring() {
+        local init=\$1; shift
+        if [ "\$2" != "" ]; then toFetch="\(.\{\$1\}\).*"; shift; else local toFetch="\(.*\)"; fi
+        echo "\$1" | sed -e "s/^.\{\$init\}\$toFetch$/\1/"
+}
+
 ################# Configuration ###############
 
 jailName=$jailName
 
 # the namespace name for this jail
-netnsId=\${jailName:0:13}
+netnsId=\$(substring 0 13 \$jailName)
 
 # if you set to false, the chroot will have exactly the same
 # network access as the base system.
@@ -627,7 +641,7 @@ jailNet=true
 createBridge=true
 # this is the bridge we will either create if createBridge=true
 # or join if it is false
-bridgeName=\${jailName:0:13}
+bridgeName=\$(substring 0 13 \$jailName)
 # only used if createBridge=true
 bridgeIp=192.168.99.1
 bridgeIpBitmask=24
@@ -663,7 +677,7 @@ firewallType=shorewall
 # configNet=true
 firewallPath=/etc/shorewall
 firewallNetZone=net
-firewallZoneName=\${jailName:0:5}
+firewallZoneName=\$(substring 0 5 \$jailName)
 
 # all firewalls options section
 # the network interface by which we will masquerade our
@@ -681,9 +695,9 @@ ipInt=\$(echo \$extIp | sed -e 's/^\(.*\)\.[0-9]*$/\1\./')2
 # chroot internal IP mask
 ipIntBitmask=24
 # the external veth interface name (only 15 characters maximum)
-vethExt=\${jailName:0:13}ex
+vethExt=\$(substring 0 13 \$jailName)ex
 # the internal veth interface name (only 15 characters maximum)
-vethInt=\${jailName:0:13}in
+vethInt=\$(substring 0 13 \$jailName)in
 
 ################# Mount Points ################
 
@@ -694,22 +708,25 @@ vethInt=\${jailName:0:13}in
 # manually like the Xauthority example in the function prepCustom.
 
 # dev mount points : read-write, no-exec
-read -d '' devMountPoints_CUSTOM << EOF
+devMountPoints_CUSTOM=\$(cat << EOF
 @EOF
+)
 
 # read-only mount points with exec
-read -d '' roMountPoints_CUSTOM << EOF
+roMountPoints_CUSTOM=\$(cat << EOF
 @EOF
+)
 
 # read-write mount points with exec
-read -d '' rwMountPoints_CUSTOM << EOF
+rwMountPoints_CUSTOM=\$(cat << EOF
 @EOF
+)
 
 ################ Functions ###################
 
 # this is called before the shell command and of course the start command
 # put your firewall rules here
-function prepCustom() {
+prepCustom() {
 	local rootDir=\$1
 
 	# Note : We use the path /home/yourUser as a place holder for your home directory.
@@ -765,7 +782,7 @@ function prepCustom() {
 
 }
 
-function startCustom() {
+startCustom() {
 	local rootDir=\$1
 
 	# if you want both the "shell" command and this "start" command to have the same parameters,
@@ -779,7 +796,7 @@ function startCustom() {
 	# if you need to add logs, just pipe them to the directory : \$rootDir/run/someLog.log
 }
 
-function stopCustom() {
+stopCustom() {
 	local rootDir=\$1
 	# put your stop instructions here
 
@@ -793,7 +810,7 @@ function stopCustom() {
 	# leaveBridge "extInt" "" "br0"
 }
 
-function cmdParse() {
+cmdParse() {
 	local args=\$1
 	local ownPath=\$2
 
@@ -835,7 +852,12 @@ echo "Copying pam security libraries"
 #sh cpDep.sh $newChrootHolder /lib/security /lib/security/*
 
 echo "Copying /etc data"
-$sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/{termcap,services,protocols,nsswitch.conf,ld.so.cache,inputrc,hostname,resolv.conf,host.conf,hosts}
+etcFiles=""
+for ef in termcap services protocols nsswitch.conf ld.so.cache inputrc hostname resolv.conf host.conf hosts; do
+	etcFiles="$etcFiles /etc/$ef"
+done
+$sh $ownPath/cpDep.sh $newChrootHolder /etc/ $etcFiles
+
 if [ -e /etc/terminfo ]; then
 	$sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/terminfo
 fi

@@ -1,11 +1,6 @@
 #! /bin/sh
 
 case "$(readlink -f /proc/$$/exe)" in
-	*dash)
-		echo "We don't support dash"
-		exit 1
-	;;
-
 	*zsh)
 		setopt shwordsplit
 		sh="$(readlink -f /proc/$$/exe)"
@@ -140,7 +135,7 @@ if [ "$newStyleJail" = "1" ]; then
 	if [ ! -e $pDir/update.sh ]; then
 		jtPath=""
 
-		if [ "${ownPath[1]:0:1}" != "/" ]; then # it's a relative path, we need absolute here
+		if [ "$(echo $ownPath | sed -e 's/^\(.\).*$/\1/')" != "/" ]; then # it's a relative path, we need absolute here
 			if [ -e $PWD/$scriptName ]; then
 				jtPath=$PWD
 			else # we couldn't find cpDep.sh in $PWD so we use the relative path after all

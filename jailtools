@@ -1,11 +1,6 @@
 #! /bin/sh
 
 case "$(readlink -f /proc/$$/exe)" in
-	*dash)
-		echo "We don't support dash"
-		exit 1
-	;;
-
 	*)
 		sh="$(readlink -f /proc/$$/exe)"
 		echo "using shell : $sh"
@@ -14,21 +9,21 @@ esac
 
 jailToolsPath=ScriptPath
 
-uid=$UID
+uid=$(id -u)
 
 if [ "$jailToolsPath" = "ScriptPath" ]; then
 	exit 1 # this script has to be installed to be used.
 fi
 
-function showHelp() {
+showHelp() {
 	echo "Usage:"
-	echo -e "  $(basename $0) <command> [command options]"
+	echo "  $(basename $0) <command> [command options]"
 	echo
 	echo "Available commands :"
-	echo -e "    help, h\t\t\tdisplay this help"
-	echo -e "    new, create\t\t\tcreate a new jailTools directory"
-	echo -e "    cp, cpDep\t\t\tcopy files or directories (with their shared object dependencies) into the jailTools"
-	echo -e "    start, stop, shell\t\tthese are jailTools specific commands to be used inside a jailTools directory only."
+	printf "    help, h\t\t\tdisplay this help\n"
+	printf "    new, create\t\t\tcreate a new jailTools directory\n"
+	printf "    cp, cpDep\t\t\tcopy files or directories (with their shared object dependencies) into the jailTools\n"
+	printf "    start, stop, shell\t\tthese are jailTools specific commands to be used inside a jailTools directory only.\n"
 }
 
 if [ "$1" = "" ]; then

@@ -8,11 +8,6 @@ unsharePath=$1
 # messages. But we also support this being run as root.
 
 case "$(readlink -f /proc/$$/exe)" in
-	*dash)
-		echo "We don't support dash"
-		exit 1
-	;;
-
 	*)
 		sh="$(readlink -f /proc/$$/exe)"
 		#echo "using shell : $sh"
@@ -31,9 +26,7 @@ fi
 # -p pid ns
 # -U user ns
 # -C cgroups ns
-testNs=('m' 'u' 'i' 'n' 'p' 'U' 'C')
-
-for ns in ${testNs[@]}; do
+for ns in m u i n p U C; do
 	result=$($unsharePath -$ns echo 'it works' 2>&1)
 	successMessage="Operation not permitted"
 
