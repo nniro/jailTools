@@ -204,7 +204,7 @@ chmod 600 $newChrootDir/etc/shadow
 
 # shells
 cat >> $newChrootDir/etc/shells << EOF
-$sh
+/bin/sh
 /bin/false
 EOF
 
