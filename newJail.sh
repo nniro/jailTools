@@ -637,7 +637,7 @@ jailNet=true
 # bridgeName(see below) in our ns creatensId. This permits
 # external sources to join it and potentially gaining access
 # to services on this jail.
-createBridge=true
+createBridge=false
 # this is the bridge we will either create if createBridge=true
 # or join if it is false
 bridgeName=\$(substring 0 13 \$jailName)
