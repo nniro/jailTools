@@ -103,7 +103,7 @@ else
 fi
 
 if [ ! -e $ownPath/busybox/busybox ]; then
-	echo "Please run make in $ownPath to compile the necessary dependencies"
+	echo "Please run make in \`$ownPath' to compile the necessary dependencies"
 	exit 1
 fi
 
@@ -542,7 +542,6 @@ runChroot() {
 		env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$uid HOSTNAME=nowhere.here $lineGlob
 			$unsharePath -${unshareSupport}f $sh -c "$mountPath -tproc none \$rootDir/root/proc; $chrootPath --userspec=$uid:$gid \$rootDir/root /bin/sh \$args"
 	fi
-
 }
 
 runShell() {
@@ -573,7 +572,7 @@ stopChroot() {
 						[ -e \$firewallPath/\$fwSection.d/\$shortJailName.\$fwSection ] && rm \$firewallPath/\$fwSection.d/\$shortJailName.\$fwSection
 					done
 					shorewall restart > /dev/null 2> /dev/null
-									;;
+				;;
 
 				"iptables")
 					iptables -t nat -D POSTROUTING -o \$snatEth -j \${snatEth}_\${shortJailName}_masq
@@ -848,9 +847,6 @@ sed -e "s/^\@EOF$/EOF/g" -i $newChrootHolder/startRoot.sh
 
 sed -e "s/^\@EOF$/EOF/g" -i $newChrootHolder/rootCustomConfig.sh
 
-echo "Copying pam security libraries"
-#sh cpDep.sh $newChrootHolder /lib/security /lib/security/*
-
 echo "Copying /etc data"
 etcFiles=""
 for ef in termcap services protocols nsswitch.conf ld.so.cache inputrc hostname resolv.conf host.conf hosts; do
@@ -867,9 +863,6 @@ $sh $ownPath/cpDep.sh $newChrootHolder /bin $ownPath/busybox/busybox
 for app in $($ownPath/busybox/busybox --list-full); do
 	ln -s /bin/busybox ${newChrootDir}/$app
 done
-
-
-
 
 
 # we append these to update.sh
