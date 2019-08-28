@@ -22,7 +22,13 @@ Tutorial
 
 *The main scripts*
 ~~~~~~~~~~~~~~~~~~
-There are 2 useful scripts : 
+There are 3 useful scripts :
+
+. *jailtools* - *jtools* - *jt*
+
+	(jtools and jt are just symbolic links to jailtools)
+	This is a super script that can be used to call the other 2 scripts and
+	do the various tasks related to jailTools directories.
 
 . *newJail.sh*
 
@@ -32,6 +38,49 @@ There are 2 useful scripts :
 
 	Used to copy binaries or libraries to the jail and it does
 	it's best to copy dependencies with it too (only shared objects).
+
+*Compilation and Installation*
+
+The project relies on 2 external subprojects : musl (libc) and busybox.
+These 2 are the basis from which the underlying filesystem shell and commands
+are made available inside each jail.
+
+To compile, just run `make'.
+This will compile musl, compile a statically linked busybox using the musl libc
+and it will compile a few helper programs.
+
+The installation script `install.sh' can be used to copy the super script `jailtools' to
+a location of your choice. It only installs the super script, not the whole jailTools
+scripts. It sets up the super script with the path of the project's git repository directory
+so it could stay any place you want.
+
+If you want to use jailTools for your user only, just clone the git repository, compile then
+do something like :
+
+	sh install.sh ~/bin
+
+This will install the super script inside your user's bin directory.
+
+In case you want to make the project available for all users on the system, just copy the
+jailTools git repository in a publicly available directory like /usr/src/jailTools and
+do this :
+
+	sh install.sh /usr/bin
+
+This will install the super script to the main system's binary directory and set it up to
+refer to the location of the directory jailTools. The only requirement is to run `install.sh'
+from the location where the jailTools scripts reside so the references are done correctly inside
+`jailtools'.
+
+*How to use the super script jailtools*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The usage is very similar to using the scripts newJail.sh and cpDep.sh directly except these
+are set as commands inside the super script. Here is a list of the available commands :
+
+    new, create                 create a new jailTools directory
+    cp, cpDep                   copy files or directories (with their shared object dependencies) into the jailTools
+    start, stop, shell          these are jailTools specific commands to be used inside a jailTools directory only.
 
 *How to use newJail*
 ~~~~~~~~~~~~~~~~~~~~
