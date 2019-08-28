@@ -495,12 +495,14 @@ prepareChroot() {
 				"iptables")
 					baseAddr=\$(echo \$ipInt | sed -e 's/\.[0-9]*$/\.0/') # convert 192.168.xxx.xxx to 192.168.xxx.0
 
-					iptables -t nat -N \${snatEth}_\${shortJailName}_masq
-					iptables -t nat -A POSTROUTING -o \$snatEth -j \${snatEth}_\${shortJailName}_masq
-					iptables -t nat -A \${snatEth}_\${shortJailName}_masq -s \$baseAddr/\$ipIntBitmask -j MASQUERADE
+					if [ "\$snatEth" != "" ]; then
+						iptables -t nat -N \${snatEth}_\${shortJailName}_masq
+						iptables -t nat -A POSTROUTING -o \$snatEth -j \${snatEth}_\${shortJailName}_masq
+						iptables -t nat -A \${snatEth}_\${shortJailName}_masq -s \$baseAddr/\$ipIntBitmask -j MASQUERADE
 
-					iptables -t filter -I FORWARD -i \$vethExt -o \$snatEth -j ACCEPT
-					iptables -t filter -I FORWARD -i \$snatEth -o \$vethExt -m state --state ESTABLISHED,RELATED -j ACCEPT
+						iptables -t filter -I FORWARD -i \$vethExt -o \$snatEth -j ACCEPT
+						iptables -t filter -I FORWARD -i \$snatEth -o \$vethExt -m state --state ESTABLISHED,RELATED -j ACCEPT
+					fi
 				;;
 
 				*)
@@ -575,12 +577,14 @@ stopChroot() {
 				;;
 
 				"iptables")
-					iptables -t nat -D POSTROUTING -o \$snatEth -j \${snatEth}_\${shortJailName}_masq
-					iptables -t nat -D \${snatEth}_\${shortJailName}_masq -s \$baseAddr/\$ipIntBitmask -j MASQUERADE
+					if [ "\$snatEth" != "" ]; then
+						iptables -t nat -D POSTROUTING -o \$snatEth -j \${snatEth}_\${shortJailName}_masq
+						iptables -t nat -D \${snatEth}_\${shortJailName}_masq -s \$baseAddr/\$ipIntBitmask -j MASQUERADE
 
-					iptables -t filter -D FORWARD -i \$vethExt -o \$snatEth -j ACCEPT
-					iptables -t filter -D FORWARD -i \$snatEth -o \$vethExt -m state --state ESTABLISHED,RELATED -j ACCEPT
-					iptables -t nat -X \${snatEth}_\${shortJailName}_masq
+						iptables -t filter -D FORWARD -i \$vethExt -o \$snatEth -j ACCEPT
+						iptables -t filter -D FORWARD -i \$snatEth -o \$vethExt -m state --state ESTABLISHED,RELATED -j ACCEPT
+						iptables -t nat -X \${snatEth}_\${shortJailName}_masq
+					fi
 				;;
 
 				*)
