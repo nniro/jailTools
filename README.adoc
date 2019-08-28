@@ -12,7 +12,7 @@ Purpose
 To make it easy and painless to create chroots for specific purposes and also tools to help
 when copying applications and libraries to the jail, so as to also copy the shared objects
 they depend on to run correctly.
-The idea is to create a minimal filesystem (about 60MB in size) which is meant to include
+The idea is to create a minimal filesystem (about 6MB in size) which is meant to include
 only the bare minimum for applications or libraries to do their job. This way, in case
 the service is compromized, the adversary will only get access to that filesystem rather
 than the whole underlying/host system.
@@ -54,9 +54,6 @@ so for example :
 ----
 sh newJail.sh example foo bar
 ----
-
-[NOTE] 
-sudo is used at the end of the script to create a few necessary device nodes.
 
 This will create a new directory called example containing the jail and once running, the user's
 UID and GID will be mapped to foo and bar respectively. Inside that directory

@@ -365,7 +365,6 @@ leaveBridge() {
 	else
 		$ipPath netns exec \$externalNetnsId $brctlPath delif \$externalBridgeName \$vethExternal
 	fi
-
 }
 
 # jailLocation - The jail that hosts a bridge you wish to connect to.
@@ -631,8 +630,7 @@ jailNet=true
 # external sources to join it and potentially gaining access
 # to services on this jail.
 createBridge=false
-# this is the bridge we will either create if createBridge=true
-# or join if it is false
+# this is the bridge we will create if createBridge=true
 bridgeName=\$(substring 0 13 \$jailName)
 # only used if createBridge=true
 bridgeIp=192.168.99.1
@@ -728,6 +726,7 @@ prepCustom() {
 	# mounting Xauthority manually (crucial for supporting X11)
 	# mount --bind /home/yourUser/.Xauthority \$rootDir/root/home/.Xauthority
 
+	# joinBridgeByJail <jail path> <set as default route> <our last IP bit>
 	# To join an already running jail called tor at the path, we don't set it
 	# as our default internet route and we assign the interface the last IP bit of 3
 	# so for example if tor's bridge's IP is 192.168.11.1 we are automatically assigned

@@ -2,10 +2,8 @@
 
 unsharePath=$1
 
-# test which unshare namespaces are available
-# This has to be done as a normal user as we don't want
-# to actually run these namespaces, we rely on their
-# messages. But we also support this being run as root.
+# test which linux namespaces are available
+# We support this as a normal user and superuser.
 
 case "$(readlink -f /proc/$$/exe)" in
 	*)
