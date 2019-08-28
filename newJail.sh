@@ -380,28 +380,19 @@ joinBridgeByJail() {
 	if [ -d \$jailLocation/root ] && [ -d \$jailLocation/run ] && [ -f \$jailLocation/startRoot.sh ] && [ -f \$jailLocation/rootCustomConfig.sh ]; then
 		local confPath=\$jailLocation/rootCustomConfig.sh
 
-		local neededConfig=\$(cat \$confPath | sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p; /^bridgeIp=/ p; /^bridgeIpBitmask=/ p; /^netnsId=/ p;')
+		local neededConfig=\$(cat \$confPath | sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p; /^netnsId=/ p;')
+                for cfg in jailName createBridge bridgeName netnsId; do
+                        eval "local rem\$cfg"="\$(printf "%s" "\$neededConfig" | sed -ne "/^\$cfg/ p" | sed -e 's/#.*//' | sed -e 's/^[^=]\+=\(.*\)$/\1/' | sed -e 's/\${\([^:]\+\):/\${rem\1:/' -e
+'s/\$\([^{(]\+\)/\$rem\1/')"
+                done
 
-		local remJailName=\$(echo \$neededConfig | sed -e 's/^.*jailName=\([^ ]*\).*$/\1/')
-		local remIsCreateBridge=\$(echo \$neededConfig | sed -e 's/^.*createBridge=\([^ ]*\).*$/\1/')
-		local remBridgeName=\$(echo \$neededConfig | sed -e 's/^.*bridgeName=\([^ ]*\).*$/\1/')
-		local remBridgeIp=\$(echo \$neededConfig | sed -e 's/^.*bridgeIp=\([^ ]*\).*$/\1/')
-		local remBridgeIpBitmask=\$(echo \$neededConfig | sed -e 's/^.*bridgeIpBitmask=\([^ ]*\).*$/\1/')
-		local remNetnsId=\$(echo \$neededConfig | sed -e 's/^.*netnsId=\([^ ]*\).*$/\1/')
+                if [ "\$remcreateBridge" != "true" ]; then
+                        echo "This jail does not have a bridge, bailing out."
+                        return
+                fi
 
-		if [ "\$remIsCreateBridge" != "true" ]; then
-			echo "This jail does not have a bridge, bailing out."
-			return
-		fi
-
-		if [ "\$remBridgeName" = '\$(substring 0 13 \$jailName)' ]; then
-			local remBridgeName=\$(substring 0 13 \$remJailName)
-		fi
-		if [ "\$remNetnsId" = '\$(substring 0 13 \$jailName)' ]; then
-			local remNetnsId=\$(substring 0 13 \$remJailName)
-		fi
-
-		joinBridge "\$isDefaultRoute" "\$remJailName" "\$jailName" "\$remNetnsId" "\$remBridgeName" "\$internalIpNum"
+                # echo "Attempting to join bridge \$rembridgeName on jail \$remjailName with net ns \$remnetnsId"
+                joinBridge "\$isDefaultRoute" "\$remjailName" "\$jailName" "\$remnetnsId" "\$rembridgeName" "\$internalIpNum"
 	else
 		echo "Supplied jail path is not a valid supported jail."
 	fi
@@ -414,26 +405,18 @@ leaveBridgeByJail() {
 	if [ -d \$jailLocation/root ] && [ -d \$jailLocation/run ] && [ -f \$jailLocation/startRoot.sh ] && [ -f \$jailLocation/rootCustomConfig.sh ]; then
 		local confPath=\$jailLocation/rootCustomConfig.sh
 
-		local neededConfig=\$(cat \$confPath | sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p; /^bridgeIp=/ p; /^bridgeIpBitmask=/ p; /^netnsId=/ p;')
+		local neededConfig=\$(cat \$confPath | sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p; /^netnsId=/ p;')
+                for cfg in jailName createBridge bridgeName netnsId; do
+                        eval "local rem\$cfg"="\$(printf "%s" "\$neededConfig" | sed -ne "/^\$cfg/ p" | sed -e 's/#.*//' | sed -e 's/^[^=]\+=\(.*\)$/\1/' | sed -e 's/\${\([^:]\+\):/\${rem\1:/' -e
+'s/\$\([^{(]\+\)/\$rem\1/')"
+                done
 
-		local remJailName=\$(echo \$neededConfig | sed -e 's/^.*jailName=\([^ ]*\).*$/\1/')
-		local remIsCreateBridge=\$(echo \$neededConfig | sed -e 's/^.*createBridge=\([^ ]*\).*$/\1/')
-		local remBridgeName=\$(echo \$neededConfig | sed -e 's/^.*bridgeName=\([^ ]*\).*$/\1/')
-		local remNetnsId=\$(echo \$neededConfig | sed -e 's/^.*netnsId=\([^ ]*\).*$/\1/')
+                if [ "\$remcreateBridge" != "true" ]; then
+                        echo "This jail does not have a bridge, bailing out."
+                        return
+                fi
 
-		if [ "\$remIsCreateBridge" != "true" ]; then
-			echo "This jail does not have a bridge, bailing out."
-			return
-		fi
-
-		if [ "\$remBridgeName" = '\$(substring 0 13 \$jailName)' ]; then
-			local remBridgeName=\$(substring 0 13 \$remJailName)
-		fi
-		if [ "\$remNetnsId" = '\$(substring 0 13 \$jailName)' ]; then
-			local remNetnsId=\$(substring 0 13 \$remJailName)
-		fi
-
-		leaveBridge "\$jailName" "\$remNetnsId" "\$remBridgeName"
+		leaveBridge "\$jailName" "\$remnetnsId" "\$rembridgeName"
 	fi
 }
 
