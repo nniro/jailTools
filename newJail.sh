@@ -242,6 +242,12 @@ if [ "\$hasBrctl" = "false" ] && [ "\$createBridge" = "true" ]; then
 	echo "The variable createBridge is set to true but it needs the command \\\`brctl' which is not available. Setting createBridge to false."
 fi
 
+if [ "\$(cat /proc/sys/net/ipv4/ip_forward)" = "0" ]; then
+	configNet=false
+	echo "The ip_forward bit in /proc/sys/net/ipv4/ip_forward is disabled. This has to be enabled to get handled network support. Setting configNet to false."
+	echo "\tPlease do (as root) : echo 1 > /proc/sys/net/ipv4/ip_forward  or find the method suitable for your distribution to activate IP forwarding."
+fi
+
 # dev mount points : read-write, no-exec
 devMountPoints=\$(cat << EOF
 @EOF
