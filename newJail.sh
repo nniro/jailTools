@@ -381,8 +381,7 @@ joinBridgeByJail() {
 
 		local neededConfig=\$(cat \$confPath | sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p; /^netnsId=/ p;')
                 for cfg in jailName createBridge bridgeName netnsId; do
-                        eval "local rem\$cfg"="\$(printf "%s" "\$neededConfig" | sed -ne "/^\$cfg/ p" | sed -e 's/#.*//' | sed -e 's/^[^=]\+=\(.*\)$/\1/' | sed -e 's/\${\([^:]\+\):/\${rem\1:/' -e
-'s/\$\([^{(]\+\)/\$rem\1/')"
+                        eval "local rem\$cfg"="\$(printf "%s" "\$neededConfig" | sed -ne "/^\$cfg/ p" | sed -e 's/#.*//' | sed -e 's/^[^=]\+=\(.*\)$/\1/' | sed -e 's/\${\([^:]\+\):/\${rem\1:/' -e 's/\$\([^{(]\+\)/\$rem\1/')"
                 done
 
                 if [ "\$remcreateBridge" != "true" ]; then
@@ -406,8 +405,7 @@ leaveBridgeByJail() {
 
 		local neededConfig=\$(cat \$confPath | sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p; /^netnsId=/ p;')
                 for cfg in jailName createBridge bridgeName netnsId; do
-                        eval "local rem\$cfg"="\$(printf "%s" "\$neededConfig" | sed -ne "/^\$cfg/ p" | sed -e 's/#.*//' | sed -e 's/^[^=]\+=\(.*\)$/\1/' | sed -e 's/\${\([^:]\+\):/\${rem\1:/' -e
-'s/\$\([^{(]\+\)/\$rem\1/')"
+                        eval "local rem\$cfg"="\$(printf "%s" "\$neededConfig" | sed -ne "/^\$cfg/ p" | sed -e 's/#.*//' | sed -e 's/^[^=]\+=\(.*\)$/\1/' | sed -e 's/\${\([^:]\+\):/\${rem\1:/' -e 's/\$\([^{(]\+\)/\$rem\1/')"
                 done
 
                 if [ "\$remcreateBridge" != "true" ]; then
