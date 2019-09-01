@@ -513,30 +513,34 @@ startChroot() {
 
 runChroot() {
 	local rootDir=\$1
-	shift 1
+	shift
+
+	if [ "\$1" = "-root" ]; then
+		shift
+		chrootArgs=""
+	else
+		chrootArgs="--userspec=$uid:$gid"
+	fi
 	local cmds=\$@
 
 	if [ "\$cmds" = "" ]; then
-		local args=""
+		local chrootCmd="/bin/sh"
 	else
-		local args="-c \"\$cmds\""
+		local chrootCmd=""
+                while [ "\$1" != "" ]; do
+                        local chrootCmd="\$chrootCmd '\$1'"
+                        shift
+                done
 	fi
+
+	local preUnshare="env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$uid HOSTNAME=nowhere.here"
 
 	if [ "\$jailNet" = "true" ]; then
-		env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$uid HOSTNAME=nowhere.here $lineGlob
-			$ipPath netns exec \$netnsId $lineGlob
-			$unsharePath -${unshareSupport}f $sh -c "$mountPath -tproc none \$rootDir/root/proc; $chrootPath --userspec=$uid:$gid \$rootDir/root /bin/sh \$args"
-	else
-		env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$uid HOSTNAME=nowhere.here $lineGlob
-			$unsharePath -${unshareSupport}f $sh -c "$mountPath -tproc none \$rootDir/root/proc; $chrootPath --userspec=$uid:$gid \$rootDir/root /bin/sh \$args"
+		local preUnshare="$preUnshare $ipPath netns exec \$netnsId"
 	fi
-}
 
-runShell() {
-	local rootDir=\$1
-	prepareChroot \$rootDir
-
-	runChroot \$rootDir
+	\$preUnshare $lineGlob
+		$unsharePath -${unshareSupport}f $sh -c "$mountPath -tproc none \$rootDir/root/proc; $chrootPath \$chrootArgs \$rootDir/root \$chrootCmd"
 }
 
 stopChroot() {
@@ -815,7 +819,8 @@ cmdParse() {
 		;;
 
 		shell)
-			runShell \$ownPath
+			prepareChroot \$ownPath
+			runChroot \$ownPath
 			stopChroot \$ownPath
 		;;
 
