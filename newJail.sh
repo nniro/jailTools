@@ -417,6 +417,11 @@ joinBridgeByJail() {
                         return
                 fi
 
+		if \$($ipPath netns list | sed -ne "/\$remnetnsId/ q 1; $ q 0"); then
+			echo "joinBridgeByJail: This jail \\\`\$remnetnsId' is not currently started, aborting joining."
+			return
+		fi
+
                 # echo "Attempting to join bridge \$rembridgeName on jail \$remjailName with net ns \$remnetnsId"
                 joinBridge "\$isDefaultRoute" "\$remjailName" "\$jailName" "\$remnetnsId" "\$rembridgeName" "\$internalIpNum"
 	else
@@ -441,6 +446,11 @@ leaveBridgeByJail() {
                         return
                 fi
 
+		if \$($ipPath netns list | sed -ne "/\$remnetnsId/ q 1; $ q 0"); then
+			# we don't need to do anything since the bridge no longer exists, no cleaning required, bailing out
+			return
+		fi
+
 		leaveBridge "\$jailName" "\$remnetnsId" "\$rembridgeName"
 	fi
 }
@@ -448,6 +458,11 @@ leaveBridgeByJail() {
 prepareChroot() {
 	local rootDir=\$1
 	$mountPath --bind \$rootDir/root \$rootDir/root
+
+	if ! \$($ipPath netns list | sed -ne "/\$netnsId/ q 1; $ q 0"); then
+		echo "This jail was already started, bailing out."
+		exit 0
+	fi
 
 	for etcF in shadow group passwd; do # makes sure these files are owned by root
 		[ "\$(stat -c %u \$rootDir/root/etc/\$etcF)" != "0" ] && chown root:root \$rootDir/root/etc/\$etcF
@@ -577,6 +592,10 @@ stopChroot() {
 	stopCustom \$rootDir
 
 	if [ "\$jailNet" = "true" ]; then
+		if \$($ipPath netns list | sed -ne "/\$netnsId/ q 1; $ q 0"); then
+			echo "netnsId \\\`\$netnsId' does not exist, exiting..."
+			exit 0
+		fi
 		if [ "\$createBridge" = "true" ]; then
 			$ipPath netns exec \$netnsId $ipPath link set down \$bridgeName
 			$ipPath netns exec \$netnsId $brctlPath delbr \$bridgeName
