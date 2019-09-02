@@ -62,13 +62,24 @@ case "$(readlink -f /proc/$$/exe)" in
 esac
 
 if [ "$1" = "" ]; then
-	echo "please input the name of the new directory to instantiate"
+	echo "Synopsis : $0 <path and name> [main jail user name] [main jail user group name]"
+	echo "please input the name of the new directory to instantiate and optionally a name for the main jail's user name and optionally a name for the main jail's group name"
 	exit 1
 fi
 
+jailPath=$(dirname $1)
+jailName=$(basename $1)
+
 if [ "$2" = "" ]; then
-	echo "please also input a service name (for the creation of a username and group)"
-	exit 1
+	mainJailUsername=$jailName
+else
+	mainJailUsername=$2
+fi
+
+if [ "$3" = "" ]; then
+	mainJailUsergroup=$jailName
+else
+	mainJailUsergroup=$3
 fi
 
 if [ -e $1 ]; then
@@ -188,21 +199,21 @@ $sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/localtime
 # group
 cat >> $newChrootDir/etc/group << EOF
 root:x:0:
-$2:x:$gid:
+$mainJailUsergroup:x:$gid:
 EOF
 chmod 644 $newChrootDir/etc/group
 # passwd
 cat >> $newChrootDir/etc/passwd << EOF
 root:x:0:0::/root:/bin/false
 nobody:x:99:99::/dev/null:/bin/false
-$2:x:$uid:$gid::/home:/bin/false
+$mainJailUsername:x:$uid:$gid::/home:/bin/false
 EOF
 chmod 644 $newChrootDir/etc/passwd
 # shadow
 cat >> $newChrootDir/etc/shadow << EOF
 root:$($ownPath/cryptPass $(genPass 200) $(genPass 50)):0:0:99999:7:::
 nobody:!:0:0:99999:7:::
-$2:!:0:0:99999:7:::
+$mainJailUsername:!:0:0:99999:7:::
 EOF
 chmod 600 $newChrootDir/etc/shadow
 
@@ -227,7 +238,7 @@ ownPath=\$(dirname \$0)
 
 . \$ownPath/rootCustomConfig.sh
 
-user=$2
+user=$mainJailUsername
 
 netNS=$netNS
 hasBrctl=$hasBrctl
