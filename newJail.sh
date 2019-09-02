@@ -455,6 +455,53 @@ leaveBridgeByJail() {
 	fi
 }
 
+applyFirewallRules() {
+	local prepRun=\$1
+	if [ "\$configNet" = "true" ]; then
+		shortJailName=\$(substring 0 13 \$jailName)
+		case "\$firewallType" in
+			"shorewall")
+				for pth in zones interfaces policy snat rules; do
+					if [ ! -d \$firewallPath/\${pth}.d ]; then
+						mkdir \$firewallPath/\${pth}.d
+					fi
+				done
+
+				echo "\$firewallZoneName ipv4" > \$firewallPath/zones.d/\$shortJailName.zones
+				echo "\$firewallZoneName \$vethExt" > \$firewallPath/interfaces.d/\$shortJailName.interfaces
+				echo "\$firewallZoneName \$firewallNetZone ACCEPT" > \$firewallPath/policy.d/\$shortJailName.policy
+				if [ "\$snatEth" != "" ]; then
+					echo "MASQUERADE \$vethExt \$snatEth" > \$firewallPath/snat.d/\$shortJailName.snat
+				fi
+				echo "" > \$firewallPath/rules.d/\$shortJailName.rules
+			;;
+
+			"iptables")
+				baseAddr=\$(echo \$ipInt | sed -e 's/\.[0-9]*$/\.0/') # convert 192.168.xxx.xxx to 192.168.xxx.0
+
+				if [ "\$snatEth" != "" ]; then
+					$iptablesPath -t nat -N \${snatEth}_\${shortJailName}_masq
+					$iptablesPath -t nat -A POSTROUTING -o \$snatEth -j \${snatEth}_\${shortJailName}_masq
+					$iptablesPath -t nat -A \${snatEth}_\${shortJailName}_masq -s \$baseAddr/\$ipIntBitmask -j MASQUERADE
+
+					$iptablesPath -t filter -I FORWARD -i \$vethExt -o \$snatEth -j ACCEPT
+					$iptablesPath -t filter -I FORWARD -i \$snatEth -o \$vethExt -m state --state ESTABLISHED,RELATED -j ACCEPT
+				fi
+			;;
+
+			*)
+			;;
+		esac
+	fi
+
+	# if this was run in prepareChroot, we do not run this command.
+	# If this is run manually elsewhere, it has to be run to apply the
+	# 	changes to shorewall
+	if [ "\$prepRun" = "" ]; then
+		[ "\$firewallType" = "shorewall" ] && [ "\$configNet" = "true" ] && shorewall restart > /dev/null 2> /dev/null
+	fi
+}
+
 prepareChroot() {
 	local rootDir=\$1
 	$mountPath --bind \$rootDir/root \$rootDir/root
@@ -503,40 +550,7 @@ prepareChroot() {
 			$ipPath link set \$vethExt up
 			$ipPath netns exec \$netnsId $ipPath route add default via \$extIp dev \$vethInt proto kernel src \$ipInt
 
-			shortJailName=\$(substring 0 13 \$jailName)
-			case "\$firewallType" in
-				"shorewall")
-					for pth in zones interfaces policy snat rules; do
-						if [ ! -d \$firewallPath/\${pth}.d ]; then
-							mkdir \$firewallPath/\${pth}.d
-						fi
-					done
-
-					echo "\$firewallZoneName ipv4" > \$firewallPath/zones.d/\$shortJailName.zones
-					echo "\$firewallZoneName \$vethExt" > \$firewallPath/interfaces.d/\$shortJailName.interfaces
-					echo "\$firewallZoneName \$firewallNetZone ACCEPT" > \$firewallPath/policy.d/\$shortJailName.policy
-					if [ "\$snatEth" != "" ]; then
-						echo "MASQUERADE \$vethExt \$snatEth" > \$firewallPath/snat.d/\$shortJailName.snat
-					fi
-					echo "" > \$firewallPath/rules.d/\$shortJailName.rules
-				;;
-
-				"iptables")
-					baseAddr=\$(echo \$ipInt | sed -e 's/\.[0-9]*$/\.0/') # convert 192.168.xxx.xxx to 192.168.xxx.0
-
-					if [ "\$snatEth" != "" ]; then
-						$iptablesPath -t nat -N \${snatEth}_\${shortJailName}_masq
-						$iptablesPath -t nat -A POSTROUTING -o \$snatEth -j \${snatEth}_\${shortJailName}_masq
-						$iptablesPath -t nat -A \${snatEth}_\${shortJailName}_masq -s \$baseAddr/\$ipIntBitmask -j MASQUERADE
-
-						$iptablesPath -t filter -I FORWARD -i \$vethExt -o \$snatEth -j ACCEPT
-						$iptablesPath -t filter -I FORWARD -i \$snatEth -o \$vethExt -m state --state ESTABLISHED,RELATED -j ACCEPT
-					fi
-				;;
-
-				*)
-				;;
-			esac
+			applyFirewallRules 1
 		fi
 	fi
 
