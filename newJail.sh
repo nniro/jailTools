@@ -162,6 +162,15 @@ else
 	hasBrctl=true
 fi
 
+iptablesPath=$(command which iptables 2>/dev/null)
+
+if [ "$iptablesPath" = "" ]; then
+	hasIptables=false
+	iptablesPath=iptables
+else
+	hasIptables=true
+fi
+
 jailName=$(basename $1)
 newChrootHolder=$1
 newChrootDir=$newChrootHolder/root
@@ -242,6 +251,7 @@ user=$mainJailUsername
 
 netNS=$netNS
 hasBrctl=$hasBrctl
+hasIptables=$hasIptables
 
 if [ "\$netNS" = "false" ] && [ "\$jailNet" = "true" ]; then
 	jailNet=false
@@ -251,6 +261,13 @@ fi
 if [ "\$hasBrctl" = "false" ] && [ "\$createBridge" = "true" ]; then
 	createBridge=false
 	echo "The variable createBridge is set to true but it needs the command \\\`brctl' which is not available. Setting createBridge to false."
+fi
+
+if [ "\$configNet" = "true" ]; then
+	if [ "\$firewallType" = "iptables" ] && [ "\$hasIptables" = "false" ]; then
+		echo "The firewall \\\`iptables' was chosen but it needs the command \\\`iptables' which is not available or it's not in the available path. Setting configNet to false."
+		configNet=false
+	fi
 fi
 
 if [ "\$(cat /proc/sys/net/ipv4/ip_forward)" = "0" ]; then
@@ -493,12 +510,12 @@ prepareChroot() {
 					baseAddr=\$(echo \$ipInt | sed -e 's/\.[0-9]*$/\.0/') # convert 192.168.xxx.xxx to 192.168.xxx.0
 
 					if [ "\$snatEth" != "" ]; then
-						iptables -t nat -N \${snatEth}_\${shortJailName}_masq
-						iptables -t nat -A POSTROUTING -o \$snatEth -j \${snatEth}_\${shortJailName}_masq
-						iptables -t nat -A \${snatEth}_\${shortJailName}_masq -s \$baseAddr/\$ipIntBitmask -j MASQUERADE
+						$iptablesPath -t nat -N \${snatEth}_\${shortJailName}_masq
+						$iptablesPath -t nat -A POSTROUTING -o \$snatEth -j \${snatEth}_\${shortJailName}_masq
+						$iptablesPath -t nat -A \${snatEth}_\${shortJailName}_masq -s \$baseAddr/\$ipIntBitmask -j MASQUERADE
 
-						iptables -t filter -I FORWARD -i \$vethExt -o \$snatEth -j ACCEPT
-						iptables -t filter -I FORWARD -i \$snatEth -o \$vethExt -m state --state ESTABLISHED,RELATED -j ACCEPT
+						$iptablesPath -t filter -I FORWARD -i \$vethExt -o \$snatEth -j ACCEPT
+						$iptablesPath -t filter -I FORWARD -i \$snatEth -o \$vethExt -m state --state ESTABLISHED,RELATED -j ACCEPT
 					fi
 				;;
 
@@ -579,12 +596,12 @@ stopChroot() {
 
 				"iptables")
 					if [ "\$snatEth" != "" ]; then
-						iptables -t nat -D POSTROUTING -o \$snatEth -j \${snatEth}_\${shortJailName}_masq
-						iptables -t nat -D \${snatEth}_\${shortJailName}_masq -s \$baseAddr/\$ipIntBitmask -j MASQUERADE
+						$iptablesPath -t nat -D POSTROUTING -o \$snatEth -j \${snatEth}_\${shortJailName}_masq
+						$iptablesPath -t nat -D \${snatEth}_\${shortJailName}_masq -s \$baseAddr/\$ipIntBitmask -j MASQUERADE
 
-						iptables -t filter -D FORWARD -i \$vethExt -o \$snatEth -j ACCEPT
-						iptables -t filter -D FORWARD -i \$snatEth -o \$vethExt -m state --state ESTABLISHED,RELATED -j ACCEPT
-						iptables -t nat -X \${snatEth}_\${shortJailName}_masq
+						$iptablesPath -t filter -D FORWARD -i \$vethExt -o \$snatEth -j ACCEPT
+						$iptablesPath -t filter -D FORWARD -i \$snatEth -o \$vethExt -m state --state ESTABLISHED,RELATED -j ACCEPT
+						$iptablesPath -t nat -X \${snatEth}_\${shortJailName}_masq
 					fi
 				;;
 
