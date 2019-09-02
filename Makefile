@@ -26,7 +26,7 @@ busybox/configure: musl/configure $(MUSL)
 	ln -sf /usr/include/asm-generic usr/include/
 
 $(MUSL):
-	sh ./configMusl.sh
+	sh ./configMusl.sh $(PWD)
 	make -C musl
 	make -C musl install
 
