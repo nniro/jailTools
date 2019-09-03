@@ -70,27 +70,13 @@ fi
 jailPath=$(dirname $1)
 jailName=$(basename $1)
 
-if [ "$2" = "" ]; then
-	mainJailUsername=$jailName
-else
-	mainJailUsername=$2
-fi
-
-if [ "$3" = "" ]; then
-	mainJailUsergroup=$jailName
-else
-	mainJailUsergroup=$3
-fi
+[ "$2" = "" ] && mainJailUsername=$jailName || mainJailUsername=$2
+[ "$3" = "" ] && mainJailUsergroup=$jailName || mainJailUsergroup=$3
 
 if [ -e $1 ]; then
 	echo "invalid path given, file or directory already exists"
 	exit 1
 fi
-
-uid=$(id -u)
-gid=$(id -g)
-
-ownPath=$(dirname $0)
 
 # substring offset <optional length> string
 # cuts a string at the starting offset and wanted length.
@@ -99,6 +85,11 @@ substring() {
         if [ "$2" != "" ]; then toFetch="\(.\{$1\}\).*"; shift; else local toFetch="\(.*\)"; fi
         echo "$1" | sed -e "s/^.\{$init\}$toFetch$/\1/"
 }
+
+uid=$(id -u)
+gid=$(id -g)
+
+ownPath=$(dirname $0)
 
 # convert the path of this script to an absolute path
 if [ "$ownPath" = "." ]; then
@@ -225,7 +216,6 @@ nobody:!:0:0:99999:7:::
 $mainJailUsername:!:0:0:99999:7:::
 EOF
 chmod 600 $newChrootDir/etc/shadow
-
 # shells
 cat >> $newChrootDir/etc/shells << EOF
 /bin/sh
@@ -244,6 +234,19 @@ if [ "\$(id -u)" != "0" ]; then
 fi
 
 ownPath=\$(dirname \$0)
+
+# convert the path of this script to an absolute path
+if [ "\$ownPath" = "." ]; then
+	ownPath=\$PWD
+else
+	if [ "\$(substring 0 1 \$ownPath)" = "/" ]; then
+		# absolute path, we do nothing
+		:
+	else
+		# relative path
+		ownPath=\$PWD/\$ownPath
+	fi
+fi
 
 . \$ownPath/rootCustomConfig.sh
 
@@ -900,25 +903,18 @@ EOF
 
 # we fix the EOF inside the script
 sed -e "s/^\@EOF$/EOF/g" -i $newChrootHolder/startRoot.sh
-
 sed -e "s/^\@EOF$/EOF/g" -i $newChrootHolder/rootCustomConfig.sh
 
 echo "Copying /etc data"
 etcFiles=""
-for ef in termcap services protocols nsswitch.conf ld.so.cache inputrc hostname resolv.conf host.conf hosts; do
-	etcFiles="$etcFiles /etc/$ef"
-done
+for ef in termcap services protocols nsswitch.conf ld.so.cache inputrc hostname resolv.conf host.conf hosts; do etcFiles="$etcFiles /etc/$ef"; done
 $sh $ownPath/cpDep.sh $newChrootHolder /etc/ $etcFiles
 
-if [ -e /etc/terminfo ]; then
-	$sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/terminfo
-fi
+[ -e /etc/terminfo ] && $sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/terminfo
 
 $sh $ownPath/cpDep.sh $newChrootHolder /bin $ownPath/busybox/busybox
 
-for app in $($ownPath/busybox/busybox --list-full); do
-	ln -s /bin/busybox ${newChrootDir}/$app
-done
+for app in $($ownPath/busybox/busybox --list-full); do ln -s /bin/busybox ${newChrootDir}/$app; done
 
 
 # we append these to update.sh
@@ -927,4 +923,3 @@ echo "" >> $newChrootHolder/update.sh
 
 echo "All done"
 exit 0
-
