@@ -309,7 +309,11 @@ cmkdir() {
 
         for dir in \$(echo \$modeLess); do
                 local subdirs="\$(echo \$dir | sed -e 's/\//\n/g')"
-                local parentdir=""
+		if [ "\$(substring 0 1 \$dir)" = "/" ]; then # checking for an absolute path
+			local parentdir="/"
+		else # relative path
+	                local parentdir=""
+		fi
                 for subdir in \$(echo \$subdirs); do
                         if [ ! -d \$parentdir\$subdir ]; then
                                 mkdir \$callArgs \$parentdir\$subdir
