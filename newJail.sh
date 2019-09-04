@@ -512,7 +512,7 @@ prepareChroot() {
 
 	if ! \$($ipPath netns list | sed -ne "/^\$netnsId\($\| .*$\)/ q 1; $ q 0"); then
 		echo "This jail was already started, bailing out."
-		exit 0
+		return 1
 	fi
 	$mountPath --bind \$rootDir/root \$rootDir/root
 
@@ -562,15 +562,7 @@ prepareChroot() {
 	prepCustom \$rootDir
 
 	[ "\$firewallType" = "shorewall" ] && [ "\$configNet" = "true" ] && shorewall restart > /dev/null 2> /dev/null
-}
-
-startChroot() {
-	local rootDir=\$1
-
-	prepareChroot \$rootDir
-
-	startCustom \$rootDir \$user
-	# if you need to add logs, just pipe them to the directory : run/someLog.log
+	return 0
 }
 
 runChroot() {
@@ -874,7 +866,8 @@ cmdParse() {
 	case \$args in
 
 		start)
-			startChroot \$ownPath
+			prepareChroot \$ownPath || exit 1
+			startCustom \$ownPath
 			stopChroot \$ownPath
 		;;
 
@@ -883,14 +876,15 @@ cmdParse() {
 		;;
 
 		shell)
-			prepareChroot \$ownPath
+			prepareChroot \$ownPath || exit 1
 			runChroot \$ownPath
 			stopChroot \$ownPath
 		;;
 
 		restart)
 			stopChroot \$ownPath
-			startChroot \$ownPath
+			prepareChroot \$ownPath || exit 1
+			startCustom \$ownPath
 		;;
 
 		*)
