@@ -335,7 +335,7 @@ mountMany() {
 			echo \$rootDir/\$mount does not exist, creating it
 			cmkdir -m 755 \$rootDir/\$mount
 		fi
-		$mountpointPath \$rootDir/\$mount > /dev/null || $mountPath -o \$mountOps --bind \$mount \$rootDir/\$mount
+		$mountpointPath \$rootDir/\$mount >/dev/null 2>/dev/null || $mountPath -o \$mountOps --bind \$mount \$rootDir/\$mount
 	done
 }
 
@@ -503,7 +503,7 @@ applyFirewallRules() {
 	# If this is run manually elsewhere, it has to be run to apply the
 	# 	changes to shorewall
 	if [ "\$prepRun" = "" ]; then
-		[ "\$firewallType" = "shorewall" ] && [ "\$configNet" = "true" ] && shorewall restart > /dev/null 2> /dev/null
+		[ "\$firewallType" = "shorewall" ] && [ "\$configNet" = "true" ] && shorewall restart >/dev/null 2>/dev/null
 	fi
 }
 
@@ -561,7 +561,7 @@ prepareChroot() {
 
 	prepCustom \$rootDir
 
-	[ "\$firewallType" = "shorewall" ] && [ "\$configNet" = "true" ] && shorewall restart > /dev/null 2> /dev/null
+	[ "\$firewallType" = "shorewall" ] && [ "\$configNet" = "true" ] && shorewall restart >/dev/null 2>/dev/null
 	return 0
 }
 
@@ -638,7 +638,7 @@ stopChroot() {
 					for fwSection in zones interfaces policy snat rules; do
 						[ -e \$firewallPath/\$fwSection.d/\$shortJailName.\$fwSection ] && rm \$firewallPath/\$fwSection.d/\$shortJailName.\$fwSection
 					done
-					shorewall restart > /dev/null 2> /dev/null
+					shorewall restart >/dev/null 2>/dev/null
 				;;
 
 				"iptables")
@@ -660,9 +660,9 @@ stopChroot() {
 	fi
 
 	for mount in \$(echo \$devMountPoints \$roMountPoints \$rwMountPoints \$devMountPoints_CUSTOM \$roMountPoints_CUSTOM \$rwMountPoints_CUSTOM); do
-		$mountpointPath \$rootDir/root/\$mount > /dev/null && $umountPath \$rootDir/root/\$mount
+                $mountpointPath \$rootDir/root/\$mount >/dev/null 2>/dev/null && $umountPath \$rootDir/root/\$mount
 	done
-	$mountpointPath \$rootDir/root > /dev/null 2>/dev/null && $umountPath \$rootDir/root
+	$mountpointPath \$rootDir/root >/dev/null 2>/dev/null && $umountPath \$rootDir/root
 }
 
 case \$1 in
@@ -870,7 +870,7 @@ stopCustom() {
 	# put your stop instructions here
 
 	# this is to be used in combination with the mount --bind example in prepCustom
-	# mountpoint \$rootDir/root/home/.Xauthority > /dev/null && umount \$rootDir/root/home/.Xauthority
+	# mountpoint \$rootDir/root/home/.Xauthority >/dev/null && umount \$rootDir/root/home/.Xauthority
 
 	# this is to be used in combination with the joinBridgeByJail line in prepCustom
 	# leaveBridgeByJail /home/yourUser/jails/tor
