@@ -46,7 +46,7 @@ case $1 in
 	cp|cpDep)
 		shift 1
 		if [ -d ./root ] && [ -d ./run ] && [ -f ./startRoot.sh ] && [ -f ./rootCustomConfig.sh ]; then
-			$sh $jailToolsPath/cpDep.sh . $@
+			$sh $jailToolsPath/cpDep.sh $PWD $@
 		else
 			$sh $jailToolsPath/cpDep.sh $@
 		fi
