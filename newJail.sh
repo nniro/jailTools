@@ -510,7 +510,7 @@ applyFirewallRules() {
 prepareChroot() {
 	local rootDir=\$1
 
-	if ! \$($ipPath netns list | sed -ne "/\$netnsId/ q 1; $ q 0"); then
+	if ! \$($ipPath netns list | sed -ne "/^\$netnsId\($\| .*$\)/ q 1; $ q 0"); then
 		echo "This jail was already started, bailing out."
 		exit 0
 	fi
