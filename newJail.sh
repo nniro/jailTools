@@ -511,12 +511,12 @@ applyFirewallRules() {
 
 prepareChroot() {
 	local rootDir=\$1
-	$mountPath --bind \$rootDir/root \$rootDir/root
 
 	if ! \$($ipPath netns list | sed -ne "/\$netnsId/ q 1; $ q 0"); then
 		echo "This jail was already started, bailing out."
 		exit 0
 	fi
+	$mountPath --bind \$rootDir/root \$rootDir/root
 
 	for etcF in shadow group passwd; do # makes sure these files are owned by root
 		[ "\$(stat -c %u \$rootDir/root/etc/\$etcF)" != "0" ] && chown root:root \$rootDir/root/etc/\$etcF
