@@ -418,7 +418,7 @@ joinBridgeByJail() {
                 done
 
                 if [ "\$remcreateBridge" != "true" ]; then
-                        echo "This jail does not have a bridge, bailing out."
+                        echo "joinBridgeByJail: This jail does not have a bridge, aborting joining."
                         return
                 fi
 
@@ -485,6 +485,7 @@ applyFirewallRules() {
 				baseAddr=\$(echo \$ipInt | sed -e 's/\.[0-9]*$/\.0/') # convert 192.168.xxx.xxx to 192.168.xxx.0
 
 				if [ "\$snatEth" != "" ]; then
+					# this is to SNAT vethExt through snatEth
 					$iptablesPath -t nat -N \${snatEth}_\${shortJailName}_masq
 					$iptablesPath -t nat -A POSTROUTING -o \$snatEth -j \${snatEth}_\${shortJailName}_masq
 					$iptablesPath -t nat -A \${snatEth}_\${shortJailName}_masq -s \$baseAddr/\$ipIntBitmask -j MASQUERADE
@@ -530,7 +531,6 @@ prepareChroot() {
 	mountMany \$rootDir/root "defaults" \$rwMountPoints_CUSTOM
 
 	if [ "\$jailNet" = "true" ]; then
-		# setting up the network interface
 		$ipPath netns add \$netnsId
 
 		# loopback device is activated
@@ -762,6 +762,7 @@ snatEth=eth0
 ipInt=\$(echo \$extIp | sed -e 's/^\(.*\)\.[0-9]*$/\1\./')2
 # chroot internal IP mask
 ipIntBitmask=24
+# These are setup only if configNet is true
 # the external veth interface name (only 15 characters maximum)
 vethExt=\$(substring 0 13 \$jailName)ex
 # the internal veth interface name (only 15 characters maximum)
