@@ -568,19 +568,39 @@ prepareChroot() {
 runChroot() {
 	local rootDir=\$1
 	shift
+	local chrootArgs="--userspec=$uid:$gid"
+	while getopts r f 2>/dev/null ; do
+		case \$f in
+			r) local chrootArgs="";; # run as root
+		esac
+	done
+	shift \$(expr \$OPTIND - 1)
 
-	if [ "\$1" = "-root" ]; then
-		shift
-		chrootArgs=""
-	else
-		chrootArgs="--userspec=$uid:$gid"
-	fi
-	local cmds=\$@
-
-	if [ "\$cmds" = "" ]; then
+	if [ \$((\$# > 0)) = 0 ]; then
 		local chrootCmd="/bin/sh"
 	else
 		local chrootCmd=""
+                while [ "\$1" != "" ]; do
+                        local chrootCmd="\$chrootCmd '\$1'"
+                        shift
+                done
+	fi
+
+	printf "%s" "$chrootPath \$chrootArgs \$rootDir/root \$chrootCmd"
+}
+
+runJail() {
+	local rootDir=\$1
+	shift
+	local runChrootArgs=""
+	while getopts r f 2>/dev/null ; do
+		case \$f in
+			r) local runChrootArgs="-r";; # run as root
+		esac
+	done
+	shift \$(expr \$OPTIND - 1)
+	local chrootCmd=""
+	if [ \$((\$# > 0)) = 1 ]; then
                 while [ "\$1" != "" ]; do
                         local chrootCmd="\$chrootCmd '\$1'"
                         shift
@@ -593,7 +613,7 @@ runChroot() {
 		local preUnshare="$preUnshare $ipPath netns exec \$netnsId"
 	fi
 
-	\$preUnshare $unsharePath -${unshareSupport}f $sh -c "$mountPath -tproc none \$rootDir/root/proc; $chrootPath \$chrootArgs \$rootDir/root \$chrootCmd"
+	\$preUnshare $unsharePath -${unshareSupport}f --kill-child -- $sh -c "$mountPath -tproc none \$rootDir/root/proc; \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)"
 }
 
 stopChroot() {
@@ -840,7 +860,7 @@ startCustom() {
 	# put your chroot starting scripts/instructions here
 	# here's an example, by default this is the same as the shell command.
 	# just supply your commands to it's arguments.
-	runChroot \$rootDir
+	runJail \$rootDir
 
 	# if you need to add logs, just pipe them to the directory : \$rootDir/run/someLog.log
 }
@@ -877,7 +897,7 @@ cmdParse() {
 
 		shell)
 			prepareChroot \$ownPath || exit 1
-			runChroot \$ownPath
+			runJail \$ownPath
 			stopChroot \$ownPath
 		;;
 
