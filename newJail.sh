@@ -622,8 +622,6 @@ stopChroot() {
 			$ipPath netns exec \$netnsId $brctlPath delbr \$bridgeName
 		fi
 
-		$ipPath netns delete \$netnsId
-
 		if [ "\$configNet" = "true" ]; then
 			shortJailName=\$(substring 0 13 \$jailName)
 			case "\$firewallType" in
@@ -649,6 +647,7 @@ stopChroot() {
 				;;
 			esac
 		fi
+		$ipPath netns delete \$netnsId
 	fi
 
 	for mount in \$(echo \$devMountPoints \$roMountPoints \$rwMountPoints \$devMountPoints_CUSTOM \$roMountPoints_CUSTOM \$rwMountPoints_CUSTOM); do
