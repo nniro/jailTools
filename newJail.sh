@@ -191,8 +191,6 @@ genPass() {
 	cat /dev/urandom | head -c $(($len * 2)) | base64 | tr '/' '@' | head -c $len
 }
 
-lineGlob="\\"
-
 echo "Populating the /etc configuration files"
 # localtime
 $sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/localtime
@@ -603,8 +601,7 @@ runChroot() {
 		local preUnshare="$preUnshare $ipPath netns exec \$netnsId"
 	fi
 
-	\$preUnshare $lineGlob
-		$unsharePath -${unshareSupport}f $sh -c "$mountPath -tproc none \$rootDir/root/proc; $chrootPath \$chrootArgs \$rootDir/root \$chrootCmd"
+	\$preUnshare $unsharePath -${unshareSupport}f $sh -c "$mountPath -tproc none \$rootDir/root/proc; $chrootPath \$chrootArgs \$rootDir/root \$chrootCmd"
 }
 
 stopChroot() {
