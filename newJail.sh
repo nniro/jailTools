@@ -613,6 +613,10 @@ runJail() {
 		local preUnshare="$preUnshare $ipPath netns exec \$netnsId"
 	fi
 
+	local jailPid=\$$
+	echo \$jailPid > \$rootDir/run/jail.pid
+	chmod o+r \$rootDir/run/jail.pid
+
 	\$preUnshare $unsharePath -${unshareSupport}f --kill-child -- $sh -c "$mountPath -tproc none \$rootDir/root/proc; \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)"
 }
 
@@ -663,6 +667,23 @@ stopChroot() {
                 $mountpointPath \$rootDir/root/\$mount >/dev/null 2>/dev/null && $umountPath \$rootDir/root/\$mount
 	done
 	$mountpointPath \$rootDir/root >/dev/null 2>/dev/null && $umountPath \$rootDir/root
+}
+
+findNS() {
+	rootDir=\$1
+
+	local curPid="\$(cat \$rootDir/run/jail.pid)"
+	while : ; do
+		local raw="\$(grep "PPid:[^0-9]*\$curPid" /proc/*/status 2>/dev/null | sed -e 's/^\([^:]*\):.*$/\1/')"
+		if [ "\$raw" = "" ]; then
+			#local curPid=""
+			break
+		else
+			local curPid=\$(basename \$(dirname \$raw))
+		fi
+	done
+
+	printf "%s" "\$curPid"
 }
 
 case \$1 in
@@ -897,9 +918,15 @@ cmdParse() {
 		;;
 
 		shell)
-			prepareChroot \$ownPath || exit 1
-			runJail \$ownPath
-			stopChroot \$ownPath
+			prepareChroot \$ownPath >/dev/null 2>/dev/null
+			if [ "\$?" != "0" ]; then
+				echo "Entering the already started jail \\\`\$jailName'"
+				nsPid=\$(findNS \$ownPath)
+				[ "\$nsPid" != "" ] || echo "Unable to get the running namespace, bailing out" && nsenter -a -t \$nsPid \$(runChroot \$ownPath)
+			else # we start a new jail
+				runJail \$ownPath
+				stopChroot \$ownPath
+			fi
 		;;
 
 		restart)
