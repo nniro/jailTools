@@ -617,7 +617,7 @@ runJail() {
 	echo \$jailPid > \$rootDir/run/jail.pid
 	chmod o+r \$rootDir/run/jail.pid
 
-	\$preUnshare $unsharePath -${unshareSupport}f --kill-child -- $sh -c "$mountPath -tproc none \$rootDir/root/proc; \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)"
+	\$preUnshare $unsharePath -${unshareSupport}f --kill-child -- $sh -c "$mountPath -tproc none \$rootDir/root/proc; \$(runChroot \$rootDir \$runChrootArgs \$chrootCmd)"
 }
 
 stopChroot() {
