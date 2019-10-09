@@ -673,6 +673,17 @@ findNS() {
 	rootDir=\$1
 
 	local curPid="\$(cat \$rootDir/run/jail.pid)"
+
+	if [ "\$curPid" = "" ]; then
+		if ! \$($ipPath netns list | sed -ne "/^\$netnsId\($\| .*$\)/ q 1; $ q 0"); then
+			# This jail is running
+			return 2
+		else
+			# this jail is stopped
+			return 1
+		fi
+	fi
+
 	while : ; do
 		local raw="\$(grep "PPid:[^0-9]*\$curPid" /proc/*/status 2>/dev/null | sed -e 's/^\([^:]*\):.*$/\1/')"
 		if [ "\$raw" = "" ]; then
@@ -684,6 +695,7 @@ findNS() {
 	done
 
 	printf "%s" "\$curPid"
+	return 0
 }
 
 case \$1 in
