@@ -581,12 +581,12 @@ runChroot() {
 	else
 		local chrootCmd=""
                 while [ "\$1" != "" ]; do
-                        local chrootCmd="\$chrootCmd '\$1'"
+                        local chrootCmd="\$chrootCmd \$1"
                         shift
                 done
 	fi
 
-	printf "%s" "$chrootPath \$chrootArgs \$rootDir/root \$chrootCmd"
+	printf "%s" "$chrootPath \$chrootArgs \$rootDir/root env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$uid HOSTNAME=nowhere.here \$chrootCmd"
 }
 
 runJail() {
@@ -607,7 +607,7 @@ runJail() {
                 done
 	fi
 
-	local preUnshare="env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$uid HOSTNAME=nowhere.here"
+	local preUnshare=""
 
 	if [ "\$jailNet" = "true" ]; then
 		local preUnshare="\$preUnshare $ipPath netns exec \$netnsId"
