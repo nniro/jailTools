@@ -610,7 +610,7 @@ runJail() {
 	local preUnshare="env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$uid HOSTNAME=nowhere.here"
 
 	if [ "\$jailNet" = "true" ]; then
-		local preUnshare="$preUnshare $ipPath netns exec \$netnsId"
+		local preUnshare="\$preUnshare $ipPath netns exec \$netnsId"
 	fi
 
 	local jailPid=\$$
