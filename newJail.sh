@@ -894,6 +894,11 @@ startCustom() {
 	# put your chroot starting scripts/instructions here
 	# here's an example, by default this is the same as the shell command.
 	# just supply your commands to it's arguments.
+	# If you want to use your own command with environment variables, do it like so :
+	# runJail \$rootDir FOO=bar sh someScript.sh
+	# you can't do it like so :
+	# runJail \$rootDir env - FOO=bar sh someScript.sh
+	# this would nullify important environment variables we set in runJail/runChroot
 	runJail \$rootDir
 
 	# if you need to add logs, just pipe them to the directory : \$rootDir/run/someLog.log
