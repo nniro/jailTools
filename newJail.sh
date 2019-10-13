@@ -625,6 +625,16 @@ stopChroot() {
 
 	stopCustom \$rootDir
 
+	for mount in \$(echo \$devMountPoints \$roMountPoints \$rwMountPoints \$devMountPoints_CUSTOM \$roMountPoints_CUSTOM \$rwMountPoints_CUSTOM); do
+                $mountpointPath \$rootDir/root/\$mount >/dev/null 2>/dev/null && $umountPath \$rootDir/root/\$mount
+	done
+	$mountpointPath \$rootDir/root >/dev/null 2>/dev/null && $umountPath \$rootDir/root
+
+	if [ "\$?" != 0 ]; then
+		echo "Unable to unmount certain directories, aborting."
+		return 0
+	fi
+
 	if [ "\$jailNet" = "true" ]; then
 		if \$($ipPath netns list | sed -ne "/\$netnsId/ q 1; $ q 0"); then
 			echo "netnsId \\\`\$netnsId' does not exist, exiting..."
@@ -662,11 +672,6 @@ stopChroot() {
 		fi
 		$ipPath netns delete \$netnsId
 	fi
-
-	for mount in \$(echo \$devMountPoints \$roMountPoints \$rwMountPoints \$devMountPoints_CUSTOM \$roMountPoints_CUSTOM \$rwMountPoints_CUSTOM); do
-                $mountpointPath \$rootDir/root/\$mount >/dev/null 2>/dev/null && $umountPath \$rootDir/root/\$mount
-	done
-	$mountpointPath \$rootDir/root >/dev/null 2>/dev/null && $umountPath \$rootDir/root
 }
 
 findNS() {
