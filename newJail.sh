@@ -696,6 +696,7 @@ findNS() {
 			break
 		else
 			local curPid=\$(basename \$(dirname \$raw))
+			break
 		fi
 	done
 
