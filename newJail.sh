@@ -142,6 +142,12 @@ if $(echo $unshareSupport | sed -ne '/U/ q 0; q 1'); then # check for user names
 	unshareSupport=$(echo $unshareSupport | sed -e 's/U//')
 fi
 
+if $(unshare --help 2>&1 | grep "kill-child" > /dev/null); then
+	unshareSupport="--kill-child -$unshareSupport"
+else
+	unshareSupport="-$unshareSupport"
+fi
+
 # optional commands
 
 brctlPath=$(command which brctl 2>/dev/null)
@@ -617,7 +623,7 @@ runJail() {
 	echo \$jailPid > \$rootDir/run/jail.pid
 	chmod o+r \$rootDir/run/jail.pid
 
-	\$preUnshare $unsharePath -${unshareSupport}f --kill-child -- $sh -c "$mountPath -tproc none \$rootDir/root/proc; \$(runChroot \$rootDir \$runChrootArgs \$chrootCmd)"
+	\$preUnshare $unsharePath ${unshareSupport}f -- $sh -c "$mountPath -tproc none \$rootDir/root/proc; \$(runChroot \$rootDir \$runChrootArgs \$chrootCmd)"
 }
 
 stopChroot() {
