@@ -592,7 +592,7 @@ runChroot() {
                 done
 	fi
 
-	printf "%s" "$chrootPath \$chrootArgs \$rootDir/root env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$uid HOSTNAME=nowhere.here \$chrootCmd"
+	printf "%s" "$chrootPath \$chrootArgs \$rootDir/root env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$uid HOSTNAME=nowhere.here TERM=linux \$chrootCmd"
 }
 
 runJail() {
