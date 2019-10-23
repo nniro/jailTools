@@ -2,7 +2,7 @@
 
 BINARY=cryptPass
 OBJECTS=cryptPass.o
-CFLAGS=-O2 -pedantic -Wall -std=iso9899:1990 -Lusr/local/musl/lib
+CFLAGS=-O2 -pedantic -Wall -std=iso9899:1990
 MUSLGCC=usr/bin/musl-gcc
 MUSLOBJECTS=usr/lib/libc.a
 MUSL=$(MUSLOBJECTS) $(MUSLGCC)
@@ -26,9 +26,8 @@ busybox/configure: musl/configure $(MUSL)
 	ln -sf /usr/include/asm-generic usr/include/
 
 $(MUSL):
-	sh ./configMusl.sh $(PWD)
-	make -C musl
-	make -C musl install
+	sh -c 'cd buildMusl; sh ./configMusl.sh $(PWD)'
+	make -C buildMusl && make -C buildMusl install
 
 $(BUSYBOX): $(MUSL)
 	cp busybox.config busybox/.config
@@ -42,4 +41,7 @@ $(BINARY): $(OBJECTS)
 	$(GCC) $(CFLAGS) -c $<
 
 clean:
+	rm -Rf usr/bin/* usr/lib/* usr/include/*
+	make -C busybox clean
+	make -C buildMusl clean
 	rm -f $(BINARY) *.o
