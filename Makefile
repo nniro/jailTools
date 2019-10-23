@@ -32,7 +32,8 @@ $(MUSL):
 
 $(BUSYBOX): $(MUSL)
 	cp busybox.config busybox/.config
-	make CC=$(PROJECTROOT)/$(GCC) -C busybox
+	sed -e 's@ gcc@ $(PROJECTROOT)/$(GCC)@ ;s@)gcc@)$(PROJECTROOT)/$(GCC)@' -i busybox/Makefile
+	make -C busybox
 
 $(BINARY): $(OBJECTS)
 	$(GCC) $(CFLAGS) $(LDFLAGS) $(LIBS) $(OBJECTS) -o $(BINARY)
