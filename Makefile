@@ -1,7 +1,5 @@
 #! /bin/sh
 
-BINARY=cryptPass
-OBJECTS=cryptPass.o
 CFLAGS=-O2 -pedantic -Wall -std=iso9899:1990
 MUSLGCC=usr/bin/musl-gcc
 MUSLOBJECTS=usr/lib/libc.a
@@ -12,7 +10,7 @@ LDFLAGS=-static
 GCC=$(MUSLGCC)
 PROJECTROOT=$(PWD)
 
-ALL: busybox/configure $(BUSYBOX) $(BINARY)
+ALL: busybox/configure $(BUSYBOX)
 
 musl/configure:
 	git submodule init musl
@@ -34,14 +32,9 @@ $(BUSYBOX): $(MUSL)
 	sed -e 's@ gcc@ $(PROJECTROOT)/$(GCC)@ ;s@)gcc@)$(PROJECTROOT)/$(GCC)@' -i busybox/Makefile
 	make -C busybox
 
-$(BINARY): $(OBJECTS)
-	$(GCC) $(CFLAGS) $(LDFLAGS) $(LIBS) $(OBJECTS) -o $(BINARY)
 
-%.o: %.c
-	$(GCC) $(CFLAGS) -c $<
 
 clean:
 	rm -Rf usr/bin/* usr/lib/* usr/include/*
 	make -C busybox clean
 	make -C buildMusl clean
-	rm -f $(BINARY) *.o

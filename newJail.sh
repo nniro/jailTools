@@ -215,7 +215,7 @@ EOF
 chmod 644 $newChrootDir/etc/passwd
 # shadow
 cat >> $newChrootDir/etc/shadow << EOF
-root:$($ownPath/cryptPass $(genPass 200) $(genPass 50)):0:0:99999:7:::
+root:$(echo "$(genPass 200)" | $ownPath/busybox/busybox cryptpw -m sha512 -P 0 -S "$(genPass 16)"):0:0:99999:7:::
 nobody:!:0:0:99999:7:::
 $mainJailUsername:!:0:0:99999:7:::
 EOF
