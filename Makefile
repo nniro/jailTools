@@ -30,9 +30,7 @@ $(MUSL):
 $(BUSYBOX): $(MUSL)
 	cp busybox.config busybox/.config
 	sed -e 's@ gcc@ $(PROJECTROOT)/$(GCC)@ ;s@)gcc@)$(PROJECTROOT)/$(GCC)@' -i busybox/Makefile
-	make -C busybox
-
-
+	make HOSTCFLAGS=-static HOSTLDFLAGS=-static -C busybox
 
 clean:
 	rm -Rf usr/bin/* usr/lib/* usr/include/*
