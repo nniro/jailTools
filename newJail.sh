@@ -74,7 +74,12 @@ jailName=$(basename $1)
 [ "$3" = "" ] && mainJailUsergroup=$jailName || mainJailUsergroup=$3
 
 if [ -e $1 ]; then
-	echo "invalid path given, file or directory already exists"
+	echo "Invalid path given, file or directory already exists."
+	exit 1
+fi
+
+if [ ! -d $jailPath ]; then
+	echo "Invalid path given, the directory $jailPath does not exist."
 	exit 1
 fi
 
