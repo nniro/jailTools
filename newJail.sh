@@ -1010,9 +1010,13 @@ cmdParse() {
 
 EOF
 
+# we save the default initial rootCustomConfig for update purposes
+cp $newChrootHolder/rootCustomConfig.sh $newChrootHolder/._rootCustomConfig.sh.initial
+
 # we fix the EOF inside the script
 sed -e "s/^\@EOF$/EOF/g" -i $newChrootHolder/startRoot.sh
 sed -e "s/^\@EOF$/EOF/g" -i $newChrootHolder/rootCustomConfig.sh
+sed -e "s/^\@EOF$/EOF/g" -i $newChrootHolder/._rootCustomConfig.sh.initial
 
 echo "Copying /etc data"
 etcFiles=""
