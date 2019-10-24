@@ -703,6 +703,7 @@ findNS() {
 		fi
 	fi
 
+	nsLvl=1
 	while : ; do
 		local raw="\$(grep "PPid:[^0-9]*\$curPid" /proc/*/status 2>/dev/null | sed -e 's/^\([^:]*\):.*$/\1/')"
 		if [ "\$raw" = "" ]; then
@@ -710,7 +711,10 @@ findNS() {
 			break
 		else
 			local curPid=\$(basename \$(dirname \$raw))
-			break
+			if [ "\$nsLvl" = "2" ]; then
+				break
+			fi
+			nsLvl=\$((\$nsLvl + 1))
 		fi
 	done
 
