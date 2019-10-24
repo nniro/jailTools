@@ -627,8 +627,7 @@ runJail() {
 		local preUnshare="\$preUnshare $ipPath netns exec \$netnsId"
 	fi
 
-	local jailPid=\$$
-	echo \$jailPid > \$rootDir/run/jail.pid
+	echo \$$ > \$rootDir/run/jail.pid
 	chmod o+r \$rootDir/run/jail.pid
 
 	\$preUnshare $unsharePath ${unshareSupport}f -- $sh -c "$mountPath -tproc none \$rootDir/root/proc; \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)"
