@@ -572,15 +572,16 @@ prepareChroot() {
 }
 
 runChroot() {
-	local rootDir=\$1
-	shift
 	local chrootArgs="--userspec=$uid:$gid"
+	OPTIND=0
 	while getopts r f 2>/dev/null ; do
 		case \$f in
 			r) local chrootArgs="";; # run as root
 		esac
 	done
-	shift \$(expr \$OPTIND - 1)
+	[ \$((\$OPTIND > 1)) = 1 ] && shift \$(expr \$OPTIND - 1)
+	local rootDir=\$1
+	shift
 
 	if [ \$((\$# > 0)) = 0 ]; then
 		local chrootCmd="/bin/sh"
@@ -596,21 +597,28 @@ runChroot() {
 }
 
 runJail() {
-	local rootDir=\$1
-	shift
 	local runChrootArgs=""
+	OPTIND=0
 	while getopts r f 2>/dev/null ; do
 		case \$f in
 			r) local runChrootArgs="-r";; # run as root
 		esac
 	done
-	shift \$(expr \$OPTIND - 1)
+	[ \$((\$OPTIND > 1)) = 1 ] && shift \$(expr \$OPTIND - 1)
+	local rootDir=\$1
+	shift
 	local chrootCmd=""
 	if [ \$((\$# > 0)) = 1 ]; then
-                while [ "\$1" != "" ]; do
-                        local chrootCmd="\$chrootCmd '\$1'"
-                        shift
-                done
+		while [ "\$1" != "" ]; do
+			local curArg=""
+			if [ "\$(printf "%s" "\$1" | sed -ne '/ / ! a0' -e '/ / a1')" = "1" ]; then
+				curArg="'\$1'"
+			else
+				curArg="\$1"
+			fi
+			local chrootCmd="\$chrootCmd \$curArg"
+			shift
+		done
 	fi
 
 	local preUnshare=""
@@ -623,7 +631,7 @@ runJail() {
 	echo \$jailPid > \$rootDir/run/jail.pid
 	chmod o+r \$rootDir/run/jail.pid
 
-	\$preUnshare $unsharePath ${unshareSupport}f -- $sh -c "$mountPath -tproc none \$rootDir/root/proc; \$(runChroot \$rootDir \$runChrootArgs \$chrootCmd)"
+	\$preUnshare $unsharePath ${unshareSupport}f -- $sh -c "$mountPath -tproc none \$rootDir/root/proc; \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)"
 }
 
 stopChroot() {
