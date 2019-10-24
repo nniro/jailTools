@@ -598,10 +598,12 @@ runChroot() {
 
 runJail() {
 	local runChrootArgs=""
+	local daemonize=false
 	OPTIND=0
-	while getopts r f 2>/dev/null ; do
+	while getopts rd f 2>/dev/null ; do
 		case \$f in
 			r) local runChrootArgs="-r";; # run as root
+			d) local daemonize=true;;
 		esac
 	done
 	[ \$((\$OPTIND > 1)) = 1 ] && shift \$(expr \$OPTIND - 1)
@@ -629,6 +631,14 @@ runJail() {
 
 	echo \$$ > \$rootDir/run/jail.pid
 	chmod o+r \$rootDir/run/jail.pid
+
+	if [ "\$daemonize" = "true" ]; then
+		if [ "\$chrootCmd" = "" ]; then
+			chrootCmd="sh -c 'while :; do sleep 9999; done'"
+		else
+			chrootCmd="sh -c '\${chrootCmd}; while :; do sleep 9999; done'"
+		fi
+	fi
 
 	\$preUnshare $unsharePath ${unshareSupport}f -- $sh -c "$mountPath -tproc none \$rootDir/root/proc; \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)"
 }
@@ -684,6 +694,12 @@ stopChroot() {
 			esac
 		fi
 		$ipPath netns delete \$netnsId
+	fi
+
+	if [ -e \$rootDir/run/jail.pid ]; then
+		nsPid=\$(findNS \$rootDir)
+		#echo "nsPid : \$nsPid"
+		[ "\$nsPid" != "" ] && (kill -9 \$nsPid; rm \$rootDir/run/jail.pid) >/dev/null 2>/dev/null
 	fi
 }
 
@@ -946,6 +962,12 @@ cmdParse() {
 	local ownPath=\$2
 
 	case \$args in
+		daemon)
+			echo "This command is not meant to be called directly, use the jailtools super script to start the daemon properly, otherwise it will just stay running with no interactivity possible."
+			prepareChroot \$ownPath || exit 1
+			runJail -d \$ownPath
+			stopChroot \$ownPath
+		;;
 
 		start)
 			prepareChroot \$ownPath || exit 1
