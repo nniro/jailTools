@@ -641,7 +641,7 @@ runJail() {
 		if [ "\$chrootCmd" = "" ]; then
 			chrootCmd="sh -c 'while :; do sleep 9999; done'"
 		else
-			chrootCmd="sh -c '\${chrootCmd}; while :; do sleep 9999; done'"
+			chrootCmd="\${chrootCmd}; sh -c 'while :; do sleep 9999; done'"
 		fi
 	fi
 
