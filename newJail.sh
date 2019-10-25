@@ -725,7 +725,7 @@ findNS() {
 
 	nsLvl=1
 	while : ; do
-		local raw="\$(grep "PPid:[^0-9]*\$curPid" /proc/*/status 2>/dev/null | sed -e 's/^\([^:]*\):.*$/\1/')"
+		local raw="\$(grep "PPid:[^0-9]*\$curPid$" /proc/*/status 2>/dev/null | sed -e 's/^\([^:]*\):.*$/\1/')"
 		if [ "\$raw" = "" ]; then
 			#local curPid=""
 			break
