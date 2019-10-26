@@ -244,6 +244,14 @@ fi
 
 ownPath=\$(dirname \$0)
 
+# substring offset <optional length> string
+# cuts a string at the starting offset and wanted length.
+substring() {
+        local init=\$1; shift
+        if [ "\$2" != "" ]; then toFetch="\(.\{\$1\}\).*"; shift; else local toFetch="\(.*\)"; fi
+        echo "\$1" | sed -e "s/^.\{\$init\}\$toFetch$/\1/"
+}
+
 # convert the path of this script to an absolute path
 if [ "\$ownPath" = "." ]; then
 	ownPath=\$PWD
