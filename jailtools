@@ -26,25 +26,35 @@ showHelp() {
 	printf "    start, stop, shell\t\tthese are jailTools specific commands to be used inside a jailTools directory only.\n"
 }
 
-if [ "$1" = "" ]; then
+detectJail() {
+	local jPath=$1
+	if [ -d $jPath/root ] && [ -d $jPath/run ] && [ -f $jPath/startRoot.sh ] && [ -f $jPath/rootCustomConfig.sh ]; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+cmd=$1
+shift
+
+if [ "$cmd" = "" ]; then
 	showHelp
 	exit 0
 fi
 
-case $1 in
+case $cmd in
 	help|h)
 		showHelp
 		exit 0
 	;;
 
 	new|create)
-		shift 1
 		$sh $jailToolsPath/newJail.sh $@
 		exit 0
 	;;
 
 	cp|cpDep)
-		shift 1
 		if [ -d ./root ] && [ -d ./run ] && [ -f ./startRoot.sh ] && [ -f ./rootCustomConfig.sh ]; then
 			$sh $jailToolsPath/cpDep.sh $PWD $@
 		else
@@ -54,13 +64,18 @@ case $1 in
 	;;
 
 	start|stop|shell)
+		if [ "$1" = "" ]; then
+			jPath="."
+		else
+			jPath="$1"
+		fi
 
-		if [ -d ./root ] && [ -d ./run ] && [ -f ./startRoot.sh ] && [ -f ./rootCustomConfig.sh ]; then
+		if detectJail $jPath; then
 			if [ "$uid" != "0" ]; then
 				echo "It is necessary to be root to run these commands"
 				exit 1
 			fi
-			$sh ./startRoot.sh $1
+			$sh $jPath/startRoot.sh $cmd
 		else
 			echo "These commands are only valid inside the root of a jail created by jailTools"
 			exit 1
@@ -70,7 +85,13 @@ case $1 in
 	;;
 
 	daemon)
-		if [ -d ./root ] && [ -d ./run ] && [ -f ./startRoot.sh ] && [ -f ./rootCustomConfig.sh ]; then
+		if [ "$1" = "" ]; then
+			jPath="."
+		else
+			jPath="$1"
+		fi
+
+		if detectJail $jPath; then
 			if [ "$uid" != "0" ]; then
 				echo "It is necessary to be root to run these commands"
 				exit 1
@@ -86,7 +107,7 @@ case $1 in
 	;;
 
 	*)
-		echo "Invalid command \`$1'"
+		echo "Invalid command \`$cmd'"
 		exit 1
 	;;
 esac
