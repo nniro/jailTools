@@ -4,20 +4,22 @@ JailTools - helper script for creating jails
 What is JailTools?
 ------------------
 
-Targeting specifically GNU/linux, it is a toolkit for easily creating a jail for your services using chroot and namespaces.
+Jailtools is a toolkit for easily creating a jail for your services using chroot and namespaces. It provides a slim OS-level virtualization solution for the GNU/linux operating system.
+
 
 Purpose
 -------
 
-To make it easy and painless to create chroots for specific purposes and also tools to help
-when copying applications and libraries to the jail, so as to also copy the shared objects
-they depend on to run correctly.
-The idea is to create a minimal filesystem (about 6MB in size) which is meant to include
+JailTools makes it easy to create chroots for any purpose.
+It has tools for copying applications and libraries to the jail, so as to also copy
+the shared objects they depend on to run correctly.
+JailTools creates a minimal filesystem (about 6MB in size) which is meant to include
 only the bare minimum for applications or libraries to do their job. This way, in case
 the service is compromized, the adversary will only get access to that filesystem rather
-than the whole underlying/host system.
+than the host system directly.
 
-Tutorial
+
+Content
 --------
 
 *The main scripts*
@@ -26,51 +28,80 @@ There are 3 useful scripts :
 
 . *jailtools* - *jtools* - *jt*
 
-	(jtools and jt are just symbolic links to jailtools)
-	This is a super script that can be used to call the other 2 scripts and
-	do the various tasks related to jailTools directories.
+        (jtools and jt are just symbolic links to jailtools)
+        This is a super script that can be used to call the other 2 scripts and
+        do the various tasks related to jailTools directories.
+        This is the only script you will ever need to use.
 
 . *newJail.sh*
 
-	Used to create new jails (as the name implies).
+        Used to create new jails (as the name implies).
 
 . *cpDep.sh*
 
-	Used to copy binaries or libraries to the jail and it does
-	it's best to copy dependencies with it too (only shared objects).
+        Used to copy binaries or libraries to the jail and it does
+        it's best to copy dependencies (shared objects) with it too.
 
-*Compilation and Installation*
 
-The project relies on 2 external subprojects : musl (libc) and busybox.
-These 2 are the basis from which the underlying filesystem shell and commands
-are made available inside each jail.
+Compilation and Installation
+--------
 
-To compile, just run `make'.
-This will compile musl, compile a statically linked busybox using the musl libc
-and it will compile a few helper programs.
+Quick steps :
+0. install requirements: git, gcc
+1. get the source code with 'git clone https://github.com/nniro/jailTools.git'
+2. compile and install musl and busybox. This is done automatically by calling `make'
+3. install the super script with install.sh
+...
+profit!
+*
 
-The installation script `install.sh' can be used to copy the super script `jailtools' to
+Explanation, step by step:
+--------------------------------------
+
+Step 1:
+Get jailTools from the git repository:
+
+        'git clone https://github.com/nniro/jailTools.git'
+
+This will download the repository to the directory 'jailTools'.
+
+Step 2:
+The project relies on musl (libc) and busybox. The latter provides the underlying filesystem shell and commands inside each jail.
+Both of these dependencies are automatically cloned by the Makefile process.
+We don't use already installed versions because we want statically linked versions of both of these to save space.
+
+To compile, just run 'make'.
+This will compile musl, compile a statically linked busybox using the musl libc.
+
+If you want to install jailTools system wide, for all users, then move jailTools folder to '/opt':
+
+        'sudo mv ~/jailTools /opt/jailTools'
+
+And change ownership to root:
+
+        'sudo chown root:root -R /opt/jailTools'
+
+Step 3:
+The installation script `install.sh' will copy the super script `jailtools' to
 a location of your choice. It only installs the super script, not the whole jailTools
-scripts. It sets up the super script with the path of the project's git repository directory
-so it could stay any place you want.
+directory. It sets up the super script with the path of the project's git repository directory
+so it could stay in any place you want.
 
-If you want to use jailTools for your user only, just clone the git repository, compile then
-do something like :
+If you want to use jailTools for your user only, just clone the git repository, compile and
+do this:
 
-	sh install.sh ~/bin
+        sh ./install.sh ~/bin
 
 This will install the super script inside your user's bin directory.
+Make sure that you have ~/bin in your "PATH" environment variable.
 
-In case you want to make the project available for all users on the system, just copy the
-jailTools git repository in a publicly available directory like /usr/src/jailTools and
-do this :
+In case you want to make the project available for all users on the system, do this :
 
-	sh install.sh /usr/bin
+       sudo sh ./install.sh /opt/bin
 
-This will install the super script to the main system's binary directory and set it up to
-refer to the location of the directory jailTools. The only requirement is to run `install.sh'
-from the location where the jailTools scripts reside so the references are done correctly inside
-`jailtools'.
+This will install the super script to the path /opt/bin. The script `install.sh' needs to be executed from the location
+where the jailTools scripts reside so the references are done correctly inside the super script `jailtools'.
+
 
 *How to use the super script jailtools*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -82,86 +113,94 @@ are set as commands inside the super script. Here is a list of the available com
     cp, cpDep                   copy files or directories (with their shared object dependencies) into the jailTools
     start, stop, shell          these are jailTools specific commands to be used inside a jailTools directory only.
 
-*How to use newJail*
+
+Tutorial
+--------
+
+*How to create a new jail*
 ~~~~~~~~~~~~~~~~~~~~
 This is how you can create a new jail :
 
+(This is done as a normal user, no need to be privileged)
 ----
-sh newJail.sh <new jail name> <internal jail's main username> <internal jail's main group>
+jt new <path and name> <optional jail's main username> <optional jail's main group>
 ----
 
 both internal username and group are actually for inside the jail itself, they
 will be added to /etc/\{passwd,shadow\} and /etc/group respectively, inside the
 chroot. The main user will be exactly the same UID as the user that created
-the jail, same goes for the group.
+the jail, same goes for the group. If they are not explicitely added, they will be
+created with the same name as the jail.
 
 The jail name is simply a directory of that name that will be created and any
 reference of the jail internally is done with that name.
+The jail name will be used as a name for the directory created containing the jail, and any
+reference of the jail internally is done with that name.
 
-so for example :
-
+Example :
 ----
-sh newJail.sh example foo bar
+jt new example foo bar
 ----
 
 This will create a new directory called example containing the jail and once running, the user's
-UID and GID will be mapped to foo and bar respectively. Inside that directory
-there are 2 notable scripts (as of this writing there are 3 total),
-startRoot.sh (start the jail using that script) and rootCustomConfig.sh (where
-you place your configuration and custom scripting). The script startRoot.sh
-is meant not to be edited, only make your changes in the script
+UID and GID will be mapped to foo and bar respectively. Inside the jail directory
+there are 3 notable scripts :
+. startRoot.sh (don't run this directly, use the super script jailtools)
+. rootCustomConfig.sh (where you place your configuration and custom scripting)
+. update.sh (this contains the files which are copied by the 'cp/cpDep' command so you can reproduce
+and update your jail)
+The script startRoot.sh is not meant to be edited, only make your changes in the script
 rootCustomConfig.sh. 
+The script startRoot.sh is not meant to be edited.  Make your changes in the script rootCustomConfig.sh. 
 
-As is, the system created a jail with only basic apps and a shell.
+As is, the system creates a jail with only basic apps and a shell.
 
 *The generated jail*
 ~~~~~~~~~~~~~~~~~~~~
 A newly created jail includes 2 ways to start the chroot : 
 
+sudo jt start
 
-. sh startRoot.sh shell 
+        Used to start your services and such. By default it does the same
+        as the command shell.
 
-	Used to get shell access to do your commands inside the jail.
+sudo jt shell
 
-. sh startRoot.sh start
-
-	Used to start your services and such. By default it does the same
-	as the command shell.
+        Used to get shell access to do your commands inside the jail. This
+        also allows you to enter an already started jail.
 
 ////
-sudo sh startRoot.sh shell
+sudo jt shell
 
 this will move you inside the chroot filesystem in which you can
 do basic commands.
 ////
 
 Now, if you want to add more applications to the jail, you have to
-use cpDep.sh. 
+use jailtools's cp or cpDep command.
 
 Here we show how to copy the application telnet to the jail :
 
 ----
-sh <pathToJailTools>/cpDep.sh <pathToJail>/example /usr/bin /usr/bin/telnet
+(this is done inside the jail directory itself)
+jt cp /usr/bin /usr/bin/telnet
 ----
 
-I'll leave out the first 2 arguments to sh as they are obvious (example being
-the jail directory we created earlier). 
-
-Now here we have /usr/bin and then /usr/bin/telnet.  Here's what they mean :
+Here's what the arguments mean :
 
 * /usr/bin
 
-	The first path is actually the destination path *inside* the
-	jail that you want to copy your binary to. We could have put /bin if we wanted
-	or any path you want (as long as you take care of setting the PATH correctly
-	in the jail). 
+        The first path is actually the destination path *inside* the
+        jail that you want to copy your binary to. We could have put /bin if we wanted
+        or any path you want (as long as you take care of setting the PATH correctly
+        in the jail).
 
 * /usr/bin/telnet
 
-	This is the path on your base system for the telnet application, which, in our
-	case is in our /usr/bin directory.
+        This is the path on your base system for the telnet application, which, in our
+        case is in our /usr/bin directory.
 
-cpDep.sh will check all shared object dependencies that telnet requires to run
+cpDep will check all shared object dependencies that telnet requires to run
 and copy them along with the binary itself. This way, you will be able to run
 the application without doing any more work than that.
 
@@ -175,24 +214,24 @@ The 4 sections in rootCustomConfig.sh :
 
 . The configuration variables
 
-	These are used to toggle features provided in the jail and set various values
-	for setting for example the firewall.
+        These are used to toggle features provided in the jail and set various values
+        for setting for example the firewall.
 
 . The mount points
 
-	These are used specifically to mount external directories inside the jail itself,
-	making the files/directories accessible to the jailed applications. There are 3 kinds
-	of mount points each with their section.
+        These are used specifically to mount external directories inside the jail itself,
+        making the files/directories accessible to the jailed applications. There are 3 kinds
+        of mount points each with their section.
 
 . the functions
 
-	These are used to customize firewall rules, mount extra files (those that are out of
-	scope of the mount points section) and set up your own start instructions so the
-	jail can run the service you want.
+        These are used to customize firewall rules, mount extra files (those that are out of
+        scope of the mount points section) and set up your own start instructions so the
+        jail can run the service you want.
 
 . startRoot.sh CUI commands
 
-	Use this to set up your own startRoot.sh commands.
+        Use this to set up your own startRoot.sh commands.
 
 Tips and Tricks
 ---------------
@@ -206,7 +245,7 @@ Shorewall custom INBOUND configuration :
 in rootCustomConfig.sh, in the function prepCustom, add these lines :
 
 ****
-	cat >> $firewallPath/rules.d/$bridgeName.rules << EOF
+        cat >> $firewallPath/rules.d/$bridgeName.rules << EOF
 ACCEPT  fw      $firewallZoneName       tcp     10922
 DNAT    lan     $firewallZoneName:$ipInt tcp    10922
 EOF
@@ -223,8 +262,8 @@ With shorewall, jailTools adds it's changes to a directory ending with '.d' like
 These are not standard issue with shorewall, to make use of their content, it is necessary to
 add a single line in all the configuration files that potentially will get extra configurations
 in these. (As of this writing, these configuration files need modifications : 
-	zones, interfaces, policy and snat, we create one for rules too strictly as a service for
-	the user as jailtools does not add anything to it directly).
+        zones, interfaces, policy and snat, we create one for rules too strictly as a service for
+        the user as jailtools does not add anything to it directly).
 
 Here's how you can actually make your configuration file load all the content of the 'x.d' directory
 (for example here zones -> zones.d).
