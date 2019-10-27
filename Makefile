@@ -5,11 +5,13 @@ MUSLGCC=usr/bin/musl-gcc
 MUSLOBJECTS=usr/lib/libc.a
 MUSL=$(MUSLOBJECTS) $(MUSLGCC)
 BUSYBOX=busybox/busybox
+ZLIB=zlib/libz.a
+SSHD=openssh/sshd
 LDFLAGS=-static
 GCC=$(MUSLGCC)
 PROJECTROOT=$(PWD)
 
-ALL: busybox/configure $(BUSYBOX)
+ALL: busybox/configure $(BUSYBOX) $(SSHD)
 
 musl/configure:
 	git submodule init musl
@@ -31,8 +33,27 @@ $(BUSYBOX): $(MUSL)
 	sed -e 's@ gcc@ $(PROJECTROOT)/$(GCC)@ ;s@)gcc@)$(PROJECTROOT)/$(GCC)@' -i busybox/Makefile
 	make HOSTCFLAGS=-static HOSTLDFLAGS=-static -C busybox
 
+zlib/configure: $(MUSL)
+	git submodule init zlib
+	git submodule update zlib
+
+$(ZLIB): zlib/configure
+	sh -c 'cd zlib; CC=$(PROJECTROOT)/$(GCC) ./configure --static'
+	make -C zlib
+
+openssh/configure: $(MUSL) $(ZLIB)
+	git submodule init openssh
+	git submodule update openssh
+	sh -c 'cd openssh; autoconf; autoheader; cat $(PROJECTROOT)/sshd.patch | $(PROJECTROOT)/busybox/busybox patch'
+
+$(SSHD): openssh/configure $(MUSL) $(ZLIB)
+	sh -c 'cd openssh; CC=$(PROJECTROOT)/$(GCC) CFLAGS="-static -Os" LDFLAGS="-static" ./configure --prefix=/ --sysconfdir=/etc/ssh/ --with-zlib=$(PROJECTROOT)/zlib --without-openssl --without-openssl-header-check'
+	make -C openssh
+
 clean:
 	make -C buildMusl clean
 	make -C busybox clean
 	sh -c 'cd busybox; git checkout Makefile'
+	make -C zlib clean
+	make -C openssh clean
 	rm -Rf usr/bin/* usr/lib/* usr/include/*

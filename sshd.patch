@@ -1,0 +1,31 @@
+diff --git a/myproposal.h b/myproposal.h
+index 34bd10c9..1ce78edb 100644
+--- a/myproposal.h
++++ b/myproposal.h
+@@ -24,7 +24,9 @@
+  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  */
+ 
++#if WITH_OPENSSL
+ #include <openssl/opensslv.h>
++#endif /* WITH_OPENSSL */
+ 
+ /* conditional algorithm support */
+ 
+diff --git a/sshbuf-getput-crypto.c b/sshbuf-getput-crypto.c
+index 3dd1e144..778eb65b 100644
+--- a/sshbuf-getput-crypto.c
++++ b/sshbuf-getput-crypto.c
+@@ -23,6 +23,7 @@
+ #include <stdio.h>
+ #include <string.h>
+ 
++#if WITH_OPENSSL
+ #include <openssl/bn.h>
+ #ifdef OPENSSL_HAS_ECC
+ # include <openssl/ec.h>
+@@ -183,3 +184,4 @@ sshbuf_put_eckey(struct sshbuf *buf, const EC_KEY *v)
+ }
+ #endif /* OPENSSL_HAS_ECC */
+ 
++#endif /* WITH_OPENSSL */
