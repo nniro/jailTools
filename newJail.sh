@@ -115,7 +115,7 @@ if [ ! -e $ownPath/busybox/busybox ]; then
 fi
 
 # check for mandatory commands
-for cmd in chroot unshare mount umount mountpoint ip; do
+for cmd in chroot unshare nsenter mount umount mountpoint ip; do
 	cmdPath="${cmd}Path"
 	eval "$cmdPath"="$(command which $cmd 2>/dev/null)"
 	eval "cmdPath=\${$cmdPath}"
@@ -145,6 +145,22 @@ fi
 if $(echo $unshareSupport | sed -ne '/U/ q 0; q 1'); then # check for user namespace support
 	# we remove this bit from the variable because we do not yet support it.
 	unshareSupport=$(echo $unshareSupport | sed -e 's/U//')
+fi
+
+if $(nsenter --help 2>&1 | grep -- '-a, --all' >/dev/null); then
+	nsenterSupport="-a"
+else
+	nsenterSupport=""
+
+	len=${#unshareSupport}
+	#echo "$unshareSupport - $len"
+	i=0
+	while [ $((i < len)) = 1 ]; do
+		nsenterSupport="$nsenterSupport -$(substring $i 1 $unshareSupport)"
+		i=$((i + 1))
+	done
+
+	#echo $nsenterSupport
 fi
 
 if $(unshare --help 2>&1 | grep "kill-child" > /dev/null); then
@@ -997,7 +1013,7 @@ cmdParse() {
 			if [ "\$?" != "0" ]; then
 				echo "Entering the already started jail \\\`\$jailName'"
 				nsPid=\$(findNS \$ownPath)
-				[ "\$nsPid" != "" ] || echo "Unable to get the running namespace, bailing out" && nsenter -a -t \$nsPid \$(runChroot \$ownPath)
+				[ "\$nsPid" != "" ] || echo "Unable to get the running namespace, bailing out" && $nsenterPath $nsenterSupport -t \$nsPid \$(runChroot \$ownPath)
 			else # we start a new jail
 				runJail \$ownPath
 				stopChroot \$ownPath
