@@ -33,6 +33,7 @@ $(BUSYBOX): $(MUSL)
 	make HOSTCFLAGS=-static HOSTLDFLAGS=-static -C busybox
 
 clean:
-	rm -Rf usr/bin/* usr/lib/* usr/include/*
-	make -C busybox clean
 	make -C buildMusl clean
+	make -C busybox clean
+	sh -c 'cd busybox; git checkout Makefile'
+	rm -Rf usr/bin/* usr/lib/* usr/include/*
