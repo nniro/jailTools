@@ -147,21 +147,16 @@ if $(echo $unshareSupport | sed -ne '/U/ q 0; q 1'); then # check for user names
 	unshareSupport=$(echo $unshareSupport | sed -e 's/U//')
 fi
 
-if $(nsenter --help 2>&1 | grep -- '-a, --all' >/dev/null); then
-	nsenterSupport="-a"
-else
-	nsenterSupport=""
+# Preparing nsenter's arguments
+nsenterSupport=""
 
-	len=${#unshareSupport}
-	#echo "$unshareSupport - $len"
-	i=0
-	while [ $((i < len)) = 1 ]; do
-		nsenterSupport="$nsenterSupport -$(substring $i 1 $unshareSupport)"
-		i=$((i + 1))
-	done
+len=${#unshareSupport}
+i=0
+while [ $((i < len)) = 1 ]; do
+	nsenterSupport="$nsenterSupport -$(substring $i 1 $unshareSupport)"
+	i=$((i + 1))
+done
 
-	#echo $nsenterSupport
-fi
 
 if $(unshare --help 2>&1 | grep "kill-child" > /dev/null); then
 	unshareSupport="--kill-child -$unshareSupport"
