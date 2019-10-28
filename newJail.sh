@@ -157,6 +157,9 @@ while [ $((i < len)) = 1 ]; do
 	i=$((i + 1))
 done
 
+if [ "$netNS" = "true" ]; then
+	nsenterSupport="$nsenterSupport -n"
+fi
 
 if $(unshare --help 2>&1 | grep "kill-child" > /dev/null); then
 	unshareSupport="--kill-child -$unshareSupport"
