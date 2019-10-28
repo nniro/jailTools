@@ -509,8 +509,8 @@ applyFirewallRules() {
 
 				echo "\$firewallZoneName ipv4" > \$firewallPath/zones.d/\$shortJailName.zones
 				echo "\$firewallZoneName \$vethExt" > \$firewallPath/interfaces.d/\$shortJailName.interfaces
-				echo "\$firewallZoneName \$firewallNetZone ACCEPT" > \$firewallPath/policy.d/\$shortJailName.policy
 				if [ "\$snatEth" != "" ]; then
+					echo "\$firewallZoneName \$firewallNetZone ACCEPT" > \$firewallPath/policy.d/\$shortJailName.policy
 					echo "MASQUERADE \$vethExt \$snatEth" > \$firewallPath/snat.d/\$shortJailName.snat
 				fi
 				echo "" > \$firewallPath/rules.d/\$shortJailName.rules
