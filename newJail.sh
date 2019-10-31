@@ -117,7 +117,7 @@ fi
 # check for mandatory commands
 for cmd in chroot unshare nsenter mount umount mountpoint ip; do
 	cmdPath="${cmd}Path"
-	eval "$cmdPath"="$(command which $cmd 2>/dev/null)"
+	eval "$cmdPath"="$(PATH="$PATH:/sbin:/usr/sbin:/usr/local/sbin" command which $cmd 2>/dev/null)"
 	eval "cmdPath=\${$cmdPath}"
 
 	if [ "$cmdPath" = "" ]; then
@@ -169,7 +169,7 @@ fi
 
 # optional commands
 
-brctlPath=$(command which brctl 2>/dev/null)
+brctlPath=$(PATH="$PATH:/sbin:/usr/sbin:/usr/local/sbin" command which brctl 2>/dev/null)
 
 if [ "$brctlPath" = "" ]; then
 	hasBrctl=false
@@ -178,7 +178,7 @@ else
 	hasBrctl=true
 fi
 
-iptablesPath=$(command which iptables 2>/dev/null)
+iptablesPath=$(PATH="$PATH:/sbin:/usr/sbin:/usr/local/sbin" command which iptables 2>/dev/null)
 
 if [ "$iptablesPath" = "" ]; then
 	hasIptables=false
