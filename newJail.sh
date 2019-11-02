@@ -257,6 +257,7 @@ if [ "\$(id -u)" != "0" ]; then
 fi
 
 ownPath=\$(dirname \$0)
+firewallInstr="run/firewall.instructions"
 
 # substring offset <optional length> string
 # cuts a string at the starting offset and wanted length.
@@ -356,6 +357,69 @@ cmkdir() {
                         fi
                 done
         done
+}
+
+parseArgs() {
+	OPTIND=0
+	local silentMode="false"
+	while getopts s f 2>/dev/null; do
+		case \$f in
+			s) local silentMode="true";;
+		esac
+	done
+	[ \$((\$OPTIND > 1)) = 1 ] && shift \$(expr \$OPTIND - 1)
+	local title=\$1
+	local validArguments="\$(printf "%s" "\$2" | sed -e "s/\('[^']*'\) /\1\n/g" | sed -e "/^'/ b; s/ /\n/g" | sed -e "s/'//g")"
+	shift 2
+
+	local oldIFS=\$IFS
+	IFS="
+	"
+	for elem in \$(printf "%s" "\$validArguments"); do
+		if [ "\$1" = "" ]; then
+			[ "\$silentMode" = "false" ] && echo "\$title : Missing the required argument '\$elem'" >/dev/stderr
+			IFS=\$oldIFS
+			return 1
+		fi
+		shift
+	done
+	IFS=\$oldIFS
+	return 0
+}
+
+# This function is meant to interface with an instructions file.
+# the instructions file contains data separated by semicolons, each are called command.
+# we can check if a command is present, remove and add them. We can also output a version
+# that is fitting to be looped.
+cmdCtl() {
+	local file=\$1
+	local cmd=\$2
+	shift 2
+	local result=""
+
+	exists() { printf "%s" "\$2" | grep "\(^\|;\)\$1;" >/dev/null 2>/dev/null;}
+	remove() { exists "\$1" "\$2" && (printf "%s" "\$2" | sed -e "s@\(^\|;\)\$1;@\1@") || printf "%s" "\$2";}
+	add() { exists "\$1" "\$2" && printf "%s" "\$2" || printf "%s%s;" "\$2" "\$1";}
+	list() { printf "%s" "\$1" | sed -e 's@;@\n@g';}
+
+
+	if [ ! -e \$file ]; then
+		if [ ! -d \$(dirname \$file) ]; then
+			mkdir -p \$(dirname \$file)
+		fi
+		touch \$file
+	fi
+
+	case \$cmd in
+		exists) exists "\$1" "\$(cat \$file)" ;;
+		remove) remove "\$1" "\$(cat \$file)" > \$file ;;
+		add) add "\$1" "\$(cat \$file)" > \$file ;;
+		list) list "\$(cat \$file)" ;;
+		*)
+			echo "Invalid command entered"
+			return 1
+		;;
+	esac
 }
 
 mountMany() {
@@ -492,6 +556,177 @@ leaveBridgeByJail() {
 		leaveBridge "\$jailName" "\$remnetnsId" "\$rembridgeName"
 	fi
 }
+
+# don't use this function directly, use either internalFirewall or externalFirewall
+# Internal is for the jail itself
+# External is the host system's firewall
+firewall() {
+	if [ "\$jailNet" = "true" ]; then
+		local rootDir=\$1
+		local fwType=\$2
+		shift 2
+		local deleteMode="false"
+		local singleRunMode="false" # it means this command should not be accounted in the firewall instructions file
+		OPTIND=0
+		while getopts ds f 2>/dev/null ; do
+			case \$f in
+				d) local deleteMode="true";;
+				s) local singleRunMode="true";;
+			esac
+		done
+		[ \$((\$OPTIND > 1)) = 1 ] && shift \$(expr \$OPTIND - 1)
+		local cmd=\$1
+		case "\$fwType" in
+			"internal")
+				local fwCmd="$ipPath netns exec \$netnsId $iptablesPath"
+			;;
+
+			"external")
+				local fwCmd="$iptablesPath"
+			;;
+
+			*)
+				echo "Don't call this function directly, use 'externalFirewall' or 'internalFirewall' instead." >/dev/stderr
+				return
+			;;
+		esac
+		shift
+		local arguments="\$@"
+		fwFile="\$rootDir/\$firewallInstr"
+		[ ! -e \$fwFile ] && (touch \$fwFile; chmod o+r \$fwFile)
+
+		if [ "\$deleteMode" = "false" ]; then
+			cmdCtl "\$fwFile" exists "firewall \$rootDir \$fwType \$cmd \$arguments" && return 0
+		else # deleteMode
+			if [ "\$singleRunMode" = "false" ]; then
+				cmdCtl "\$fwFile" exists "firewall \$rootDir \$fwType \$cmd \$arguments" || return 0
+			fi # not singleRunMode
+		fi # deleteMode
+
+		case "\$cmd" in
+			"blockAll")
+				parseArgs "blockAll" "" \$arguments || return 1
+				if [ "\$deleteMode" = "false" ]; then
+					# block all tcp packets except those that are established
+					# and related (this is appended at the bottom)
+					\$fwCmd -A INPUT -p tcp -m tcp --dport 1:65535 -m state \! --state ESTABLISHED,RELATED -j REJECT
+					\$fwCmd -A INPUT -p udp -m udp --dport 1:65535 -m state \! --state ESTABLISHED,RELATED -j REJECT
+					# block all outgoing packets except established ones
+					\$fwCmd -A OUTPUT -p all -m state \! --state ESTABLISHED,RELATED -j REJECT
+				else # deleteMode
+					\$fwCmd -D INPUT -p tcp -m tcp --dport 1:65535 -m state \! --state ESTABLISHED,RELATED -j REJECT
+					\$fwCmd -D INPUT -p udp -m udp --dport 1:65535 -m state \! --state ESTABLISHED,RELATED -j REJECT
+					\$fwCmd -D OUTPUT -p all -m state \! --state ESTABLISHED,RELATED -j REJECT
+				fi # deleteMode
+			;;
+
+			"openPort")
+				parseArgs "openPort" "'interface' 'tcp or udp' 'destination port'" \$arguments || return 1
+				if [ "\$deleteMode" = "false" ]; then
+					# "inserted" so they are before the reject rules
+					\$fwCmd -I OUTPUT -o \$1 -p \$2 --dport \$3 -j ACCEPT
+					\$fwCmd -I INPUT -i \$1 -p \$2 --sport \$3 -j ACCEPT
+				else # deleteMode
+					\$fwCmd -D OUTPUT -o \$1 -p \$2 --dport \$3 -j ACCEPT
+					\$fwCmd -D INPUT -i \$1 -p \$2 --sport \$3 -j ACCEPT
+				fi # deleteMode
+			;;
+
+			"openTcpPort")
+				parseArgs "openTcpPort" "'interface' 'destination port'" \$arguments || return 1
+				if [ "\$deleteMode" = "false" ]; then
+					firewall \$rootDir \$fwType -s "openPort" \$1 "tcp" \$2
+				else # deleteMode
+					firewall \$rootDir \$fwType -d -s "openPort" \$1 "tcp" \$2
+				fi # deleteMode
+			;;
+
+			"openUdpPort")
+				parseArgs "openUdpPort" "'interface' 'destination port'" \$arguments || return 1
+				if [ "\$deleteMode" = "false" ]; then
+					firewall \$rootDir \$fwType -s "openPort" \$1 "udp" \$2
+				else # deleteMode
+					firewall \$rootDir \$fwType -d -s "openPort" \$1 "udp" \$2
+				fi # deleteMode
+			;;
+
+			"allowConnection")
+				parseArgs "allowConnection" "'tcp or udp' 'output interface' 'destination address' 'destination port'" \$arguments || return 1
+				if [ "\$deleteMode" = "false" ]; then
+					\$fwCmd -I OUTPUT -p \$1 -o \$2 -d \$3 --dport \$4 -j ACCEPT
+				else # deleteMode
+					\$fwCmd -D OUTPUT -p \$1 -o \$2 -d \$3 --dport \$4 -j ACCEPT
+				fi # deleteMode
+			;;
+
+			"allowTcpConnection")
+				parseArgs "allowTcpConnection" "'output interface' 'destination address' 'destination port'" \$arguments || return 1
+				if [ "\$deleteMode" = "false" ]; then
+					firewall \$rootDir \$fwType -s "allowConnection" tcp \$1 \$2 \$3
+				else # deleteMode
+					firewall \$rootDir \$fwType -d -s "allowConnection" tcp \$1 \$2 \$3
+				fi # deleteMode
+			;;
+
+			"allowUdpConnection")
+				parseArgs "allowUdpConnection" "'output interface' 'destination address' 'destination port'" \$arguments || return 1
+				if [ "\$deleteMode" = "false" ]; then
+					firewall \$rootDir \$fwType -s "allowConnection" udp \$1 \$2 \$3
+				else # deleteMode
+					firewall \$rootDir \$fwType -d -s "allowConnection" udp \$1 \$2 \$3
+				fi # deleteMode
+			;;
+
+			"snat")
+				parseArgs "snat" "'the interface connected to the outbound network' 'the interface from which the packets originate'" \$arguments || return 1
+				local upstream=\$1 # the snat goes through here
+				local downstream=\$2 # this is the device to snat
+
+				baseAddr=\$(echo \$ipInt | sed -e 's/\.[0-9]*$/\.0/') # convert 192.168.xxx.xxx to 192.168.xxx.0
+
+				if [ "\$deleteMode" = "false" ]; then
+					\$fwCmd -t nat -N \${upstream}_\${downstream}_masq
+					\$fwCmd -t nat -A POSTROUTING -o \$upstream -j \${upstream}_\${downstream}_masq
+					\$fwCmd -t nat -A \${upstream}_\${downstream}_masq -s \$baseAddr/\$ipIntBitmask -j MASQUERADE
+
+					\$fwCmd -t filter -I FORWARD -i \$downstream -o \$upstream -j ACCEPT
+					\$fwCmd -t filter -I FORWARD -i \$upstream -o \$downstream -m state --state ESTABLISHED,RELATED -j ACCEPT
+				else # deleteMode
+					\$fwCmd -t nat -D POSTROUTING -o \$upstream -j \${upstream}_\${downstream}_masq
+					\$fwCmd -t nat -D \${upstream}_\${downstream}_masq -s \$baseAddr/\$ipIntBitmask -j MASQUERADE
+					\$fwCmd -t filter -D FORWARD -i \$downstream -o \$upstream -j ACCEPT
+					\$fwCmd -t filter -D FORWARD -i \$upstream -o \$downstream -m state --state ESTABLISHED,RELATED -j ACCEPT
+					\$fwCmd -t nat -X \${upstream}_\${downstream}_masq
+				fi # deleteMode
+			;;
+
+			*)
+				echo "Unknown firewall command \$cmd -- \$arguments"
+				return 1
+			;;
+		esac
+
+		# we save the command entered to the firewall repository file
+		# this can be used to reapply the firewall and also clean the rules
+		# from iptables.
+		if [ "\$singleRunMode" = "false" ]; then
+			if [ "\$deleteMode" = "false" ]; then
+				# we add commands to the firewall instructions file
+				cmdCtl "\$fwFile" add "firewall \$rootDir \$fwType \$cmd \$arguments"
+			else # deleteMode
+				# we remove commands from the firewall instructions file
+				cmdCtl "\$fwFile" remove "firewall \$rootDir \$fwType \$cmd \$arguments"
+			fi # deleteMode
+		fi # not singleRunMode
+
+		return 0
+	fi
+}
+
+# firewall inside the jail itself
+internalFirewall() { local rootDir=\$1; shift; firewall \$rootDir "internal" \$@ ; }
+# firewall on the base system
+externalFirewall() { local rootDir=\$1; shift; firewall \$rootDir "external" \$@ ; }
 
 applyFirewallRules() {
 	local prepRun=\$1
@@ -722,6 +957,22 @@ stopChroot() {
 		fi
 		$ipPath netns delete \$netnsId
 	fi
+
+	local oldIFS=\$IFS
+	IFS="
+	"
+	# removing the firewall rules inserted into the instructions file
+	for cmd in \$(cmdCtl "\$rootDir/\$firewallInstr" list); do
+		remCmd=\$(printf "%s" "\$cmd" | sed -e 's@firewall \(.*\) \(in\|ex\)ternal \(.*\)\$@firewall \1 \2ternal -d \3@')
+
+		IFS=\$oldIFS # we set back IFS for remCmd
+		eval \$remCmd
+
+		local oldIFS=\$IFS
+		IFS="
+		"
+	done
+	IFS=\$oldIFS
 
 	if [ -e \$rootDir/run/jail.pid ]; then
 		nsPid=\$(findNS \$rootDir)
