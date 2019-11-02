@@ -592,7 +592,7 @@ prepareChroot() {
 		fi
 	fi
 
-	prepCustom \$rootDir
+	prepCustom \$rootDir || return 1
 
 	[ "\$firewallType" = "shorewall" ] && [ "\$configNet" = "true" ] && shorewall restart >/dev/null 2>/dev/null
 	return 0
@@ -840,8 +840,7 @@ extIpBitmask=24
 # only used if configNet=true
 firewallType=shorewall
 
-# shorewall specific options Section, only used if
-# configNet=true
+# shorewall specific options Section, only used if configNet=true
 firewallPath=/etc/shorewall
 firewallNetZone=net
 firewallZoneName=\$(substring 0 5 \$jailName)
@@ -867,6 +866,7 @@ vethExt=\$(substring 0 13 \$jailName)ex
 # the internal veth interface name (only 15 characters maximum)
 vethInt=\$(substring 0 13 \$jailName)in
 
+
 ################# Mount Points ################
 
 # it's important to note that these mount points will *only* mount a directory
@@ -889,6 +889,7 @@ roMountPoints_CUSTOM=\$(cat << EOF
 rwMountPoints_CUSTOM=\$(cat << EOF
 @EOF
 )
+
 
 ################ Functions ###################
 
@@ -936,7 +937,7 @@ prepCustom() {
 
 	# We allow the net to connect to our jail specifically to the port 8000 from the port 80 (by dnat) :
 	# internet -> port 80 -> firewall's dnat -> jail's port 8000
-	# echo "DNAT \$firewallNetZone \$firewallZoneName:\$extIp:8000 tcp 80" >> \$firewallPath/rules.d/\$jailName.rules
+	# echo "DNAT \$firewallNetZone \$firewallZoneName:\$ipInt:8000 tcp 80" >> \$firewallPath/rules.d/\$jailName.rules
 
 	# outgoing
 
@@ -965,6 +966,7 @@ startCustom() {
 	# you can't do it like so :
 	# runJail \$rootDir env - FOO=bar sh someScript.sh
 	# this would nullify important environment variables we set in runJail/runChroot
+	# You can override the defaults too, just set them using the above method.
 	runJail \$rootDir
 
 	# if you need to add logs, just pipe them to the directory : \$rootDir/run/someLog.log
