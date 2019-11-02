@@ -5,7 +5,6 @@ MUSLGCC=usr/bin/musl-gcc
 MUSLOBJECTS=usr/lib/libc.a
 MUSL=$(MUSLOBJECTS) $(MUSLGCC)
 BUSYBOX=busybox/busybox
-LIBS=-lcrypt $(MUSLOBJECTS)
 LDFLAGS=-static
 GCC=$(MUSLGCC)
 PROJECTROOT=$(PWD)
