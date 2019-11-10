@@ -184,8 +184,11 @@ TIP: You usually want to make this start your programs automatically. This is mo
 
 * sudo jt daemon
 
-	This starts the jail in daemon mode. The only way to gain access is through
-	the shell command or, if available, network shell providers like ssh or telnet.
+	This starts the jail in daemon mode. When started, the jailed is
+	placed in the background and puts you back into the calling shell.
+	It will stay running even after you close your terminal.
+	The only way to gain access is through the shell command or,
+	if available, network shell providers like ssh or telnet.
 
 TIP: You usually want to make this start your services automatically. This is mostly for starting servers and any application that run in the background.
 
