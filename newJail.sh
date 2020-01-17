@@ -621,32 +621,41 @@ firewall() {
 			;;
 
 			"openPort")
-				parseArgs "openPort" "'interface' 'tcp or udp' 'destination port'" \$arguments || return 1
+				parseArgs "openPort" "'interface from' 'interface to' 'tcp or udp' 'destination port'" \$arguments || return 1
 				if [ "\$deleteMode" = "false" ]; then
 					# "inserted" so they are before the reject rules
-					\$fwCmd -I OUTPUT -o \$1 -p \$2 --dport \$3 -j ACCEPT
-					\$fwCmd -I INPUT -i \$1 -p \$2 --sport \$3 -j ACCEPT
+
+					# request ext -> int:port
+					\$fwCmd -I OUTPUT -o \$1 -p \$3 --dport \$4 -j ACCEPT
+					\$fwCmd -I OUTPUT -o \$2 -p \$3 --sport \$4 -j ACCEPT
+					\$fwCmd -I INPUT -i \$2 -p \$3 --dport \$4 -j ACCEPT
+					# response int:port -> ext
+					\$fwCmd -I INPUT -i \$1 -p \$3 --sport \$4 -j ACCEPT
 				else # deleteMode
-					\$fwCmd -D OUTPUT -o \$1 -p \$2 --dport \$3 -j ACCEPT
-					\$fwCmd -D INPUT -i \$1 -p \$2 --sport \$3 -j ACCEPT
+
+					\$fwCmd -D OUTPUT -o \$1 -p \$3 --dport \$4 -j ACCEPT
+					\$fwCmd -D OUTPUT -o \$2 -p \$3 --sport \$4 -j ACCEPT
+					\$fwCmd -D INPUT -i \$2 -p \$3 --dport \$4 -j ACCEPT
+					\$fwCmd -D INPUT -i \$1 -p \$3 --sport \$4 -j ACCEPT
 				fi # deleteMode
 			;;
 
 			"openTcpPort")
-				parseArgs "openTcpPort" "'interface' 'destination port'" \$arguments || return 1
+				parseArgs "openTcpPort" "'interface from' 'interface to' 'destination port'" \$arguments || return 1
 				if [ "\$deleteMode" = "false" ]; then
-					firewall \$rootDir \$fwType -s "openPort" \$1 "tcp" \$2
+					firewall \$rootDir \$fwType -s "openPort" \$1 \$2 "tcp" \$3
 				else # deleteMode
-					firewall \$rootDir \$fwType -d -s "openPort" \$1 "tcp" \$2
+					firewall \$rootDir \$fwType -d -s "openPort" \$1 \$2 "tcp" \$3
 				fi # deleteMode
 			;;
 
 			"openUdpPort")
 				parseArgs "openUdpPort" "'interface' 'destination port'" \$arguments || return 1
+				parseArgs "openUdpPort" "'interface from' 'interface to' 'destination port'" \$arguments || return 1
 				if [ "\$deleteMode" = "false" ]; then
-					firewall \$rootDir \$fwType -s "openPort" \$1 "udp" \$2
+					firewall \$rootDir \$fwType -s "openPort" \$1 \$2 "udp" \$3
 				else # deleteMode
-					firewall \$rootDir \$fwType -d -s "openPort" \$1 "udp" \$2
+					firewall \$rootDir \$fwType -d -s "openPort" \$1 \$2 "udp" \$3
 				fi # deleteMode
 			;;
 
