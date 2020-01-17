@@ -318,9 +318,6 @@ devMountPoints=\$(cat << EOF
 
 # read-only mount points with exec
 roMountPoints=\$(cat << EOF
-/usr/share/locale
-/usr/lib/locale
-/usr/lib/gconv
 @EOF
 )
 
@@ -1098,7 +1095,7 @@ extIpBitmask=24
 # rootCustomConfig script because rules are deleted after the
 # jail is closed, by default.
 # only used if configNet=true
-firewallType=shorewall
+firewallType=
 
 # shorewall specific options Section, only used if configNet=true
 firewallPath=/etc/shorewall
@@ -1110,7 +1107,8 @@ firewallZoneName=\$(substring 0 5 \$jailName)
 # connection (only used if configNet=true)
 # leave it empty if you don't want to masquerade your connection
 # through any interface.
-snatEth=eth0
+#snatEth=eth0
+snatEth=
 
 # chroot internal IP
 # the one liner script is to make sure it is of the same network
@@ -1142,6 +1140,9 @@ devMountPoints_CUSTOM=\$(cat << EOF
 
 # read-only mount points with exec
 roMountPoints_CUSTOM=\$(cat << EOF
+/usr/share/locale
+/usr/lib/locale
+/usr/lib/gconv
 @EOF
 )
 
