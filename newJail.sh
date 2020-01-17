@@ -133,7 +133,7 @@ else
 fi
 
 if $(echo $unshareSupport | sed -ne '/m/ q 1; q 0'); then # check for mount namespace support
-	echo "Linux kernel Mount namespace support was not detected. It mandatory to use this tool. Bailing out."
+	echo "Linux kernel Mount namespace support was not detected. It is mandatory to use this tool. Bailing out."
 	exit 1
 fi
 
@@ -1318,7 +1318,6 @@ $sh $ownPath/cpDep.sh $newChrootHolder /etc/ $etcFiles
 $sh $ownPath/cpDep.sh $newChrootHolder /bin $ownPath/busybox/busybox
 
 for app in $($ownPath/busybox/busybox --list-full); do ln -s /bin/busybox ${newChrootDir}/$app; done
-
 
 # we append these to update.sh
 echo "# end basic dependencies" >> $newChrootHolder/update.sh
