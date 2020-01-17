@@ -144,7 +144,10 @@ fi
 
 if $(echo $unshareSupport | sed -ne '/U/ q 0; q 1'); then # check for user namespace support
 	# we remove this bit from the variable because we do not yet support it.
+	userNS=true
 	unshareSupport=$(echo $unshareSupport | sed -e 's/U//')
+else
+	userNS=false
 fi
 
 # Preparing nsenter's arguments
@@ -284,6 +287,7 @@ fi
 
 user=$mainJailUsername
 
+userNS=$userNS
 netNS=$netNS
 hasBrctl=$hasBrctl
 hasIptables=$hasIptables
@@ -867,10 +871,12 @@ runChroot() {
 runJail() {
 	local runChrootArgs=""
 	local daemonize=false
+	local enableUserNS="false"
 	OPTIND=0
-	while getopts rd f 2>/dev/null ; do
+	while getopts rfd f 2>/dev/null ; do
 		case \$f in
 			r) local runChrootArgs="-r";; # run as root
+			f) local enableUserNS="true";; # run as a fake root (with the user namespace)
 			d) local daemonize=true;;
 		esac
 	done
@@ -908,7 +914,11 @@ runJail() {
 		fi
 	fi
 
-	\$preUnshare $unsharePath ${unshareSupport}f -- $sh -c "$mountPath -tproc none \$rootDir/root/proc; \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)"
+	if [ "\$userNS" = "true" ] && [ "\$enableUserNS" = "true" ]; then
+		\$preUnshare $unsharePath ${unshareSupport}f -- $sh -c "$mountPath -tproc none \$rootDir/root/proc; su -c \"$unsharePath -Ur -- \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)\" - $USER"
+	else
+		\$preUnshare $unsharePath ${unshareSupport}f -- $sh -c "$mountPath -tproc none \$rootDir/root/proc; \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)"
+	fi
 }
 
 stopChroot() {
