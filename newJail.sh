@@ -83,18 +83,13 @@ if [ ! -d $jailPath ]; then
 	exit 1
 fi
 
-# substring offset <optional length> string
-# cuts a string at the starting offset and wanted length.
-substring() {
-        local init=$1; shift
-        if [ "$2" != "" ]; then toFetch="\(.\{$1\}\).*"; shift; else local toFetch="\(.*\)"; fi
-        echo "$1" | sed -e "s/^.\{$init\}$toFetch$/\1/"
-}
-
 uid=$(id -u)
 gid=$(id -g)
 
 ownPath=$(dirname $0)
+
+# include common functions
+. $ownPath/utils.sh
 
 # convert the path of this script to an absolute path
 if [ "$ownPath" = "." ]; then

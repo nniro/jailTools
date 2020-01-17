@@ -11,6 +11,8 @@ jailToolsPath=ScriptPath
 
 uid=$(id -u)
 
+. $jailToolsPath/utils.sh # detectJail
+
 if [ "$jailToolsPath" = "ScriptPath" ]; then
 	exit 1 # this script has to be installed to be used.
 fi
@@ -26,15 +28,6 @@ showHelp() {
 	printf "    start, stop, shell\t\tthese are jailTools specific commands to be used inside a jailTools directory only.\n"
 }
 
-detectJail() {
-	local jPath=$1
-	if [ -d $jPath/root ] && [ -d $jPath/run ] && [ -f $jPath/startRoot.sh ] && [ -f $jPath/rootCustomConfig.sh ]; then
-		return 0
-	else
-		return 1
-	fi
-}
-
 cmd=$1
 shift
 
@@ -46,12 +39,10 @@ fi
 case $cmd in
 	help|h)
 		showHelp
-		exit 0
 	;;
 
 	new|create)
 		$sh $jailToolsPath/newJail.sh $@
-		exit 0
 	;;
 
 	cp|cpDep)
@@ -60,7 +51,6 @@ case $cmd in
 		else
 			$sh $jailToolsPath/cpDep.sh $@
 		fi
-		exit 0
 	;;
 
 	start|stop|shell)
@@ -80,8 +70,6 @@ case $cmd in
 			echo "These commands are only valid inside the root of a jail created by jailTools"
 			exit 1
 		fi
-
-		exit 0
 	;;
 
 	daemon)
@@ -103,7 +91,6 @@ case $cmd in
 			exit 1
 		fi
 
-		exit 0
 	;;
 
 	*)
@@ -111,3 +98,5 @@ case $cmd in
 		exit 1
 	;;
 esac
+
+exit 0
