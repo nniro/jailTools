@@ -90,6 +90,7 @@ case $cmd in
 			echo "These commands are only valid inside the root of a jail created by jailTools"
 			exit 1
 		fi
+	;;
 
 	upgrade)
 		if [ "$1" = "" ]; then
