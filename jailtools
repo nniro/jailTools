@@ -29,12 +29,11 @@ showHelp() {
 }
 
 cmd=$1
-shift
-
 if [ "$cmd" = "" ]; then
 	showHelp
 	exit 0
 fi
+shift
 
 case $cmd in
 	help|h)
