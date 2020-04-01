@@ -159,7 +159,7 @@ done
 
 if [ -h /lib64 ]; then
 	echo "Linking /lib to /lib64"
-	ln -s /lib $newChrootDir/lib64
+	ln -s lib $newChrootDir/lib64
 else
 	mkdir $newChrootDir/lib64
 fi
