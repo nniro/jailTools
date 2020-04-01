@@ -313,28 +313,35 @@ leaveBridgeByJail() {
 # Internal is for the jail itself
 # External is the host system's firewall
 firewall() {
+	local rootDir=''
+	local fwType=''
+	local deleteMode="false"
+	local singleRunMode="false" # it means this command should not be accounted in the firewall instructions file
+	local arguments=''
+	local fwCmd=''
+	local cmd=''
+	local upstream=''
+	local downstream=''
 	if [ "\$jailNet" = "true" ]; then
-		local rootDir=\$1
-		local fwType=\$2
+		rootDir=\$1
+		fwType=\$2
 		shift 2
-		local deleteMode="false"
-		local singleRunMode="false" # it means this command should not be accounted in the firewall instructions file
 		OPTIND=0
 		while getopts ds f 2>/dev/null ; do
 			case \$f in
-				d) local deleteMode="true";;
-				s) local singleRunMode="true";;
+				d) deleteMode="true";;
+				s) singleRunMode="true";;
 			esac
 		done
 		[ \$((\$OPTIND > 1)) = 1 ] && shift \$(expr \$OPTIND - 1)
-		local cmd=\$1
+		cmd=\$1
 		case "\$fwType" in
 			"internal")
-				local fwCmd="$ipPath netns exec \$netnsId $iptablesPath"
+				fwCmd="$ipPath netns exec \$netnsId $iptablesPath"
 			;;
 
 			"external")
-				local fwCmd="$iptablesPath"
+				fwCmd="$iptablesPath"
 			;;
 
 			*)
@@ -343,7 +350,7 @@ firewall() {
 			;;
 		esac
 		shift
-		local arguments="\$@"
+		arguments="\$@"
 		fwFile="\$rootDir/\$firewallInstr"
 		[ ! -e \$fwFile ] && (touch \$fwFile; chmod o+r \$fwFile)
 
@@ -440,8 +447,8 @@ firewall() {
 
 			"snat")
 				parseArgs "snat" "'the interface connected to the outbound network' 'the interface from which the packets originate'" \$arguments || return 1
-				local upstream=\$1 # the snat goes through here
-				local downstream=\$2 # this is the device to snat
+				upstream=\$1 # the snat goes through here
+				downstream=\$2 # this is the device to snat
 
 				baseAddr=\$(echo \$ipInt | sed -e 's/\.[0-9]*$/\.0/') # convert 192.168.xxx.xxx to 192.168.xxx.0
 
