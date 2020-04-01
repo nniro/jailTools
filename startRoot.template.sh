@@ -114,28 +114,29 @@ cmkdir() {
 parseArgs() {
 	OPTIND=0
 	local silentMode="false"
+	local oldIFS=''
 	while getopts s f 2>/dev/null; do
 		case \$f in
 			s) local silentMode="true";;
 		esac
 	done
 	[ \$((\$OPTIND > 1)) = 1 ] && shift \$(expr \$OPTIND - 1)
-	local title=\$1
+	local title="\$1"
 	local validArguments="\$(printf "%s" "\$2" | sed -e "s/\('[^']*'\) /\1\n/g" | sed -e "/^'/ b; s/ /\n/g" | sed -e "s/'//g")"
 	shift 2
 
-	local oldIFS=\$IFS
+	oldIFS="\$IFS"
 	IFS="
 	"
 	for elem in \$(printf "%s" "\$validArguments"); do
 		if [ "\$1" = "" ]; then
 			[ "\$silentMode" = "false" ] && echo "\$title : Missing the required argument '\$elem'" >/dev/stderr
-			IFS=\$oldIFS
+			IFS="\$oldIFS"
 			return 1
 		fi
 		shift
 	done
-	IFS=\$oldIFS
+	IFS="\$oldIFS"
 	return 0
 }
 
@@ -732,21 +733,21 @@ stopChroot() {
 		$ipPath netns delete \$netnsId
 	fi
 
-	local oldIFS=\$IFS
+	local oldIFS="\$IFS"
 	IFS="
 	"
 	# removing the firewall rules inserted into the instructions file
 	for cmd in \$(cmdCtl "\$rootDir/\$firewallInstr" list); do
 		remCmd=\$(printf "%s" "\$cmd" | sed -e 's@firewall \(.*\) \(in\|ex\)ternal \(.*\)\$@firewall \1 \2ternal -d \3@')
 
-		IFS=\$oldIFS # we set back IFS for remCmd
+		IFS="\$oldIFS" # we set back IFS for remCmd
 		eval \$remCmd
 
-		local oldIFS=\$IFS
+		oldIFS="\$IFS"
 		IFS="
 		"
 	done
-	IFS=\$oldIFS
+	IFS="\$oldIFS"
 
 	if [ -e \$rootDir/run/jail.pid ]; then
 		nsPid=\$(findNS \$rootDir)
