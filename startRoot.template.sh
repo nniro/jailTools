@@ -43,6 +43,8 @@ netNS=$netNS
 hasBrctl=$hasBrctl
 hasIptables=$hasIptables
 
+innerMountCommands=""
+
 if [ "\$netNS" = "false" ] && [ "\$jailNet" = "true" ]; then
 	jailNet=false
 	echo "jailNet is set to false automatically as it needs network namespace support which is not available."
@@ -82,16 +84,25 @@ rwMountPoints=\$(cat << EOF
 )
 
 # mkdir -p with a mode only applies the mode to the last child dir... this function applies the mode to all directories
+# arguments :
+#		-m [directory permission mode in octal]
+#		-e (this makes the function output the commands rather than apply them directly)
 cmkdir() {
-        local mode="\$(echo "\$@" | sed -e 's/ /\n/g' | sed -ne '/^-m$/ {N; s/-m\n//g; p;q}' -e '/--mode/ {s/--mode=//; p; q}')"
-        local modeLess="\$(echo "\$@" | sed -e 's/ /\n/g' | sed -e '/^-m$/ {N; s/.*//g; d}' -e '/--mode/ {s/.*//; d}' | sed -e 's/\/\//\//g')"
+	OPTIND=0
+	local callArgs=""
+	local arguments=""
+	local isOutput="false" # we will output the commands rather than apply them
+	local result=""
+	while getopts m:e f 2>/dev/null; do
+		case \$f in
+			m) callArgs="\$callArgs --mode=\$OPTARG";;
+			e) isOutput="true";;
+		esac
+	done
+	[ \$((\$OPTIND > 1)) = 1 ] && shift \$(expr \$OPTIND - 1)
+	arguments="\$@"
 
-        local callArgs=""
-        if [ "\$mode" != "" ]; then
-                local callArgs="--mode=\$mode"
-        fi
-
-        for dir in \$(echo \$modeLess); do
+        for dir in \$(echo \$arguments); do
                 local subdirs="\$(echo \$dir | sed -e 's/\//\n/g')"
 		if [ "\$(substring 0 1 \$dir)" = "/" ]; then # checking for an absolute path
 			local parentdir="/"
@@ -100,7 +111,11 @@ cmkdir() {
 		fi
                 for subdir in \$(echo \$subdirs); do
                         if [ ! -d \$parentdir\$subdir ]; then
-                                mkdir \$callArgs \$parentdir\$subdir
+				if [ "\$isOutput" = "false" ]; then
+	                                mkdir \$callArgs \$parentdir\$subdir
+				else
+					result="\$result mkdir \$callArgs \$parentdir\$subdir;"
+				fi
                         fi
                         if [ "\$parentdir" = "" ]; then
                                 local parentdir="\$subdir/"
@@ -109,6 +124,43 @@ cmkdir() {
                         fi
                 done
         done
+
+	if [ "\$isOutput" = "true" ]; then
+		echo \$result
+	fi
+}
+
+getDeviceInfo() {
+	rootDir=\$1
+	shift
+	# TODO this could be implemented with stat -c "%F %t %T"  just that the '%F' gives something like "character special file"
+	printf "%c %d %d\n" \$(\$rootDir/root/bin/busybox stat \$1 | grep "\(special file\|Device type\)" | sed -ne 's/.* \(.\)[^ ]* special file$/\1/ p; N; s/.* Device type: \([^,]*\),\(.*\)$/ 0x\1 0x\2/ p' | sed -ne 'N; s/\n// p')
+}
+
+addDevices() {
+	local rootDir=\$1
+	shift
+	local i=""
+	local bb="\$rootDir/root/bin/busybox"
+	while [ "\$1" != "" ]; do
+		i="/dev/\$1"
+		if [ ! -b \$i ] && [ ! -c \$i ]; then
+			echo "invalid device \\\`\$i'"
+			return 1
+		else
+			if [ ! -e \$rootDir/root\$i ]; then
+				if [ "\$(dirname \$i)" != "/dev" ]; then
+					innerMountCommands="\$innerMountCommands \$(cmkdir -e -m 755 \$rootDir/root/\$(dirname \$i))"
+				fi
+				innerMountCommands="\$innerMountCommands mknod \$rootDir/root\$i \$(getDeviceInfo \$rootDir \$i);"
+				innerMountCommands="\$innerMountCommands chmod \$(\$bb stat -c %a \$i) \$rootDir/root\$i;"
+				innerMountCommands="\$innerMountCommands chgrp \$(cat \$rootDir/root/etc/group | grep "\${user}:" | sed -e 's/.*:\([0-9]*\):$/\1/') \$rootDir/root\$i;"
+			fi
+		fi
+		shift
+	done
+
+	return 0
 }
 
 parseArgs() {
@@ -631,6 +683,7 @@ runJail() {
 	local runChrootArgs=""
 	local daemonize=false
 	local enableUserNS="false"
+	local jailMainMounts=""
 	OPTIND=0
 	while getopts rfd f 2>/dev/null ; do
 		case \$f in
@@ -673,10 +726,13 @@ runJail() {
 		fi
 	fi
 
+	jailMainMounts="$mountPath -tproc none \$rootDir/root/proc;" # this is for the /proc folder so commands like 'ps' work correctly
+	jailMainMounts="\$jailMainMounts $mountPath -t tmpfs -o size=256k tmpfs \$rootDir/root/dev;" # this makes sure that the devices in /dev are removed when the jail closes
+
 	if [ "\$userNS" = "true" ] && [ "\$enableUserNS" = "true" ]; then
-		\$preUnshare $unsharePath ${unshareSupport}f -- $sh -c "$mountPath -tproc none \$rootDir/root/proc; su -c \"$unsharePath -Ur -- \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)\" - $USER"
+		\$preUnshare $unsharePath ${unshareSupport}f -- $sh -c "\$jailMainMounts \$innerMountCommands su -c \"$unsharePath -Ur -- \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)\" - $USER"
 	else
-		\$preUnshare $unsharePath ${unshareSupport}f -- $sh -c "$mountPath -tproc none \$rootDir/root/proc; \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)"
+		\$preUnshare $unsharePath ${unshareSupport}f -- $sh -c "\$jailMainMounts \$innerMountCommands \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)"
 	fi
 }
 

@@ -3,7 +3,6 @@ filesystem=$(cat << EOF
 /bin
 /boot
 /dev
-/dev/pts
 /etc
 /etc/pam.d
 /lib
