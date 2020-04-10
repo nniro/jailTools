@@ -37,11 +37,11 @@ zlib/configure: $(MUSL)
 	git submodule init zlib
 	git submodule update zlib
 
-$(ZLIB): zlib/configure
+$(ZLIB): zlib/configure $(MUSL)
 	sh -c 'cd zlib; CC=$(PROJECTROOT)/$(GCC) ./configure --static'
 	make -C zlib
 
-openssh/configure: $(MUSL) $(ZLIB)
+openssh/configure: $(MUSL) $(ZLIB) $(BUSYBOX)
 	git submodule init openssh
 	git submodule update openssh
 	sh -c 'cd openssh; autoconf; autoheader; cat $(PROJECTROOT)/sshd.patch | $(PROJECTROOT)/busybox/busybox patch'
@@ -52,6 +52,7 @@ $(SSHD): openssh/configure $(MUSL) $(ZLIB)
 
 clean:
 	make -C buildMusl clean
+	sh -c 'cd openssh; cat $(PROJECTROOT)/sshd.patch | $(PROJECTROOT)/busybox/busybox patch -R'
 	make -C busybox clean
 	sh -c 'cd busybox; git checkout Makefile'
 	make -C zlib clean
