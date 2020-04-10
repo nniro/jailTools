@@ -110,18 +110,19 @@ cmkdir() {
 	                local parentdir=""
 		fi
                 for subdir in \$(echo \$subdirs); do
-                        if [ ! -d \$parentdir\$subdir ]; then
-				if [ "\$isOutput" = "false" ]; then
-	                                mkdir \$callArgs \$parentdir\$subdir
-				else
-					result="\$result mkdir \$callArgs \$parentdir\$subdir;"
+			if [ "\$isOutput" = "false" ]; then
+				if [ ! -d \$parentdir\$subdir ]; then
+					mkdir \$callArgs \$parentdir\$subdir
 				fi
-                        fi
-                        if [ "\$parentdir" = "" ]; then
-                                local parentdir="\$subdir/"
-                        else
-                                local parentdir="\$parentdir\$subdir/"
-                        fi
+			else
+				result="\$result mkdir -p \$callArgs \$parentdir\$subdir;"
+			fi
+
+			if [ "\$parentdir" = "" ]; then
+				local parentdir="\$subdir/"
+			else
+				local parentdir="\$parentdir\$subdir/"
+			fi
                 done
         done
 
@@ -148,14 +149,11 @@ addDevices() {
 			echo "invalid device \\\`\$i'"
 			return 1
 		else
-			if [ ! -e \$rootDir/root\$i ]; then
-				if [ "\$(dirname \$i)" != "/dev" ]; then
-					innerMountCommands="\$innerMountCommands \$(cmkdir -e -m 755 \$rootDir/root/\$(dirname \$i))"
-				fi
-				innerMountCommands="\$innerMountCommands mknod \$rootDir/root\$i \$(getDeviceInfo \$rootDir \$i);"
-				innerMountCommands="\$innerMountCommands chmod \$(\$bb stat -c %a \$i) \$rootDir/root\$i;"
-				innerMountCommands="\$innerMountCommands chgrp \$(cat \$rootDir/root/etc/group | grep "\${user}:" | sed -e 's/.*:\([0-9]*\):$/\1/') \$rootDir/root\$i;"
-			fi
+			innerMountCommands="\$innerMountCommands if [ \"\$(dirname \$i)\" != \"/dev\" ]; then \$(cmkdir -e -m 755 \$rootDir/root/\$(dirname \$i)) fi;"
+
+			innerMountCommands="\$innerMountCommands mknod \$rootDir/root\$i \$(getDeviceInfo \$rootDir \$i);"
+			innerMountCommands="\$innerMountCommands chmod \$(\$bb stat -c %a \$i) \$rootDir/root\$i;"
+			innerMountCommands="\$innerMountCommands chgrp \$(cat \$rootDir/root/etc/group | grep "\${user}:" | sed -e 's/.*:\([0-9]*\):$/\1/') \$rootDir/root\$i;"
 		fi
 		shift
 	done
@@ -228,17 +226,36 @@ cmdCtl() {
 }
 
 mountMany() {
+	OPTIND=0
 	local rootDir=\$1
-	local mountOps=\$2
-	shift 2
+	shift
+	local isOutput="false"
+	local result=""
+	while getopts e f 2>/dev/null; do
+		case \$f in
+			e) isOutput="true";;
+		esac
+	done
+	[ \$((\$OPTIND > 1)) = 1 ] && shift \$(expr \$OPTIND - 1)
+	local mountOps=\$1
+	shift
 
 	for mount in \$(echo \$@); do
-		if [ ! -d "\$rootDir/\$mount" ]; then
-			echo \$rootDir/\$mount does not exist, creating it
-			cmkdir -m 755 \$rootDir/\$mount
+		if [ "\$isOutput" = "false" ]; then
+			if [ ! -d "\$rootDir/\$mount" ]; then
+				echo \$rootDir/\$mount does not exist, creating it
+				cmkdir -m 755 \$rootDir/\$mount
+			fi
+			$mountpointPath \$rootDir/\$mount >/dev/null 2>/dev/null || $mountPath -o \$mountOps --bind \$mount \$rootDir/\$mount
+		else # isOutput = true
+			result="\$result if [ ! -d \"\$rootDir/\$mount\" ]; then \$(cmkdir -e -m 755 \$rootDir/\$mount) fi;"
+			result="\$result $mountpointPath \$rootDir/\$mount >/dev/null 2>/dev/null || $mountPath -o \$mountOps --bind \$mount \$rootDir/\$mount;"
 		fi
-		$mountpointPath \$rootDir/\$mount >/dev/null 2>/dev/null || $mountPath -o \$mountOps --bind \$mount \$rootDir/\$mount
 	done
+
+	if [ "\$isOutput" = "true" ]; then
+		echo \$result
+	fi
 }
 
 # isDefaultRoute - Route all packets through this bridge, you can only do that on a single bridge (valid values : "true" or "false")
@@ -611,11 +628,11 @@ prepareChroot() {
 	done
 
 	# dev
-	mountMany \$rootDir/root "rw,noexec" \$devMountPoints
+	innerMountCommands="\$innerMountCommands \$(mountMany \$rootDir/root -e "rw,noexec" \$devMountPoints)"
 	mountMany \$rootDir/root "ro,exec" \$roMountPoints
 	mountMany \$rootDir/root "defaults" \$rwMountPoints
 
-	mountMany \$rootDir/root "rw,noexec" \$devMountPoints_CUSTOM
+	innerMountCommands="\$innerMountCommands \$(mountMany \$rootDir/root -e "rw,noexec" \$devMountPoints_CUSTOM)"
 	mountMany \$rootDir/root "ro,exec" \$roMountPoints_CUSTOM
 	mountMany \$rootDir/root "defaults" \$rwMountPoints_CUSTOM
 
