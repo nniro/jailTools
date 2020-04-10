@@ -198,6 +198,11 @@ cat >> $newChrootDir/etc/shells << EOF
 /bin/false
 EOF
 
+# get the default internet facing network interface
+defNetInterface=$(ip route | grep '^default' | sed -e 's/^.* dev \([^ ]*\) .*$/\1/')
+
+echo Internet facing network interface : $defNetInterface
+
 # this creates startRoot.sh in the destination jail
 . $ownPath/startRoot.template.sh
 

@@ -790,12 +790,7 @@ stopChroot() {
 
 				"iptables")
 					if [ "\$snatEth" != "" ]; then
-						$iptablesPath -t nat -D POSTROUTING -o \$snatEth -j \${snatEth}_\${shortJailName}_masq
-						$iptablesPath -t nat -D \${snatEth}_\${shortJailName}_masq -s \$baseAddr/\$ipIntBitmask -j MASQUERADE
-
-						$iptablesPath -t filter -D FORWARD -i \$vethExt -o \$snatEth -j ACCEPT
-						$iptablesPath -t filter -D FORWARD -i \$snatEth -o \$vethExt -m state --state ESTABLISHED,RELATED -j ACCEPT
-						$iptablesPath -t nat -X \${snatEth}_\${shortJailName}_masq
+						externalFirewall \$rootDir snat \$snatEth \$vethExt
 					fi
 				;;
 
