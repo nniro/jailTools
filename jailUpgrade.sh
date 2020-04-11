@@ -74,35 +74,28 @@ startUpgrade() {
 		# we then make a patch from the new jail to the current jail
 		# these 2 patches are attempted in order, if one of them pass, we do it
 		# otherwise, we have to rely on the user to patch manually
-		firstPatchAttempt=0
-		secondPatchAttempt=0
 
 		# first attempt
-		cat $jPath/rootCustomConfig.sh.patch | $jailToolsPath/busybox/busybox patch
-		firstPatchAttempt=$?
 
-		if [ $firstPatchAttempt != 0 ]; then
-			echo "The first patching attempt failed, trying the second strategy"
-			cat $jPath/rootCustomConfig.sh.patch2 | $jailToolsPath/busybox/busybox patch
-			secondPatchAttempt=$?
-		fi
+		[ ! -d $jPath/.backup ] && mkdir $jPath/.backup
+		local backupF=$jPath/.backup/$($jailToolsPath/busybox/busybox date +"%Y.%m.%d-%T")
+		mkdir $backupF
+		mv $jPath/rootCustomConfig.sh.orig $backupF
+		mv $jPath/startRoot.sh.orig $backupF
+		mv $jPath/rootCustomConfig.sh.patch $backupF
+		mv $jPath/rootCustomConfig.sh.patch2 $backupF
+		cp $jPath/._rootCustomConfig.sh.initial $backupF
 
-		if [ $firstPatchAttempt = 0 ] || [ $secondPatchAttempt = 0 ] ; then
-			[ ! -d $jPath/.backup ] && mkdir $jPath/.backup
-			local backupF=$jPath/.backup/$($jailToolsPath/busybox/busybox date +"%Y.%m.%d-%T")
-			mkdir $backupF
-			mv $jPath/rootCustomConfig.sh.orig $backupF
-			mv $jPath/startRoot.sh.orig $backupF
-			mv $jPath/rootCustomConfig.sh.patch $backupF
-			mv $jPath/rootCustomConfig.sh.patch2 $backupF
-			cp $jPath/._rootCustomConfig.sh.initial $backupF
-
+		if cat $jPath/rootCustomConfig.sh.patch | $jailToolsPath/busybox/busybox patch; then
 			cp $nj/._rootCustomConfig.sh.initial $jPath
 
 			echo "Done upgrading jail. Thank you for using the jailUpgrade services."
 		else 
 			echo "There was an error upgrading your custom configuration file."
 			echo "You will need to upgrade it manually and here are the steps :"
+			echo "We moved the files of the upgrade in the path : $backupF"
+			echo "You can check it out to determine what exactly went wrong."
+
 			echo "First, take note that the file rootCustomConfig.sh now contains the default values. Don't worry."
 			echo "Your changes to that file are in 2 locations."
 			echo "We made a backup of your rootCustomConfig.sh to rootCustomConfig.sh.orig"
