@@ -77,14 +77,6 @@ startUpgrade() {
 
 		# first attempt
 
-		[ ! -d $jPath/.backup ] && mkdir $jPath/.backup
-		local backupF=$jPath/.backup/$($jailToolsPath/busybox/busybox date +"%Y.%m.%d-%T")
-		mkdir $backupF
-		mv $jPath/rootCustomConfig.sh.orig $backupF
-		mv $jPath/startRoot.sh.orig $backupF
-		mv $jPath/rootCustomConfig.sh.patch $backupF
-		mv $jPath/rootCustomConfig.sh.patch2 $backupF
-		cp $jPath/._rootCustomConfig.sh.initial $backupF
 
 		if cat $jPath/rootCustomConfig.sh.patch | $jailToolsPath/busybox/busybox patch; then
 			cp $nj/._rootCustomConfig.sh.initial $jPath
@@ -108,6 +100,14 @@ startUpgrade() {
 			echo "We're sorry for the inconvenience. Thank you for using the jailUpgrade services."
 		fi
 
+		[ ! -d $jPath/.backup ] && mkdir $jPath/.backup
+		local backupF=$jPath/.backup/$($jailToolsPath/busybox/busybox date +"%Y.%m.%d-%T")
+		mkdir $backupF
+		mv $jPath/rootCustomConfig.sh.orig $backupF
+		mv $jPath/startRoot.sh.orig $backupF
+		mv $jPath/rootCustomConfig.sh.patch $backupF
+		mv $jPath/rootCustomConfig.sh.patch2 $backupF
+		cp $jPath/._rootCustomConfig.sh.initial $backupF
 	fi
 
 	if [ "$njD" != "" ] && [ -d $nj ]; then
