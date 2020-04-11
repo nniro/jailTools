@@ -62,16 +62,39 @@ startUpgrade() {
 
 		cp $jPath/rootCustomConfig.sh $jPath/rootCustomConfig.sh.orig
 		cp $jPath/startRoot.sh $jPath/startRoot.sh.orig
+		# first patch
 		$jailToolsPath/busybox/busybox diff -p $jPath/._rootCustomConfig.sh.initial $jPath/rootCustomConfig.sh > $jPath/rootCustomConfig.sh.patch
+		# second patch
+		$jailToolsPath/busybox/busybox diff -p $nj/rootCustomConfig.sh $jPath/rootCustomConfig.sh > $jPath/rootCustomConfig.sh.patch2
 		cp $nj/rootCustomConfig.sh $jPath
 		cp $nj/startRoot.sh $jPath
-		if cat $jPath/rootCustomConfig.sh.patch | $jailToolsPath/busybox/busybox patch ; then
+
+
+		# we first make a patch from the initial
+		# we then make a patch from the new jail to the current jail
+		# these 2 patches are attempted in order, if one of them pass, we do it
+		# otherwise, we have to rely on the user to patch manually
+		firstPatchAttempt=0
+		secondPatchAttempt=0
+
+		# first attempt
+		cat $jPath/rootCustomConfig.sh.patch | $jailToolsPath/busybox/busybox patch
+		firstPatchAttempt=$?
+
+		if [ $firstPatchAttempt != 0 ]; then
+			echo "The first patching attempt failed, trying the second strategy"
+			cat $jPath/rootCustomConfig.sh.patch2 | $jailToolsPath/busybox/busybox patch
+			secondPatchAttempt=$?
+		fi
+
+		if [ $firstPatchAttempt = 0 ] || [ $secondPatchAttempt = 0 ] ; then
 			[ ! -d $jPath/.backup ] && mkdir $jPath/.backup
 			local backupF=$jPath/.backup/$($jailToolsPath/busybox/busybox date +"%Y.%m.%d-%T")
 			mkdir $backupF
 			mv $jPath/rootCustomConfig.sh.orig $backupF
 			mv $jPath/startRoot.sh.orig $backupF
 			mv $jPath/rootCustomConfig.sh.patch $backupF
+			mv $jPath/rootCustomConfig.sh.patch2 $backupF
 			cp $jPath/._rootCustomConfig.sh.initial $backupF
 
 			cp $nj/._rootCustomConfig.sh.initial $jPath
