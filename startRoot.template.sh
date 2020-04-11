@@ -515,6 +515,37 @@ firewall() {
 				fi # deleteMode
 			;;
 
+			"dnat")
+				parseArgs "dnat" "'tcp or udp' 'input interface' 'output interface' 'source port' 'destination address' 'destination port'" \$arguments || return 1
+				if [ "\$deleteMode" = "false" ]; then
+					\$fwCmd -t nat -A PREROUTING -i \$2 -p \$1 -m \$1 --dport \$4 -j DNAT --to-destination \$5:\$6
+					\$fwCmd -t filter -I FORWARD -p \$1 -i \$2 -o \$3 -m state --state NEW,ESTABLISHED,RELATED -m \$1 --dport \$6 -j ACCEPT
+					\$fwCmd -t filter -I FORWARD -p \$1 -i \$3 -o \$2 -m state --state ESTABLISHED,RELATED -j ACCEPT
+				else # deleteMode
+					\$fwCmd -t nat -D PREROUTING -i \$2 -p \$1 -m \$1 --dport \$4 -j DNAT --to-destination \$5:\$6
+					\$fwCmd -t filter -D FORWARD -p \$1 -i \$2 -o \$3 -m state --state NEW,ESTABLISHED,RELATED -m \$1 --dport \$6 -j ACCEPT
+					\$fwCmd -t filter -D FORWARD -p \$1 -i \$3 -o \$2 -m state --state ESTABLISHED,RELATED -j ACCEPT
+				fi # deleteMode
+			;;
+
+			"dnatTcp")
+				parseArgs "dnatTcp" "'input interface' 'output interface' 'source port' 'destination address' 'destination port'" \$arguments || return 1
+				if [ "\$deleteMode" = "false" ]; then
+					firewall \$rootDir \$fwType -s "dnat" tcp \$1 \$2 \$3 \$4 \$5
+				else # deleteMode
+					firewall \$rootDir \$fwType -d -s "dnat" tcp \$1 \$2 \$3 \$4 \$5
+				fi # deleteMode			
+			;;
+
+			"dnatUdp")
+				parseArgs "dnatUdp" "'input interface' 'output interface' 'source port' 'destination address' 'destination port'" \$arguments || return 1
+				if [ "\$deleteMode" = "false" ]; then
+					firewall \$rootDir \$fwType -s "dnat" udp \$1 \$2 \$3 \$4 \$5
+				else # deleteMode
+					firewall \$rootDir \$fwType -d -s "dnat" udp \$1 \$2 \$3 \$4 \$5
+				fi # deleteMode			
+			;;
+
 			"snat")
 				parseArgs "snat" "'the interface connected to the outbound network' 'the interface from which the packets originate'" \$arguments || return 1
 				upstream=\$1 # the snat goes through here
