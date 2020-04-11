@@ -77,36 +77,31 @@ startUpgrade() {
 
 		# first attempt
 
+		[ ! -d $jPath/.backup ] && mkdir $jPath/.backup
+		local backupF=$jPath/.backup/$($jailToolsPath/busybox/busybox date +"%Y.%m.%d-%T")
+		mkdir $backupF
 
 		if cat $jPath/rootCustomConfig.sh.patch | $jailToolsPath/busybox/busybox patch; then
 			cp $nj/._rootCustomConfig.sh.initial $jPath
 
 			echo "Done upgrading jail. Thank you for using the jailUpgrade services."
 		else 
+			cp rootCustomConfig.sh rootCustomConfig.sh.new
+			cp $jPath/rootCustomConfig.sh.orig rootCustomConfig.sh
+
 			echo "There was an error upgrading your custom configuration file."
 			echo "You will need to upgrade it manually and here are the steps :"
 			echo "We moved the files of the upgrade in the path : $backupF"
-			echo "You can check it out to determine what exactly went wrong."
-
-			echo "First, take note that the file rootCustomConfig.sh now contains the default values. Don't worry."
-			echo "Your changes to that file are in 2 locations."
-			echo "We made a backup of your rootCustomConfig.sh to rootCustomConfig.sh.orig"
-			echo "Also the file rootCustomConfig.sh.patch contains only your changes."
-			echo "So use either of these to update the file rootCustomConfig.sh with your custom changes"
-			echo "At that point, it should be safe to either remove or backup to some place all the .orig files and the patch"
-			echo
-			echo "If you don't want to upgrade manually right now, copy startRoot.sh.orig to startRoot.sh and rootCustomConfig.sh.orig to rootCustomConfig.sh"
+			echo "You could attempt to upgrade manually by comparing your rootCustomConfig.sh with rootCustomConfig.sh.new and merge the changes manually."
+			echo "Or you can check the backup path to determine what exactly went wrong."
+			echo "In the meantime, we have not upgraded any of your files, so you can continue using the jail like normal."
 			echo
 			echo "We're sorry for the inconvenience. Thank you for using the jailUpgrade services."
 		fi
 
-		[ ! -d $jPath/.backup ] && mkdir $jPath/.backup
-		local backupF=$jPath/.backup/$($jailToolsPath/busybox/busybox date +"%Y.%m.%d-%T")
-		mkdir $backupF
 		mv $jPath/rootCustomConfig.sh.orig $backupF
 		mv $jPath/startRoot.sh.orig $backupF
 		mv $jPath/rootCustomConfig.sh.patch $backupF
-		mv $jPath/rootCustomConfig.sh.patch2 $backupF
 		cp $jPath/._rootCustomConfig.sh.initial $backupF
 	fi
 
