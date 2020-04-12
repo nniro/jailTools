@@ -622,13 +622,7 @@ applyFirewallRules() {
 				baseAddr=\$(echo \$ipInt | sed -e 's/\.[0-9]*$/\.0/') # convert 192.168.xxx.xxx to 192.168.xxx.0
 
 				if [ "\$snatEth" != "" ]; then
-					# this is to SNAT vethExt through snatEth
-					$iptablesPath -t nat -N \${snatEth}_\${shortJailName}_masq
-					$iptablesPath -t nat -A POSTROUTING -o \$snatEth -j \${snatEth}_\${shortJailName}_masq
-					$iptablesPath -t nat -A \${snatEth}_\${shortJailName}_masq -s \$baseAddr/\$ipIntBitmask -j MASQUERADE
-
-					$iptablesPath -t filter -I FORWARD -i \$vethExt -o \$snatEth -j ACCEPT
-					$iptablesPath -t filter -I FORWARD -i \$snatEth -o \$vethExt -m state --state ESTABLISHED,RELATED -j ACCEPT
+					externalFirewall \$rootDir snat \$snatEth \$vethExt
 				fi
 			;;
 
@@ -817,12 +811,6 @@ stopChroot() {
 						[ -e \$firewallPath/\$fwSection.d/\$shortJailName.\$fwSection ] && rm \$firewallPath/\$fwSection.d/\$shortJailName.\$fwSection
 					done
 					shorewall restart >/dev/null 2>/dev/null
-				;;
-
-				"iptables")
-					if [ "\$snatEth" != "" ]; then
-						externalFirewall \$rootDir snat \$snatEth \$vethExt
-					fi
 				;;
 
 				*)
