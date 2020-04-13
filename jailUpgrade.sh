@@ -64,8 +64,6 @@ startUpgrade() {
 		cp $jPath/startRoot.sh $jPath/startRoot.sh.orig
 		# first patch
 		$jailToolsPath/busybox/busybox diff -p $jPath/._rootCustomConfig.sh.initial $jPath/rootCustomConfig.sh > $jPath/rootCustomConfig.sh.patch
-		# second patch
-		$jailToolsPath/busybox/busybox diff -p $nj/rootCustomConfig.sh $jPath/rootCustomConfig.sh > $jPath/rootCustomConfig.sh.patch2
 		cp $nj/rootCustomConfig.sh $jPath
 		cp $nj/startRoot.sh $jPath
 
