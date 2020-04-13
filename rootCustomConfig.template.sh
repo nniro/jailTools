@@ -48,35 +48,24 @@ bridgeIpBitmask=24
 # Only valid if jailNet=true
 configNet=false
 
-# this is the external IP we use only if configNet=true
+# this is the external IP.
+# Only valid if configNet=true
 extIp=192.168.12.1
 extIpBitmask=24
 
-# firewall select
-# we support : shorewall, iptables
-# Any other value will disable basic automatic firewall
-# masquerade (forwarding) configuration.
-# Note that both the iptables and shorewall implementations
-# only allow outbound connections (and their response). It
-# does not allow any inbound connections by themselves. For
-# that you have to push in your own rules.
-# Ideally, you should push these rules from the
-# rootCustomConfig script because rules are deleted after the
-# jail is closed, by default.
-# only used if configNet=true
-firewallType=iptables
+# This is automatically set but you can change this value
+# if you like. You may for example decide to make a jail
+# only pass through a tunnel or a vpn. Otherwise, keep
+# this value to the default value.
+netInterface=$defNetInterface
 
-# shorewall specific options Section, only used if configNet=true
-firewallPath=/etc/shorewall
-firewallNetZone=net
-firewallZoneName=\$(substring 0 5 \$jailName)
-
-# all firewalls options section
-# the network interface by which we will masquerade our
-# connection (only used if configNet=true)
-# leave it empty if you don't want to masquerade your connection
-# through any interface.
-snatEth=$defNetInterface
+# This boolean sets if you want your jail to
+# gain full internet access using a technique called
+# SNAT or Masquerading. This will make the jail able to
+# access the internet and your LAN as if it was on the
+# host system.
+# Only valid if configNet=true
+setNetAccess=false
 
 # chroot internal IP
 # the one liner script is to make sure it is of the same network
