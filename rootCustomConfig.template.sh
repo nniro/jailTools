@@ -154,35 +154,7 @@ prepCustom() {
 	# we are automatically assigned the IP : 192.168.11.3
 	# joinBridge "false" "intInt" "extInt" "" "br0" "3"
 
-	# firewall shorewall examples :
-	#
-	# Note : There is no need to remove these from stopCustom as they are automatically removed.
-	# Note : won't work unless configNet=true and firewallType=shorewall
-
-	# incoming
-
-	# We allow the base system to connect to our jail (all ports) :
-	# echo "fw \$firewallZoneName ACCEPT" >> \$firewallPath/policy.d/\$jailName.policy
-
-	# We allow the base system to connect to our jail specifically only to the port 8000 :
-	# echo "ACCEPT	fw	\$firewallZoneName tcp 8000" >> \$firewallPath/rules.d/\$jailName.rules
-
-	# We allow the net to connect to our jail specifically to the port 8000 from the port 80 (by dnat) :
-	# internet -> port 80 -> firewall's dnat -> jail's port 8000
-	# echo "DNAT \$firewallNetZone \$firewallZoneName:\$ipInt:8000 tcp 80" >> \$firewallPath/rules.d/\$jailName.rules
-
-	# outgoing
-
-	# We allow the jail all access to the net zone (all ports) :
-	# echo "\$firewallZoneName \$firewallNetZone ACCEPT" >> \$firewallPath/policy.d/\$jailName.policy
-
-	# We allow the jail all access to the base system (all ports) :
-	# echo "\$firewallZoneName fw ACCEPT" >> \$firewallPath/policy.d/\$jailName.policy
-
-	# We allow the jail only access to the base system's port 25 :
-	# echo "ACCEPT \$firewallZoneName fw tcp 25" >> \$firewallPath/rules.d/\$jailName.rules
-
-	# new firewall
+	# firewall
 	# synopsis :
 	# externalFirewall \$rootDir [command] <command arguments...>
 	# 	commands :
