@@ -260,46 +260,6 @@ They are :
 
 == Tips and Tricks
 
+== Firewall
 
-=== *shorewall specific*
-
-==== how to open a port
-
-Shorewall custom INBOUND configuration : 
-in rootCustomConfig.sh, in the function prepCustom, add these lines :
-
-****
-        cat >> $firewallPath/rules.d/$bridgeName.rules << EOF
-ACCEPT  fw      $firewallZoneName       tcp     10922
-DNAT    lan     $firewallZoneName:$ipInt tcp    10922
-EOF
-****
-
-this is an example where we open the port 10922 for access from the
-localhost and also the lan network. Notice that for the lan network (external
-to the main host) we have to use a DNAT to our internal chroot.
-
-==== how to prepare shorewall for jailTools
-
-With shorewall, jailTools adds it's changes to a directory ending with '.d' like 'rules.d'.
-These are not standard issue with shorewall, to make use of their content, it is necessary to
-add a single line in all the configuration files that potentially will get extra configurations
-in these. (As of this writing, these configuration files need modifications : 
-        zones, interfaces, policy and snat, we create one for rules too strictly as a service for
-        the user as jailtools does not add anything to it directly).
-
-Here's how you can actually make your configuration file load all the content of the 'x.d' directory
-(for example here zones -> zones.d).
-
-----
-SHELL cat /etc/shorewall/zones.d/*.zones 2> /dev/null || true
-----
-
-And that's it, this loads all the .zones files in zones.d and the last part of the instruction is to ensure
-everything works correctly even if the directory is empty.
-
-It's exactly the same line for all the other configuration files except the 2 occurrences of 'zones' which need
-to be changed to the configuration's name : like rules.d/*.rules
-
-Noteworthy : in pretty much all configuration files you can add this line at the end, except for policy.
-This one will need to have the inclusion before the last line that rejects everything.
+The user's configuration file rootCustomConfig.sh contains a synopsis of the firewall commands and examples.
