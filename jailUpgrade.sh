@@ -84,14 +84,25 @@ startUpgrade() {
 
 			echo "Done upgrading jail. Thank you for using the jailUpgrade services."
 		else 
+			cp $nj/._rootCustomConfig.sh.initial $jPath/rootCustomConfig.sh.initial.new
 			cp rootCustomConfig.sh rootCustomConfig.sh.new
 			cp $jPath/rootCustomConfig.sh.orig rootCustomConfig.sh
+			cp $jPath/startRoot.sh startRoot.sh.new
+			cp $jPath/startRoot.sh.orig startRoot.sh
 
 			echo "There was an error upgrading your custom configuration file."
 			echo "You will need to upgrade it manually and here are the steps :"
 			echo "We moved the files of the upgrade in the path : $backupF"
 			echo "You could attempt to upgrade manually by comparing your rootCustomConfig.sh with rootCustomConfig.sh.new and merge the changes manually."
 			echo "Or you can check the backup path to determine what exactly went wrong."
+
+			echo "Alternatively, you can use a tool like GNU diff3 to handle the changes for you. Do this :"
+			echo "diff3 -m rootCustomConfig.sh.new ._rootCustomConfig.sh.initial rootCustomConfig.sh 2> rootCustomConfig.sh.merged"
+			echo "At this point, the file rootCustomConfig.sh.merged will contain the changes that you can manually merge."
+			echo "When you are done, just move rootCustomConfig.sh.merged to rootCustomConfig.sh"
+			echo "Also copy startRoot.sh.new to startRoot.sh"
+			echo "And rootCustomConfig.sh.initial.new to ._rootCustomConfig.sh.initial"
+
 			echo "In the meantime, we have not upgraded any of your files, so you can continue using the jail like normal."
 			echo
 			echo "We're sorry for the inconvenience. Thank you for using the jailUpgrade services."
