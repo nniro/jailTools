@@ -652,6 +652,11 @@ prepareChroot() {
 		fi
 	fi
 
+	# this protects from an adversary to delete and recreate root owned files
+	chown root:root \$rootDir/root/{bin,root,etc,lib,usr,sbin,sys}
+	chmod 755 \$rootDir/root/{bin,root,etc,lib,usr,sbin,sys}
+	chown root:root \$rootDir/root/etc/{passwd,shadow,group}
+
 	prepCustom \$rootDir || return 1
 
 	return 0
@@ -788,6 +793,9 @@ stopChroot() {
 		#echo "nsPid : \$nsPid"
 		[ "\$nsPid" != "" ] && (kill -9 \$nsPid; rm \$rootDir/run/jail.pid) >/dev/null 2>/dev/null
 	fi
+
+	chown $uid:$gid \$rootDir/root/{bin,root,etc,lib,usr,sbin,sys}
+	chown $uid:$gid \$rootDir/root/etc/{passwd,shadow,group}
 }
 
 findNS() {
