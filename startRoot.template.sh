@@ -608,10 +608,6 @@ prepareChroot() {
 	fi
 	$mountPath --bind \$rootDir/root \$rootDir/root
 
-	for etcF in shadow group passwd; do # makes sure these files are owned by root
-		[ "\$(stat -c %u \$rootDir/root/etc/\$etcF)" != "0" ] && chown root:root \$rootDir/root/etc/\$etcF
-	done
-
 	# dev
 	innerMountCommands="\$innerMountCommands \$(mountMany \$rootDir/root -e "rw,noexec" \$devMountPoints)"
 	mountMany \$rootDir/root "ro,exec" \$roMountPoints
@@ -653,9 +649,8 @@ prepareChroot() {
 	fi
 
 	# this protects from an adversary to delete and recreate root owned files
-	chown root:root \$rootDir/root/{bin,root,etc,lib,usr,sbin,sys}
-	chmod 755 \$rootDir/root/{bin,root,etc,lib,usr,sbin,sys}
-	chown root:root \$rootDir/root/etc/{passwd,shadow,group}
+	for i in bin root etc lib usr sbin sys; do chown root:root \$rootDir/root/\$i; chmod 755 \$rootDir/root/\$i; done
+	for i in passwd shadow group; do chown root:root \$rootDir/root/etc/\$i; done
 
 	prepCustom \$rootDir || return 1
 
@@ -794,8 +789,8 @@ stopChroot() {
 		[ "\$nsPid" != "" ] && (kill -9 \$nsPid; rm \$rootDir/run/jail.pid) >/dev/null 2>/dev/null
 	fi
 
-	chown $uid:$gid \$rootDir/root/{bin,root,etc,lib,usr,sbin,sys}
-	chown $uid:$gid \$rootDir/root/etc/{passwd,shadow,group}
+	for i in bin root etc lib usr sbin sys; do chown $uid:$gid \$rootDir/root/\$i; done
+	for i in passwd shadow group; do chown $uid:$gid \$rootDir/root/etc/\$i; done
 }
 
 findNS() {
