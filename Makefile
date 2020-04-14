@@ -44,7 +44,7 @@ $(ZLIB): zlib/configure $(MUSL)
 openssh/configure: $(MUSL) $(ZLIB) $(BUSYBOX)
 	git submodule init openssh
 	git submodule update openssh
-	sh -c 'cd openssh; autoconf; autoheader; cat $(PROJECTROOT)/sshd.patch | $(PROJECTROOT)/busybox/busybox patch'
+	sh -c 'cd openssh; autoconf; autoheader'
 
 $(SSHD): openssh/configure $(MUSL) $(ZLIB)
 	sh -c 'cd openssh; CC=$(PROJECTROOT)/$(GCC) CFLAGS="-static -Os" LDFLAGS="-static" ./configure --prefix=/ --sysconfdir=/etc/ssh/ --with-zlib=$(PROJECTROOT)/zlib --without-openssl --without-openssl-header-check'
@@ -52,7 +52,6 @@ $(SSHD): openssh/configure $(MUSL) $(ZLIB)
 
 clean:
 	make -C buildMusl clean
-	sh -c 'cd openssh; cat $(PROJECTROOT)/sshd.patch | $(PROJECTROOT)/busybox/busybox patch -R'
 	make -C busybox clean
 	sh -c 'cd busybox; git checkout Makefile'
 	make -C zlib clean
