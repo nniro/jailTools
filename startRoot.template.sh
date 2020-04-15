@@ -649,7 +649,7 @@ prepareChroot() {
 	fi
 
 	# this protects from an adversary to delete and recreate root owned files
-	for i in bin root etc lib usr sbin sys; do chown root:root \$rootDir/root/\$i; chmod 755 \$rootDir/root/\$i; done
+	for i in bin root etc lib usr sbin sys . ; do chown root:root \$rootDir/root/\$i; chmod 755 \$rootDir/root/\$i; done
 	for i in passwd shadow group; do chown root:root \$rootDir/root/etc/\$i; done
 
 	prepCustom \$rootDir || return 1
@@ -789,7 +789,7 @@ stopChroot() {
 		[ "\$nsPid" != "" ] && (kill -9 \$nsPid; rm \$rootDir/run/jail.pid) >/dev/null 2>/dev/null
 	fi
 
-	for i in bin root etc lib usr sbin sys; do chown $uid:$gid \$rootDir/root/\$i; done
+	for i in bin root etc lib usr sbin sys . ; do chown $uid:$gid \$rootDir/root/\$i; done
 	for i in passwd shadow group; do chown $uid:$gid \$rootDir/root/etc/\$i; done
 }
 
