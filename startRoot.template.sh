@@ -729,13 +729,13 @@ runJail() {
 		fi
 	fi
 
-	jailMainMounts="$mountPath -tproc none \$rootDir/root/proc;" # this is for the /proc folder so commands like 'ps' work correctly
+	jailMainMounts="$mountPath -tproc none -o hidepid=2 \$rootDir/root/proc;" # this is for the /proc folder so commands like 'ps' work correctly
 	jailMainMounts="\$jailMainMounts $mountPath -t tmpfs -o size=256k tmpfs \$rootDir/root/dev;" # this makes sure that the devices in /dev are removed when the jail closes
 
 	if [ "\$userNS" = "true" ] && [ "\$enableUserNS" = "true" ]; then
-		\$preUnshare $unsharePath ${unshareSupport}f -- $sh -c "\$jailMainMounts \$innerMountCommands su -c \"$unsharePath -Ur -- \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)\" - $USER"
+		\$preUnshare $unsharePath ${unshareSupport}f -- $sh -c "\$jailMainMounts \$innerMountCommands su -c \"$unsharePath -Ur -- exec \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)\" - $USER"
 	else
-		\$preUnshare $unsharePath ${unshareSupport}f -- $sh -c "\$jailMainMounts \$innerMountCommands \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)"
+		\$preUnshare $unsharePath ${unshareSupport}f -- $sh -c "\$jailMainMounts \$innerMountCommands exec \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)"
 	fi
 }
 
