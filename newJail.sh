@@ -122,8 +122,9 @@ fi
 brctlPath=$(PATH="$PATH:/sbin:/usr/sbin:/usr/local/sbin" command which brctl 2>/dev/null)
 
 if [ "$brctlPath" = "" ]; then
-	hasBrctl=false
-	brctlPath=brctl
+	hasBrctl=true
+	# we use the brctl in busybox
+	brctlPath=$ownPath/busybox/busybox brctl
 else
 	hasBrctl=true
 fi
