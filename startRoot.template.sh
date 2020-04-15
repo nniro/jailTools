@@ -45,6 +45,8 @@ hasIptables=$hasIptables
 
 firewallType=iptables
 
+iptablesBin=$iptablesPath
+
 innerMountCommands=""
 
 if [ "\$netNS" = "false" ] && [ "\$jailNet" = "true" ]; then
@@ -58,6 +60,18 @@ if [ "\$hasBrctl" = "false" ] && [ "\$createBridge" = "true" ]; then
 fi
 
 if [ "\$configNet" = "true" ]; then
+	# final attempt to find iptables
+	if [ "\$hasIptables" = "false" ]; then
+		iptablesBin=\$(PATH="\$PATH:/sbin:/usr/sbin:/usr/local/sbin" command which iptables 2>/dev/null)
+
+		if [ "\$iptablesBin" = "" ]; then
+			hasIptables=false
+			iptablesPath=iptables
+		else
+			hasIptables=true
+		fi
+	fi
+
 	if [ "\$firewallType" = "iptables" ] && [ "\$hasIptables" = "false" ]; then
 		echo "The firewall \\\`iptables' was chosen but it needs the command \\\`iptables' which is not available or it's not in the available path. Setting configNet to false."
 		configNet=false
@@ -409,11 +423,11 @@ firewall() {
 		cmd=\$1
 		case "\$fwType" in
 			"internal")
-				fwCmd="$ipPath netns exec \$netnsId $iptablesPath"
+				fwCmd="$ipPath netns exec \$netnsId \$iptablesBin"
 			;;
 
 			"external")
-				fwCmd="$iptablesPath"
+				fwCmd="\$iptablesBin"
 			;;
 
 			*)
