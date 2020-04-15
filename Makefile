@@ -47,7 +47,7 @@ openssh/configure: $(MUSL) $(ZLIB) $(BUSYBOX)
 	sh -c 'cd openssh; autoconf; autoheader'
 
 $(SSHD): openssh/configure $(MUSL) $(ZLIB)
-	sh -c 'cd openssh; CC=$(PROJECTROOT)/$(GCC) CFLAGS="-static -Os" LDFLAGS="-static" ./configure --prefix=/ --sysconfdir=/etc/ssh/ --with-zlib=$(PROJECTROOT)/zlib --without-openssl --without-openssl-header-check'
+	sh -c 'cd openssh; CC=$(PROJECTROOT)/$(GCC) CFLAGS="-static -Os" LDFLAGS="-static" ./configure --host="$(shell $(PROJECTROOT)/$(GCC) -dumpmachine)" --prefix=/ --sysconfdir=/etc/ssh/ --with-zlib=$(PROJECTROOT)/zlib --without-openssl --without-openssl-header-check'
 	make -C openssh
 
 clean:
