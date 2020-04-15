@@ -124,7 +124,7 @@ brctlPath=$(PATH="$PATH:/sbin:/usr/sbin:/usr/local/sbin" command which brctl 2>/
 if [ "$brctlPath" = "" ]; then
 	hasBrctl=true
 	# we use the brctl in busybox
-	brctlPath=$ownPath/busybox/busybox brctl
+	brctlPath="$ownPath/busybox/busybox brctl"
 else
 	hasBrctl=true
 fi
