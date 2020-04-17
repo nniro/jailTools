@@ -793,9 +793,9 @@ runJail() {
 		fi
 	else # unprivileged
 		if [ "\$setNetAccess" = "false" ] && [ "\$netNS" = "true" ]; then
-			$unsharePath -Ur -- /usr/bin/unshare ${unshareSupport}nf -- /usr/bin/bash -c "exec \$(runChroot -r \$runChrootArgs \$rootDir \$chrootCmd)"
+			$unsharePath -Ur -- /usr/bin/unshare ${unshareSupport}nf -- $sh -c "exec \$(runChroot -r \$runChrootArgs \$rootDir \$chrootCmd)"
 		else
-			$unsharePath -Ur -- /usr/bin/unshare ${unshareSupport}f -- /usr/bin/bash -c "exec \$(runChroot -r \$runChrootArgs \$rootDir \$chrootCmd)"
+			$unsharePath -Ur -- /usr/bin/unshare ${unshareSupport}f -- $sh -c "exec \$(runChroot -r \$runChrootArgs \$rootDir \$chrootCmd)"
 		fi
 	fi # unprivileged
 }
