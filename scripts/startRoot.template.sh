@@ -5,9 +5,13 @@ cat > $newChrootHolder/startRoot.sh << EOF
 
 _JAILTOOLS_RUNNING=1
 
+canMount=1
+privileged=0
 if [ "\$(id -u)" != "0" ]; then
-	echo "This script has to be run with root permissions as it calls the command chroot"
-	exit 1
+	echo "You are running this script unprivileged, most features will not work"
+	canMount=0
+else
+	privileged=1
 fi
 
 ownPath=\$(dirname \$0)
@@ -48,6 +52,23 @@ firewallType=iptables
 iptablesBin=$iptablesPath
 
 innerMountCommands=""
+
+if [ "\$privileged" = "0" ]; then
+	if [ "\$userNS" != "true" ]; then
+		echo "The user namespace is not supported. Can't start an unprivileged jail without it, bailing out."
+		exit 1
+	fi
+
+	if [ "\$jailNet" = "true" ]; then
+		echo "jailNet is disabled"
+		jailNet=false
+	fi
+
+	if [ "\$createBridge" = "true" ]; then
+		echo "createBridge is disabled"
+		createBridge=false
+	fi
+fi
 
 if [ "\$netNS" = "false" ] && [ "\$jailNet" = "true" ]; then
 	jailNet=false
@@ -159,6 +180,10 @@ addDevices() {
 	shift
 	local i=""
 	local bb="\$rootDir/root/bin/busybox"
+
+	if [ "\$privileged" = "0" ]; then
+		return
+	fi
 	while [ "\$1" != "" ]; do
 		i="/dev/\$1"
 		if [ ! -b \$i ] && [ ! -c \$i ]; then
@@ -255,6 +280,11 @@ mountMany() {
 	[ \$((\$OPTIND > 1)) = 1 ] && shift \$(expr \$OPTIND - 1)
 	local mountOps=\$1
 	shift
+
+	# this only works with a privileged user
+	if [ "\$privileged" = "0" ]; then
+		return
+	fi
 
 	for mount in \$(echo \$@); do
 		if [ "\$isOutput" = "false" ]; then
@@ -399,6 +429,9 @@ leaveBridgeByJail() {
 # Internal is for the jail itself
 # External is the host system's firewall
 firewall() {
+	if [ "\$privileged" = "0" ]; then
+		return
+	fi
 	local rootDir=''
 	local fwType=''
 	local deleteMode="false"
@@ -620,7 +653,9 @@ prepareChroot() {
 		echo "This jail was already started, bailing out."
 		return 1
 	fi
-	$mountPath --bind \$rootDir/root \$rootDir/root
+	if [ "\$privileged" = "1" ]; then
+		$mountPath --bind \$rootDir/root \$rootDir/root
+	fi
 
 	# dev
 	innerMountCommands="\$innerMountCommands \$(mountMany \$rootDir/root -e "rw,noexec" \$devMountPoints)"
@@ -662,10 +697,12 @@ prepareChroot() {
 		fi
 	fi
 
-	# this protects from an adversary to delete and recreate root owned files
-	for i in bin root etc lib usr sbin sys . ; do chown root:root \$rootDir/root/\$i; chmod 755 \$rootDir/root/\$i; done
-	for i in passwd shadow group; do chown root:root \$rootDir/root/etc/\$i; chmod 600 \$rootDir/root/etc/\$i; done
-	for i in passwd group; do chmod 644 \$rootDir/root/etc/\$i; done
+	if [ "\$privileged" = "1" ]; then
+		# this protects from an adversary to delete and recreate root owned files
+		for i in bin root etc lib usr sbin sys . ; do chown root:root \$rootDir/root/\$i; chmod 755 \$rootDir/root/\$i; done
+		for i in passwd shadow group; do chown root:root \$rootDir/root/etc/\$i; chmod 600 \$rootDir/root/etc/\$i; done
+		for i in passwd group; do chmod 644 \$rootDir/root/etc/\$i; done
+	fi
 
 	prepCustom \$rootDir || return 1
 
@@ -744,14 +781,23 @@ runJail() {
 		fi
 	fi
 
-	jailMainMounts="$mountPath -tproc none -o hidepid=2 \$rootDir/root/proc;" # this is for the /proc folder so commands like 'ps' work correctly
-	jailMainMounts="\$jailMainMounts $mountPath -t tmpfs -o size=256k tmpfs \$rootDir/root/dev;" # this makes sure that the devices in /dev are removed when the jail closes
 
-	if [ "\$userNS" = "true" ] && [ "\$enableUserNS" = "true" ]; then
-		\$preUnshare $unsharePath ${unshareSupport}f -- $sh -c "\$jailMainMounts \$innerMountCommands su -c \"$unsharePath -Ur -- exec \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)\" - $USER"
-	else
-		\$preUnshare $unsharePath ${unshareSupport}f -- $sh -c "\$jailMainMounts \$innerMountCommands exec \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)"
-	fi
+	if [ "\$privileged" = "1" ]; then
+		jailMainMounts="$mountPath -tproc none -o hidepid=2 \$rootDir/root/proc;" # this is for the /proc folder so commands like 'ps' work correctly
+		jailMainMounts="\$jailMainMounts $mountPath -t tmpfs -o size=256k tmpfs \$rootDir/root/dev;" # this makes sure that the devices in /dev are removed when the jail closes
+
+		if [ "\$userNS" = "true" ] && [ "\$enableUserNS" = "true" ]; then
+			\$preUnshare $unsharePath ${unshareSupport}f -- $sh -c "\$jailMainMounts \$innerMountCommands su -c \"$unsharePath -Ur -- exec \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)\" - $USER"
+		else
+			\$preUnshare $unsharePath ${unshareSupport}f -- $sh -c "\$jailMainMounts \$innerMountCommands exec \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)"
+		fi
+	else # unprivileged
+		if [ "\$setNetAccess" = "false" ] && [ "\$netNS" = "true" ]; then
+			$unsharePath -Ur -- /usr/bin/unshare ${unshareSupport}nf -- /usr/bin/bash -c "exec \$(runChroot -r \$runChrootArgs \$rootDir \$chrootCmd)"
+		else
+			$unsharePath -Ur -- /usr/bin/unshare ${unshareSupport}f -- /usr/bin/bash -c "exec \$(runChroot -r \$runChrootArgs \$rootDir \$chrootCmd)"
+		fi
+	fi # unprivileged
 }
 
 stopChroot() {
@@ -759,10 +805,13 @@ stopChroot() {
 
 	stopCustom \$rootDir
 
-	for mount in \$(echo \$devMountPoints \$roMountPoints \$rwMountPoints \$devMountPoints_CUSTOM \$roMountPoints_CUSTOM \$rwMountPoints_CUSTOM); do
-                $mountpointPath \$rootDir/root/\$mount >/dev/null 2>/dev/null && $umountPath \$rootDir/root/\$mount
-	done
-	$mountpointPath \$rootDir/root >/dev/null 2>/dev/null && $umountPath \$rootDir/root
+	
+	if [ "\$privileged" = "1" ]; then
+		for mount in \$(echo \$devMountPoints \$roMountPoints \$rwMountPoints \$devMountPoints_CUSTOM \$roMountPoints_CUSTOM \$rwMountPoints_CUSTOM); do
+			$mountpointPath \$rootDir/root/\$mount >/dev/null 2>/dev/null && $umountPath \$rootDir/root/\$mount
+		done
+		$mountpointPath \$rootDir/root >/dev/null 2>/dev/null && $umountPath \$rootDir/root
+	fi
 
 	if [ "\$?" != 0 ]; then
 		echo "Unable to unmount certain directories, aborting."
@@ -804,8 +853,10 @@ stopChroot() {
 		[ "\$nsPid" != "" ] && (kill -9 \$nsPid; rm \$rootDir/run/jail.pid) >/dev/null 2>/dev/null
 	fi
 
-	for i in bin root etc lib usr sbin sys . ; do chown $uid:$gid \$rootDir/root/\$i; done
-	for i in passwd shadow group; do chown $uid:$gid \$rootDir/root/etc/\$i; done
+	if [ "\$privileged" = "1" ]; then
+		for i in bin root etc lib usr sbin sys . ; do chown $uid:$gid \$rootDir/root/\$i; done
+		for i in passwd shadow group; do chown $uid:$gid \$rootDir/root/etc/\$i; done
+	fi
 }
 
 findNS() {

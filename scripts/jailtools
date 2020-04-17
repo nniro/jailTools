@@ -59,11 +59,29 @@ case $cmd in
 		exit $?
 	;;
 
-	start|stop|shell)
+	start)
 		if [ "$1" = "" ]; then
 			jPath="."
 		else
 			jPath="$1"
+		fi
+
+		if detectJail $jPath; then
+			$sh $jPath/startRoot.sh $cmd
+		else
+			echo "These commands are only valid inside the root of a jail created by jailTools"
+			exit 1
+		fi
+	;;
+
+	stop|shell)
+		if [ "$1" = "" ]; then
+			jPath="."
+		else
+			if [ -e $1 ]; then
+				jPath="$1"
+				shift
+			fi
 		fi
 
 		if detectJail $jPath; then
