@@ -158,5 +158,5 @@ jailToolsPath=$jtPath
 EOF
 	fi
 
-	echo "$sh \$jailToolsPath/$scriptName \$ownPath/root $destInJail $files" >> $pDir/update.sh
+	echo "$sh \$jailToolsPath/scripts/$scriptName \$ownPath/root $destInJail $files" >> $pDir/update.sh
 fi

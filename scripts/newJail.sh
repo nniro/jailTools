@@ -56,7 +56,7 @@ else
 	fi
 fi
 
-if [ ! -e $ownPath/busybox/busybox ]; then
+if [ ! -e $ownPath/../busybox/busybox ]; then
 	echo "Please run make in \`$ownPath' to compile the necessary dependencies"
 	exit 1
 fi
@@ -124,7 +124,7 @@ brctlPath=$(PATH="$PATH:/sbin:/usr/sbin:/usr/local/sbin" command which brctl 2>/
 if [ "$brctlPath" = "" ]; then
 	hasBrctl=true
 	# we use the brctl in busybox
-	brctlPath="$ownPath/busybox/busybox brctl"
+	brctlPath="$ownPath/../busybox/busybox brctl"
 else
 	hasBrctl=true
 fi
@@ -188,7 +188,7 @@ EOF
 chmod 644 $newChrootDir/etc/passwd
 # shadow
 cat >> $newChrootDir/etc/shadow << EOF
-root:$(echo "$(genPass 200)" | $ownPath/busybox/busybox cryptpw -m sha512 -P 0 -S "$(genPass 16)"):0:0:99999:7:::
+root:$(echo "$(genPass 200)" | $ownPath/../busybox/busybox cryptpw -m sha512 -P 0 -S "$(genPass 16)"):0:0:99999:7:::
 nobody:!:0:0:99999:7:::
 $mainJailUsername:!:0:0:99999:7:::
 EOF
@@ -225,9 +225,9 @@ $sh $ownPath/cpDep.sh $newChrootHolder /etc/ $etcFiles
 
 [ -e /etc/terminfo ] && $sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/terminfo
 
-$sh $ownPath/cpDep.sh $newChrootHolder /bin $ownPath/busybox/busybox
+$sh $ownPath/cpDep.sh $newChrootHolder /bin $ownPath/../busybox/busybox
 
-for app in $($ownPath/busybox/busybox --list-full); do ln -s /bin/busybox ${newChrootDir}/$app; done
+for app in $($ownPath/../busybox/busybox --list-full); do ln -s /bin/busybox ${newChrootDir}/$app; done
 
 # we append these to update.sh
 echo "# end basic dependencies" >> $newChrootHolder/update.sh

@@ -11,7 +11,7 @@ jailToolsPath=ScriptPath
 
 uid=$(id -u)
 
-. $jailToolsPath/utils.sh # detectJail
+. $jailToolsPath/scripts/utils.sh # detectJail
 
 if [ "$jailToolsPath" = "ScriptPath" ]; then
 	exit 1 # this script has to be installed to be used.
@@ -41,14 +41,15 @@ case $cmd in
 	;;
 
 	new|create)
-		$sh $jailToolsPath/newJail.sh $@
+		$sh $jailToolsPath/scripts/newJail.sh $@
+		exit $?
 	;;
 
 	cp|cpDep)
 		if [ -d ./root ] && [ -d ./run ] && [ -f ./startRoot.sh ] && [ -f ./rootCustomConfig.sh ]; then
-			$sh $jailToolsPath/cpDep.sh $PWD $@
+			$sh $jailToolsPath/scripts/cpDep.sh $PWD $@
 		else
-			$sh $jailToolsPath/cpDep.sh $@
+			$sh $jailToolsPath/scripts/cpDep.sh $@
 		fi
 	;;
 
@@ -99,7 +100,7 @@ case $cmd in
 		fi
 
 		if detectJail $jPath; then
-			. $jailToolsPath/jailUpgrade.sh
+			. $jailToolsPath/scripts/jailUpgrade.sh
 			startUpgrade $@
 		else
 			echo "These commands are only valid inside the root of a jail created by jailTools"
