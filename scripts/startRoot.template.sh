@@ -896,7 +896,9 @@ findNS() {
 case \$1 in
 
 	*)
-		cmdParse \$1 \$ownPath
+		s1=\$1
+		shift
+		cmdParse \$s1 \$ownPath \$@
 	;;
 esac
 

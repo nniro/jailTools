@@ -63,11 +63,14 @@ case $cmd in
 		if [ "$1" = "" ]; then
 			jPath="."
 		else
-			jPath="$1"
+			if [ -e $1 ]; then
+				jPath="$1"
+				shift
+			fi
 		fi
 
 		if detectJail $jPath; then
-			$sh $jPath/startRoot.sh $cmd
+			$sh $jPath/startRoot.sh $cmd $@
 		else
 			echo "These commands are only valid inside the root of a jail created by jailTools"
 			exit 1
@@ -89,7 +92,7 @@ case $cmd in
 				echo "It is necessary to be root to run these commands"
 				exit 1
 			fi
-			$sh $jPath/startRoot.sh $cmd
+			$sh $jPath/startRoot.sh $cmd $@
 		else
 			echo "These commands are only valid inside the root of a jail created by jailTools"
 			exit 1
