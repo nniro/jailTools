@@ -15,7 +15,7 @@ if [ "$1" != "" ]; then
 		scriptsDir=$(dirname $0)
 
 		if [ "$(echo $scriptsDir | sed -e 's/^\(.\).*$/\1/')" != "/" ]; then # if the directory is not an absolute path, we use PWD
-			scriptsDir=$PWD
+			scriptsDir=$PWD/$(dirname $0)
 		fi
 
 		# we change the internal path to the path where this script is
