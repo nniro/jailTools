@@ -24,9 +24,12 @@ busybox/configure: musl/configure $(MUSL)
 	ln -sf /usr/include/asm usr/include/
 	ln -sf /usr/include/asm-generic usr/include/
 
-$(MUSL):
-	sh -c 'cd buildMusl; sh ./configMusl.sh $(PWD)'
-	make -C buildMusl && make -C buildMusl install
+musl/lib/libc.so:
+	sh -c 'cd musl; ./configure --prefix=$(PROJECTROOT)/usr'
+	make -C musl
+
+$(MUSL): musl/lib/libc.so
+	make -C musl install
 
 $(BUSYBOX): $(MUSL)
 	cp busybox.config busybox/.config
@@ -51,7 +54,7 @@ $(SSHD): openssh/configure $(MUSL) $(ZLIB)
 	make -C openssh
 
 clean:
-	make -C buildMusl clean
+	make -C musl clean
 	make -C busybox clean
 	sh -c 'cd busybox; git checkout Makefile'
 	make -C zlib clean
