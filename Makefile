@@ -11,27 +11,27 @@ LDFLAGS=-static
 GCC=$(MUSLGCC)
 PROJECTROOT=$(PWD)
 
-ALL: busybox/configure $(BUSYBOX) $(SSHD)
+ALL: $(BUSYBOX) $(SSHD)
 
 musl/configure:
 	git submodule init musl
 	git submodule update musl
 
-busybox/configure: musl/configure $(MUSL)
+busybox/configure: $(MUSL)
 	git submodule init busybox
 	git submodule update busybox
 	ln -sf /usr/include/linux usr/include/
 	ln -sf /usr/include/asm usr/include/
 	ln -sf /usr/include/asm-generic usr/include/
 
-musl/lib/libc.so:
+musl/lib/libc.so: musl/configure
 	sh -c 'cd musl; ./configure --prefix=$(PROJECTROOT)/usr'
 	make -C musl
 
 $(MUSL): musl/lib/libc.so
 	make -C musl install
 
-$(BUSYBOX): $(MUSL)
+$(BUSYBOX): $(MUSL) busybox/configure
 	cp busybox.config busybox/.config
 	sed -e 's@ gcc@ $(PROJECTROOT)/$(GCC)@ ;s@)gcc@)$(PROJECTROOT)/$(GCC)@' -i busybox/Makefile
 	make HOSTCFLAGS=-static HOSTLDFLAGS=-static -C busybox
