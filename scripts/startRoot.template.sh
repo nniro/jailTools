@@ -44,7 +44,6 @@ user=$mainJailUsername
 
 userNS=$userNS
 netNS=$netNS
-hasBrctl=$hasBrctl
 hasIptables=$hasIptables
 
 firewallType=iptables
@@ -73,11 +72,6 @@ fi
 if [ "\$netNS" = "false" ] && [ "\$jailNet" = "true" ]; then
 	jailNet=false
 	echo "jailNet is set to false automatically as it needs network namespace support which is not available."
-fi
-
-if [ "\$hasBrctl" = "false" ] && [ "\$createBridge" = "true" ]; then
-	createBridge=false
-	echo "The variable createBridge is set to true but it needs the command \\\`brctl' which is not available. Setting createBridge to false."
 fi
 
 if [ "\$configNet" = "true" ]; then
@@ -710,7 +704,7 @@ prepareChroot() {
 }
 
 runChroot() {
-	local chrootArgs="--userspec=$uid:$gid"
+	local chrootArgs="-u $uid:$gid"
 	OPTIND=0
 	while getopts r f 2>/dev/null ; do
 		case \$f in
@@ -731,7 +725,7 @@ runChroot() {
                 done
 	fi
 
-	printf "%s" "$chrootPath \$chrootArgs \$rootDir/root env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$uid HOSTNAME=nowhere.here TERM=linux \$chrootCmd"
+	printf "%s" "$chrootPath \$chrootArgs -/ \$rootDir/root env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$uid HOSTNAME=nowhere.here TERM=linux \$chrootCmd"
 }
 
 runJail() {
@@ -876,7 +870,7 @@ findNS() {
 	fi
 
 	# first pgrep gets the unshare command and the second pgrep is to get the first child of that.
-	pgrep -P \$(pgrep -P \$curPid | sed -ne '$ p') | sed -ne '$ p'
+	$pgrepPath -P \$($pgrepPath -P \$curPid | sed -ne '$ p') | sed -ne '$ p'
 
 	return 0
 }

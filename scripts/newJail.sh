@@ -67,7 +67,7 @@ if [ ! -e $ownPath/../busybox/busybox ]; then
 fi
 
 # check for mandatory commands
-for cmd in chroot unshare nsenter mount umount mountpoint ip; do
+for cmd in mount umount ip; do
 	cmdPath="${cmd}Path"
 	eval "$cmdPath"="$(PATH="$PATH:/sbin:/usr/sbin:/usr/local/sbin" command which $cmd 2>/dev/null)"
 	eval "cmdPath=\${$cmdPath}"
@@ -77,6 +77,13 @@ for cmd in chroot unshare nsenter mount umount mountpoint ip; do
 		exit 1
 	fi
 done
+
+mountpointPath="$ownPath/../busybox/busybox mountpoint"
+nsenterPath="$ownPath/../busybox/busybox nsenter"
+unsharePath="$ownPath/../busybox/busybox unshare"
+chrootPath="$ownPath/../busybox/busybox chpst"
+brctlPath="$ownPath/../busybox/busybox brctl"
+pgrepPath="$ownPath/../busybox/busybox pgrep"
 
 # check the kernel's namespace support
 unshareSupport=$(for ns in m u i n p U C; do $unsharePath -$ns 'echo "Operation not permitted"; exit' 2>&1 | grep -q "Operation not permitted" && printf $ns; done)
@@ -123,16 +130,6 @@ else
 fi
 
 # optional commands
-
-brctlPath=$(PATH="$PATH:/sbin:/usr/sbin:/usr/local/sbin" command which brctl 2>/dev/null)
-
-if [ "$brctlPath" = "" ]; then
-	hasBrctl=true
-	# we use the brctl in busybox
-	brctlPath="$ownPath/../busybox/busybox brctl"
-else
-	hasBrctl=true
-fi
 
 iptablesPath=$(PATH="$PATH:/sbin:/usr/sbin:/usr/local/sbin" command which iptables 2>/dev/null)
 
