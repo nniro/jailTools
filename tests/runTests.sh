@@ -12,7 +12,8 @@ fi
 # test folder
 [ ! -d $tf ] && mkdir $tf
 
-[ ! -d $tf/bin ] && mkdir $tf/bin
+[ -d $tf/bin ] && rm -R $tf/bin
+mkdir $tf/bin
 
 # list all available shells that we support
 
