@@ -287,7 +287,7 @@ cmdParse() {
                                         runChrootArgs="-r"
                                         nsenterArgs="-U"
                                 fi
-                                [ "\$nsPid" != "" ] || echo "Unable to get the running namespace, bailing out" && $nsenterPath --preserve-credentials \$nsenterArgs $nsenterSupport -t \$nsPid \$(runChroot \$runChrootArgs \$ownPath)
+                                [ "\$nsPid" != "" ] || echo "Unable to get the running namespace, bailing out" && $nsenterPath --preserve-credentials \$nsenterArgs $nsenterSupport -t \$nsPid -- \$(runChroot \$runChrootArgs \$ownPath)
 			else # we start a new jail
 				runJail \$ownPath
 				stopChroot \$ownPath
