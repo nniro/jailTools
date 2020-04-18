@@ -777,7 +777,8 @@ runJail() {
 		if [ "\$chrootCmd" = "" ]; then
 			chrootCmd="sh -c 'while :; do sleep 9999; done'"
 		else
-			chrootCmd="\${chrootCmd}; sh -c 'while :; do sleep 9999; done'"
+			chrootCmd=\$(printf "%s" "\$chrootCmd" | sed -e 's/\\x27/"/g') # replace all ' with "
+			chrootCmd="sh -c '\${chrootCmd}; while :; do sleep 9999; done'"
 		fi
 	fi
 
