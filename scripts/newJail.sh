@@ -123,7 +123,7 @@ if [ "$netNS" = "true" ]; then
 	nsenterSupport="$nsenterSupport -n"
 fi
 
-if $(unshare --help 2>&1 | grep "kill-child" > /dev/null); then
+if $($unsharePath --help 2>&1 | grep "kill-child" > /dev/null); then
 	unshareSupport="--kill-child -$unshareSupport"
 else
 	unshareSupport="-$unshareSupport"
