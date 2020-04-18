@@ -59,7 +59,7 @@ case $cmd in
 		exit $?
 	;;
 
-	start)
+	start|stop|shell)
 		if [ "$1" = "" ]; then
 			jPath="."
 		else
@@ -70,28 +70,6 @@ case $cmd in
 		fi
 
 		if detectJail $jPath; then
-			$sh $jPath/startRoot.sh $cmd $@
-		else
-			echo "These commands are only valid inside the root of a jail created by jailTools"
-			exit 1
-		fi
-	;;
-
-	stop|shell)
-		if [ "$1" = "" ]; then
-			jPath="."
-		else
-			if [ -e $1 ]; then
-				jPath="$1"
-				shift
-			fi
-		fi
-
-		if detectJail $jPath; then
-			if [ "$uid" != "0" ]; then
-				echo "It is necessary to be root to run these commands"
-				exit 1
-			fi
 			$sh $jPath/startRoot.sh $cmd $@
 		else
 			echo "These commands are only valid inside the root of a jail created by jailTools"
@@ -107,10 +85,6 @@ case $cmd in
 		fi
 
 		if detectJail $jPath; then
-			if [ "$uid" != "0" ]; then
-				echo "It is necessary to be root to run these commands"
-				exit 1
-			fi
 			nohup $sh $jPath/startRoot.sh 'daemon' >/dev/null 2>/dev/null 0<&- &>/dev/null &
 			#if [ "$?" != "0" ]; then echo "There was an error starting the daemon, it may already be running."; fi
 		else
