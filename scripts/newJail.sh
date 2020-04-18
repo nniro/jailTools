@@ -88,7 +88,7 @@ pgrepPath="$ownPath/../busybox/busybox pgrep"
 # check the kernel's namespace support
 unshareSupport=$(for ns in m u i n p U C; do $unsharePath -$ns 'echo "Operation not permitted"; exit' 2>&1 | grep -q "Operation not permitted" && printf $ns; done)
 
-if ! echo $unshareSupport | grep -q 'n'; then # check for network namespace support
+if echo $unshareSupport | grep -q 'n'; then # check for network namespace support
 	netNS=true
 	# we remove this bit from the variable because we use it differently from the other namespaces.
 	unshareSupport=$(echo $unshareSupport | sed -e 's/n//')
@@ -101,7 +101,7 @@ if ! echo $unshareSupport | grep -q 'm'; then # check for mount namespace suppor
 	exit 1
 fi
 
-if ! echo $unshareSupport | grep -q 'U'; then # check for user namespace support
+if echo $unshareSupport | grep -q 'U'; then # check for user namespace support
 	# we remove this bit from the variable because we use it differently from the other namespaces.
 	userNS=true
 	unshareSupport=$(echo $unshareSupport | sed -e 's/U//')
