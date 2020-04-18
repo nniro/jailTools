@@ -22,6 +22,11 @@ if [ "$jailToolsPath" = "ScriptPath" ]; then
 	exit 1 # this script has to be installed to be used.
 fi
 
+if [ ! -e $jailToolsPath/../busybox/busybox ]; then
+	echo "Please run 'make' in \`$ownPath' to compile the necessary dependencies first"
+	exit 1
+fi
+
 showHelp() {
 	echo "Usage:"
 	echo "  $(basename $0) <command> [command options]"
@@ -85,7 +90,7 @@ case $cmd in
 		fi
 
 		if detectJail $jPath; then
-			(nohup $sh $jPath/startRoot.sh 'daemon' 2>&1 > $jPath/run/daemon.log) &
+			($jailToolsPath/busybox/busybox nohup $sh $jPath/startRoot.sh 'daemon' 2>&1 > $jPath/run/daemon.log) &
 			#if [ "$?" != "0" ]; then echo "There was an error starting the daemon, it may already be running."; fi
 		else
 			echo "These commands are only valid inside the root of a jail created by jailTools"

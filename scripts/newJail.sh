@@ -62,7 +62,7 @@ else
 fi
 
 if [ ! -e $ownPath/../busybox/busybox ]; then
-	echo "Please run make in \`$ownPath' to compile the necessary dependencies"
+	echo "Please run 'make' in \`$ownPath' to compile the necessary dependencies first"
 	exit 1
 fi
 
