@@ -649,7 +649,7 @@ externalFirewall() { local rootDir=\$1; shift; firewall \$rootDir "external" \$@
 prepareChroot() {
 	local rootDir=\$1
 
-	if ! \$($ipPath netns list | sed -ne "/^\$netnsId\($\| .*$\)/ q 1; $ q 0"); then
+	if ! \$($ipPath netns list | sed -ne "/^\$netnsId\($\| .*$\)/ q 1; $ q 0") || [ -e \$rootDir/run/jail.pid ]; then
 		echo "This jail was already started, bailing out."
 		return 1
 	fi
