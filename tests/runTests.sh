@@ -15,6 +15,10 @@ fi
 [ -d $tf/bin ] && rm -R $tf/bin
 mkdir $tf/bin
 
+# we provide our own busybox
+cp ../busybox/busybox $tf/bin
+(cd $tf/bin; ln -s busybox sh)
+
 # list all available shells that we support
 
 # We support :
@@ -23,9 +27,9 @@ mkdir $tf/bin
 #	zsh
 #	bash
 
-availShells=""
+availShells="$tf/bin/busybox"
 
-for cmd in dash busybox zsh bash; do
+for cmd in dash zsh bash; do
 	cmdPath="${cmd}Path"
 	eval "$cmdPath"="$(PATH="$PATH:/sbin:/usr/sbin:/usr/local/sbin" command which $cmd 2>/dev/null)"
 	eval "cmdPath=\${$cmdPath}"
@@ -41,7 +45,6 @@ for shell in $availShells; do
 	shellName=$(basename $shell)
 	echo "	$shellName"
 	if [ "$shellName" = "busybox" ]; then
-		[ ! -e $tf/bin/sh ] && ln -s $shell $tf/bin/sh
 		shellName=sh
 	else
 		[ ! -e $tf/bin/$shellName ] && ln -s $shell $tf/bin/$shellName
