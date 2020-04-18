@@ -22,8 +22,8 @@ if [ "$jailToolsPath" = "ScriptPath" ]; then
 	exit 1 # this script has to be installed to be used.
 fi
 
-if [ ! -e $jailToolsPath/../busybox/busybox ]; then
-	echo "Please run 'make' in \`$ownPath' to compile the necessary dependencies first"
+if [ ! -e $jailToolsPath/busybox/busybox ]; then
+	echo "Please run 'make' in \`$jailToolsPath' to compile the necessary dependencies first"
 	exit 1
 fi
 
