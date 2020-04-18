@@ -874,22 +874,9 @@ findNS() {
 		fi
 	fi
 
-	nsLvl=1
-	while : ; do
-		local raw="\$(grep "PPid:[^0-9]*\$curPid$" /proc/*/status 2>/dev/null | sed -e 's/^\([^:]*\):.*$/\1/')"
-		if [ "\$raw" = "" ]; then
-			#local curPid=""
-			break
-		else
-			local curPid=\$(basename \$(dirname \$raw))
-			if [ "\$nsLvl" = "2" ]; then
-				break
-			fi
-			nsLvl=\$((\$nsLvl + 1))
-		fi
-	done
+	# first pgrep gets the unshare command and the second pgrep is to get the first child of that.
+	pgrep -P \$(pgrep -P \$curPid | sed -ne '$ p') | sed -ne '$ p'
 
-	printf "%s" "\$curPid"
 	return 0
 }
 
