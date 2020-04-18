@@ -67,7 +67,7 @@ if [ ! -e $ownPath/../busybox/busybox ]; then
 fi
 
 # check for mandatory commands
-for cmd in mount umount ip; do
+for cmd in mount umount mountpoint ip; do
 	cmdPath="${cmd}Path"
 	eval "$cmdPath"="$(PATH="$PATH:/sbin:/usr/sbin:/usr/local/sbin" command which $cmd 2>/dev/null)"
 	eval "cmdPath=\${$cmdPath}"
@@ -78,7 +78,6 @@ for cmd in mount umount ip; do
 	fi
 done
 
-mountpointPath="$ownPath/../busybox/busybox mountpoint"
 nsenterPath="$ownPath/../busybox/busybox nsenter"
 unsharePath="$ownPath/../busybox/busybox unshare"
 chrootPath="$ownPath/../busybox/busybox chpst"
