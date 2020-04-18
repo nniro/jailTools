@@ -79,7 +79,7 @@ for cmd in chroot unshare nsenter mount umount mountpoint ip; do
 done
 
 # check the kernel's namespace support
-unshareSupport=$($sh $ownPath/testUnshare.sh $unsharePath)
+unshareSupport=$(for ns in m u i n p U C; do $unsharePath -$ns 'echo "Operation not permitted"; exit' 2>&1 | grep -q "Operation not permitted" && printf $ns; done)
 
 if $(echo $unshareSupport | sed -ne '/n/ q 0; q 1'); then # check for network namespace support
 	netNS=true
