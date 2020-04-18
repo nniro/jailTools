@@ -98,6 +98,11 @@ for shell in $shells; do
 				isFailed=1
 			fi
 
+			if find $tf/$ctest | grep -q jail.pid ; then
+				echo "We detected a running jail where there should be none. Automatically failing the test."
+				isFailed=1
+			fi
+
 			if [ "$isFailed" = "1" ]; then
 				printf "Test failed with : \n\n%s\n\n" "$result"
 
