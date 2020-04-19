@@ -14,10 +14,10 @@ echo exit | $jtPath start 2>&1 || exit 1
 
 echo Starting a daemon
 $jtPath daemon 2>&1 || exit 1
-sleep 1
+timeout 5 sh -c 'while :; do if [ -e run/jail.pid ]; then break; fi ; done'
 
 if [ ! -e run/jail.pid ]; then
-	echo "The daemonized jail is not running, run/jail.pid contains : '$(cat run/jail.pid)'" 2>&1
+	echo "The daemonized jail is not running, run/jail.pid is missing"
 	exit 1
 fi
 
@@ -32,14 +32,7 @@ echo exit | $jtPath shell || exit 1
 
 echo "Now we start a new jail and expect it to actually fail"
 sed -e 's/^\([[:space:]]*runJail \$rootDir\).*$/\1 fusionReactorStarter ignite ahahahah/' -i rootCustomConfig.sh
-#echo exit | $jtPath start 2>&1 && exit 1
-echo exit | $jtPath start && exit 1
+echo exit | $jtPath start 2>&1 && exit 1
 
-
-if (($err = 0)) ; then
-	echo "Error should be anything else than 0 (which it is)"
-	grep "[[:space:]]*runJail \$rootDir" rootCustomConfig.sh
-	exit 1
-fi
 
 exit 0
