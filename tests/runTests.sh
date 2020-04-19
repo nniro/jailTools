@@ -71,6 +71,18 @@ $(cat availableTests)
 EOF
 )
 
+echo "available tests :"
+echo "$availTests"
+
+filter=""
+if (($# > 0)); then
+	regex=$(echo "$@" | sed -e 's/ /\\|/g' | sed -e 's/\(.*\)/^\\(\1\\)$/')
+	availTests=$(printf "%s" "$availTests" | grep "$regex")
+fi
+
+echo "Will run these tests :"
+echo "$availTests"
+
 echo
 isFailed=0
 for shell in $shells; do
