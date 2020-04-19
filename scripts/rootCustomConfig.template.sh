@@ -305,14 +305,8 @@ cmdParse() {
 			fi
 		;;
 
-		restart)
-			stopChroot \$ownPath
-			prepareChroot \$ownPath || exit 1
-			startCustom \$ownPath
-		;;
-
 		*)
-			echo "\$0 : start|stop|restart|shell"
+			echo "\$0 : start|stop|shell|daemon"
 		;;
 	esac
 }
