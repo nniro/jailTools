@@ -80,6 +80,7 @@ case $cmd in
 			echo "These commands are only valid inside the root of a jail created by jailTools"
 			exit 1
 		fi
+		exit $?
 	;;
 
 	daemon)
@@ -96,6 +97,7 @@ case $cmd in
 			echo "These commands are only valid inside the root of a jail created by jailTools"
 			exit 1
 		fi
+		exit $?
 	;;
 
 	upgrade)
