@@ -4,6 +4,12 @@ cat > $newChrootHolder/rootCustomConfig.sh << EOF
 
 # this is the file in which you can put your custom jail's configuration in shell script form
 
+case "\$(readlink -f /proc/\$$/exe)" in
+	*zsh)
+		setopt shwordsplit
+	;;
+esac
+
 if [ "\$_JAILTOOLS_RUNNING" = "" ]; then
 	echo "Don\'t run this script directly, run startRoot.sh instead"
 	exit 1
@@ -20,9 +26,6 @@ substring() {
 ################# Configuration ###############
 
 jailName=$jailName
-
-# the namespace name for this jail
-netnsId=\$(substring 0 13 \$jailName)
 
 # if you set to false, the chroot will have exactly the same
 # network access as the base system.
@@ -134,7 +137,7 @@ prepCustom() {
 	# [ ! -e \$rootDir/root/home/.Xauthority ] && touch .Xauthority
 	#
 	# mounting Xauthority manually (crucial for supporting X11)
-	# mount --bind /home/yourUser/.Xauthority \$rootDir/root/home/.Xauthority
+	# execNS mount --bind /home/yourUser/.Xauthority \$rootDir/root/home/.Xauthority
 
 	# joinBridgeByJail <jail path> <set as default route> <our last IP bit>
 	# To join an already running jail called tor at the path, we don't set it
@@ -244,7 +247,7 @@ stopCustom() {
 	# put your stop instructions here
 
 	# this is to be used in combination with the mount --bind example in prepCustom
-	# mountpoint \$rootDir/root/home/.Xauthority >/dev/null && umount \$rootDir/root/home/.Xauthority
+	# execNS mountpoint \$rootDir/root/home/.Xauthority >/dev/null && umount \$rootDir/root/home/.Xauthority
 
 	# this is to be used in combination with the joinBridgeByJail line in prepCustom
 	# leaveBridgeByJail /home/yourUser/jails/tor
@@ -284,7 +287,7 @@ cmdParse() {
 		shell)
 			prepareChroot \$ownPath >/dev/null 2>/dev/null
 			if [ "\$?" != "0" ]; then
-				local nsPid=\$(findNS \$ownPath)
+				local nsPid=\$(cat \$ownPath/run/ns.pid)
 				local nsenterArgs=""
                                 local runChrootArgs=""
                                 if [ "\$privileged" = "1" ]; then
@@ -295,7 +298,8 @@ cmdParse() {
                                         runChrootArgs="-r"
                                         nsenterArgs="-U"
                                 fi
-                                [ "\$nsPid" != "" ] || echo "Unable to get the running namespace, bailing out" && $nsenterPath --preserve-credentials \$nsenterArgs $nsenterSupport -t \$nsPid -- \$(runChroot \$runChrootArgs \$ownPath)
+				innerNSpid=\$nsPid
+                                [ "\$nsPid" != "" ] || echo "Unable to get the running namespace, bailing out" && execNS sh -c "\$(runChroot \$runChrootArgs \$ownPath)"
 				exit \$?
 			else # we start a new jail
 				runJail \$ownPath
