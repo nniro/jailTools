@@ -97,7 +97,7 @@ startUpgrade() {
 			echo "Or you can check the backup path to determine what exactly went wrong."
 
 			echo "Alternatively, you can use a tool like GNU diff3 to handle the changes for you. Do this :"
-			echo "diff3 -m rootCustomConfig.sh.new ._rootCustomConfig.sh.initial rootCustomConfig.sh 2> rootCustomConfig.sh.merged"
+			echo "diff3 -m rootCustomConfig.sh.new ._rootCustomConfig.sh.initial rootCustomConfig.sh > rootCustomConfig.sh.merged"
 			echo "At this point, the file rootCustomConfig.sh.merged will contain the changes that you can manually merge."
 			echo "When you are done, just move rootCustomConfig.sh.merged to rootCustomConfig.sh"
 			echo "Also copy startRoot.sh.new to startRoot.sh"
