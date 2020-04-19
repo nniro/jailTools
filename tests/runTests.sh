@@ -105,7 +105,7 @@ for shell in $shells; do
 				break
 			fi
 			mkdir $tf/$cTest
-			result=$($shell $cTest/test.sh $shellPath $tf/$cTest $jtPath 2>/dev/null)
+			result=$($shell $cTest/test.sh $shellPath $tf/$cTest $jtPath)
 		       	if [ $? = 0 ]; then
 				echo passed
 			else
