@@ -235,6 +235,8 @@ startCustom() {
 	runJail \$rootDir
 
 	# if you need to add logs, just pipe them to the directory : \$rootDir/run/someLog.log
+
+	return \$?
 }
 
 stopCustom() {
@@ -254,23 +256,29 @@ stopCustom() {
 cmdParse() {
 	local args=\$1
 	local ownPath=\$2
+	local err=0
 
 	case \$args in
 		daemon)
 			echo "This command is not meant to be called directly, use the jailtools super script to start the daemon properly, otherwise it will just stay running with no interactivity possible."
 			prepareChroot \$ownPath || exit 1
 			runJail -d \$ownPath
+			err=\$?
 			stopChroot \$ownPath
+			exit \$err
 		;;
 
 		start)
 			prepareChroot \$ownPath || exit 1
 			startCustom \$ownPath
+			err=\$?
 			stopChroot \$ownPath
+			exit \$err
 		;;
 
 		stop)
 			stopChroot \$ownPath
+			exit \$?
 		;;
 
 		shell)
@@ -288,9 +296,12 @@ cmdParse() {
                                         nsenterArgs="-U"
                                 fi
                                 [ "\$nsPid" != "" ] || echo "Unable to get the running namespace, bailing out" && $nsenterPath --preserve-credentials \$nsenterArgs $nsenterSupport -t \$nsPid -- \$(runChroot \$runChrootArgs \$ownPath)
+				exit \$?
 			else # we start a new jail
 				runJail \$ownPath
+				err=\$?
 				stopChroot \$ownPath
+				exit \$err
 			fi
 		;;
 

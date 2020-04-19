@@ -793,6 +793,7 @@ runJail() {
 			$unsharePath -Ur -- /usr/bin/unshare ${unshareSupport}f -- $sh -c "exec \$(runChroot -r \$runChrootArgs \$rootDir \$chrootCmd)"
 		fi
 	fi # unprivileged
+	return \$?
 }
 
 stopChroot() {
