@@ -14,8 +14,8 @@ _JAILTOOLS_RUNNING=1
 canMount=1
 privileged=0
 if [ "\$(id -u)" != "0" ]; then
-	echo "You are running this script unprivileged, most features will not work"
 	canMount=0
+	echo "You are running this script unprivileged, most features will not work" >&2
 else
 	privileged=1
 fi
@@ -61,14 +61,14 @@ innerNSpid=""
 
 if [ "\$privileged" = "0" ]; then
 	if [ "\$userNS" != "true" ]; then
-		echo "The user namespace is not supported. Can't start an unprivileged jail without it, bailing out."
+		echo "The user namespace is not supported. Can't start an unprivileged jail without it, bailing out." >&2
 		exit 1
 	fi
 fi
 
 if [ "\$netNS" = "false" ] && [ "\$jailNet" = "true" ]; then
 	jailNet=false
-	echo "jailNet is set to false automatically as it needs network namespace support which is not available."
+	echo "jailNet is set to false automatically as it needs network namespace support which is not available." >&2
 fi
 
 if [ "\$configNet" = "true" ]; then
@@ -85,15 +85,15 @@ if [ "\$configNet" = "true" ]; then
 	fi
 
 	if [ "\$firewallType" = "iptables" ] && [ "\$hasIptables" = "false" ]; then
-		echo "The firewall \\\`iptables' was chosen but it needs the command \\\`iptables' which is not available or it's not in the available path. Setting configNet to false."
+		echo "The firewall \\\`iptables' was chosen but it needs the command \\\`iptables' which is not available or it's not in the available path. Setting configNet to false." >&2
 		configNet=false
 	fi
 fi
 
 if [ "\$(cat /proc/sys/net/ipv4/ip_forward)" = "0" ]; then
 	configNet=false
-	echo "The ip_forward bit in /proc/sys/net/ipv4/ip_forward is disabled. This has to be enabled to get handled network support. Setting configNet to false."
-	echo "\tPlease do (as root) : echo 1 > /proc/sys/net/ipv4/ip_forward  or find the method suitable for your distribution to activate IP forwarding."
+	echo "The ip_forward bit in /proc/sys/net/ipv4/ip_forward is disabled. This has to be enabled to get handled network support. Setting configNet to false." >&2
+	echo "\tPlease do (as root) : echo 1 > /proc/sys/net/ipv4/ip_forward  or find the method suitable for your distribution to activate IP forwarding." >&2
 fi
 
 # dev mount points : read-write, no-exec
@@ -175,7 +175,7 @@ addDevices() {
 	while [ "\$1" != "" ]; do
 		i="/dev/\$1"
 		if [ ! -b \$i ] && [ ! -c \$i ]; then
-			echo "invalid device \\\`\$i'"
+			echo "invalid device \\\`\$i'" >&2
 			return 1
 		else
 			if [ "\$(dirname \$i)" != "/dev" ]; then
@@ -211,7 +211,7 @@ parseArgs() {
 	"
 	for elem in \$(printf "%s" "\$validArguments"); do
 		if [ "\$1" = "" ]; then
-			[ "\$silentMode" = "false" ] && echo "\$title : Missing the required argument '\$elem'" >/dev/stderr
+			[ "\$silentMode" = "false" ] && echo "\$title : Missing the required argument '\$elem'" >&2
 			IFS="\$oldIFS"
 			return 1
 		fi
@@ -250,7 +250,7 @@ cmdCtl() {
 		add) add "\$1" "\$(cat \$file)" > \$file ;;
 		list) list "\$(cat \$file)" ;;
 		*)
-			echo "Invalid command entered"
+			echo "Invalid command entered" >&2
 			return 1
 		;;
 	esac
@@ -274,7 +274,7 @@ mountMany() {
 	for mount in \$(echo \$@); do
 		if [ "\$isOutput" = "false" ]; then
 			if [ ! -d "\$rootDir/\$mount" ]; then
-				echo \$rootDir/\$mount does not exist, creating it
+				echo \$rootDir/\$mount does not exist, creating it >&2
 				cmkdir -m 755 \$rootDir/\$mount
 			fi
 			execNS sh -c "$mountpointPath \$rootDir/\$mount >/dev/null 2>/dev/null || $mountPath -o \$mountOps --bind \$mount \$rootDir/\$mount"
@@ -367,12 +367,12 @@ joinBridgeByJail() {
 		done
 
 		if [ "\$remcreateBridge" != "true" ]; then
-			echo "joinBridgeByJail: This jail does not have a bridge, aborting joining."
+			echo "joinBridgeByJail: This jail does not have a bridge, aborting joining." >&2
 			return
 		fi
 
 		if [ ! -e "\$jailLocation/run/ns.pid" ]; then
-			echo "joinBridgeByJail: This jail at \\\`\$jailLocation' is not currently started, aborting joining."
+			echo "joinBridgeByJail: This jail at \\\`\$jailLocation' is not currently started, aborting joining." >&2
 			return
 		fi
 		remnetnsId=\$(cat \$jailLocation/run/ns.pid)
@@ -380,7 +380,7 @@ joinBridgeByJail() {
 		# echo "Attempting to join bridge \$rembridgeName on jail \$remjailName with net ns \$remnetnsId"
 		joinBridge "\$isDefaultRoute" "\$remjailName" "\$jailName" "\$remnetnsId" "\$rembridgeName" "\$internalIpNum"
 	else
-		echo "Supplied jail path is not a valid supported jail."
+		echo "Supplied jail path is not a valid supported jail." >&2
 	fi
 }
 
@@ -397,7 +397,7 @@ leaveBridgeByJail() {
 		done
 
 		if [ "\$remcreateBridge" != "true" ]; then
-			echo "This jail does not have a bridge, bailing out."
+			echo "This jail does not have a bridge, bailing out." >&2
 			return
 		fi
 
@@ -450,7 +450,7 @@ firewall() {
 			;;
 
 			*)
-				echo "Don't call this function directly, use 'externalFirewall' or 'internalFirewall' instead." >/dev/stderr
+				echo "Don't call this function directly, use 'externalFirewall' or 'internalFirewall' instead." >&2
 				return
 			;;
 		esac
@@ -605,7 +605,7 @@ firewall() {
 			;;
 
 			*)
-				echo "Unknown firewall command \$cmd -- \$arguments"
+				echo "Unknown firewall command \$cmd -- \$arguments" >&2
 				return 1
 			;;
 		esac
@@ -639,7 +639,7 @@ prepareChroot() {
 	local chrootCmd="sh -c 'while :; do sleep 9999; done'"
 
 	if [ -e \$rootDir/run/jail.pid ]; then
-		echo "This jail was already started, bailing out."
+		echo "This jail was already started, bailing out." >&2
 		return 1
 	fi
 	if [ "\$privileged" = "0" ]; then
@@ -792,13 +792,13 @@ stopChroot() {
 	stopCustom \$rootDir
 
 	if [ ! -e \$rootDir/run/ns.pid ]; then
-		echo "This jail is not running, can't stop it. Bailing out."
+		echo "This jail is not running, can't stop it. Bailing out." >&2
 		exit 1
 	fi
 	innerNSpid="\$(cat \$rootDir/run/ns.pid)"
 
 	if [ "\$innerNSpid" = "" ] || [ "\$(pstree \$innerNSpid)" = "" ]; then
-		echo "This jail doesn't seem to be running anymore, please check lsns to confirm"
+		echo "This jail doesn't seem to be running anymore, please check lsns to confirm" >&2
 		exit 1
 	fi
 

@@ -3,12 +3,12 @@
 case "$(readlink -f /proc/$$/exe)" in
 	*busybox)
 		sh="$(readlink -f /proc/$$/exe) sh"
-		echo "using shell : $sh"
+		echo "using shell : $sh" >&2
 	;;
 
 	*)
 		sh="$(readlink -f /proc/$$/exe)"
-		echo "using shell : $sh"
+		echo "using shell : $sh" >&2
 	;;
 esac
 
@@ -23,7 +23,7 @@ if [ "$jailToolsPath" = "ScriptPath" ]; then
 fi
 
 if [ ! -e $jailToolsPath/busybox/busybox ]; then
-	echo "Please run 'make' in \`$jailToolsPath' to compile the necessary dependencies first"
+	echo "Please run 'make' in \`$jailToolsPath' to compile the necessary dependencies first" >&2
 	exit 1
 fi
 
@@ -77,7 +77,7 @@ case $cmd in
 		if detectJail $jPath; then
 			$sh $jPath/startRoot.sh $cmd $@
 		else
-			echo "These commands are only valid inside the root of a jail created by jailTools"
+			echo "These commands are only valid inside the root of a jail created by jailTools" >&2
 			exit 1
 		fi
 		exit $?
@@ -94,7 +94,7 @@ case $cmd in
 			($jailToolsPath/busybox/busybox nohup $sh $jPath/startRoot.sh 'daemon' 2>&1 > $jPath/run/daemon.log) &
 			#if [ "$?" != "0" ]; then echo "There was an error starting the daemon, it may already be running."; fi
 		else
-			echo "These commands are only valid inside the root of a jail created by jailTools"
+			echo "These commands are only valid inside the root of a jail created by jailTools" >&2
 			exit 1
 		fi
 		exit $?
@@ -111,13 +111,13 @@ case $cmd in
 			. $jailToolsPath/scripts/jailUpgrade.sh
 			startUpgrade $@
 		else
-			echo "These commands are only valid inside the root of a jail created by jailTools"
+			echo "These commands are only valid inside the root of a jail created by jailTools" >&2
 			exit 1
 		fi
 	;;
 
 	*)
-		echo "Invalid command \`$cmd'"
+		echo "Invalid command \`$cmd'" >&2
 		exit 1
 	;;
 esac

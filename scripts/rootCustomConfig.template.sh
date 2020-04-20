@@ -11,7 +11,7 @@ case "\$(readlink -f /proc/\$$/exe)" in
 esac
 
 if [ "\$_JAILTOOLS_RUNNING" = "" ]; then
-	echo "Don\'t run this script directly, run startRoot.sh instead"
+	echo "Don\'t run this script directly, run startRoot.sh instead" >&2
 	exit 1
 fi
 
@@ -289,15 +289,15 @@ cmdParse() {
 			if [ "\$?" != "0" ]; then
 				local nsPid=\$(cat \$ownPath/run/ns.pid)
 				local nsenterArgs=""
-                                local runChrootArgs=""
-                                if [ "\$privileged" = "1" ]; then
-                                        echo "Entering the already started jail \\\`\$jailName'"
-                                else
-                                        echo "Entering the already started jail \\\`\$jailName' unprivileged"
+				local runChrootArgs=""
+				if [ "\$privileged" = "1" ]; then
+					echo "Entering the already started jail \\\`\$jailName'" >&2
+				else
+					echo "Entering the already started jail \\\`\$jailName' unprivileged" >&2
 
-                                        runChrootArgs="-r"
-                                        nsenterArgs="-U"
-                                fi
+					runChrootArgs="-r"
+					nsenterArgs="-U"
+				fi
 				innerNSpid=\$nsPid
                                 [ "\$nsPid" != "" ] || echo "Unable to get the running namespace, bailing out" && execNS sh -c "\$(runChroot \$runChrootArgs \$ownPath)"
 				exit \$?
