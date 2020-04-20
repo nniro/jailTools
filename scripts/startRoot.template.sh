@@ -11,10 +11,8 @@ esac
 
 _JAILTOOLS_RUNNING=1
 
-canMount=1
 privileged=0
 if [ "\$(id -u)" != "0" ]; then
-	canMount=0
 	echo "You are running this script unprivileged, most features will not work" >&2
 else
 	privileged=1
@@ -51,12 +49,8 @@ user=$mainJailUsername
 userNS=$userNS
 netNS=$netNS
 hasIptables=$hasIptables
-
-firewallType=iptables
-
 iptablesBin=$iptablesPath
 
-innerMountCommands=""
 innerNSpid=""
 
 if [ "\$privileged" = "0" ]; then
@@ -84,7 +78,7 @@ if [ "\$configNet" = "true" ]; then
 		fi
 	fi
 
-	if [ "\$firewallType" = "iptables" ] && [ "\$hasIptables" = "false" ]; then
+	if [ "\$hasIptables" = "false" ]; then
 		echo "The firewall \\\`iptables' was chosen but it needs the command \\\`iptables' which is not available or it's not in the available path. Setting configNet to false." >&2
 		configNet=false
 	fi
@@ -733,7 +727,7 @@ runChroot() {
 		done
 	fi
 
-	printf "%s" "$chrootPath \$chrootArgs -/ \$rootDir/root env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$uid HOSTNAME=nowhere.here TERM=linux \$chrootCmd"
+	printf "%s" "$chpstPath \$chrootArgs -/ \$rootDir/root env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$uid HOSTNAME=nowhere.here TERM=linux \$chrootCmd"
 }
 
 runJail() {

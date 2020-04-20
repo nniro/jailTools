@@ -80,7 +80,7 @@ done
 
 nsenterPath="$ownPath/../busybox/busybox nsenter"
 unsharePath="$ownPath/../busybox/busybox unshare"
-chrootPath="$ownPath/../busybox/busybox chpst"
+chpstPath="$ownPath/../busybox/busybox chpst"
 brctlPath="$ownPath/../busybox/busybox brctl"
 pgrepPath="$ownPath/../busybox/busybox pgrep"
 
