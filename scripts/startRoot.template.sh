@@ -650,6 +650,7 @@ prepareChroot() {
 	sleep 1
 	innerNSpid=\$($pgrepPath -P \$innerNSpid)
 	echo \$innerNSpid > \$rootDir/run/ns.pid
+	chmod o+r \$rootDir/run/ns.pid
 
 	execNS $mountPath --bind \$rootDir/root \$rootDir/root
 	execNS $mountPath -tproc none -o hidepid=2 \$rootDir/root/proc
