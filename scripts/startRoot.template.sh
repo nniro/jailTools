@@ -635,12 +635,17 @@ prepareChroot() {
 	local unshareArgs=""
 	local runChrootArgs=""
 	local chrootCmd="sh -c 'while :; do sleep 9999; done'"
+	local preUnshare=""
 
 	if [ -e \$rootDir/run/jail.pid ]; then
 		echo "This jail was already started, bailing out." >&2
 		return 1
 	fi
-	if [ "\$privileged" = "0" ]; then
+	if [ "\$privileged" = "1" ] && [ "\$userNS" = "true" ]; then
+		preUnshare="$chpstPath -u $uid:$gid"
+		unshareArgs="-Ur"
+		runChrootArgs="-r"
+	else # unprivileged
 		unshareArgs="-Ur"
 		runChrootArgs="-r"
 	fi # unprivileged
@@ -651,7 +656,7 @@ prepareChroot() {
 		fi
 	fi
 
-	($unsharePath \$unshareArgs ${unshareSupport}f -- sh -c "exec \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)") &
+	(\$preUnshare $unsharePath \$unshareArgs ${unshareSupport}f -- sh -c "exec \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)") &
 	innerNSpid=\$!
 	sleep 1
 	innerNSpid=\$($pgrepPath -P \$innerNSpid)
