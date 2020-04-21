@@ -702,8 +702,8 @@ prepareChroot() {
 
 	if [ "\$privileged" = "1" ]; then
 		# this protects from an adversary to delete and recreate root owned files
-		for i in bin root etc lib usr sbin sys . ; do chown root:root \$rootDir/root/\$i; chmod 755 \$rootDir/root/\$i; done
-		for i in passwd shadow group; do chown root:root \$rootDir/root/etc/\$i; chmod 600 \$rootDir/root/etc/\$i; done
+		for i in bin root etc lib usr sbin sys . ; do [ -d \$rootDir/root/\$i ] && chmod 755 \$rootDir/root/\$i && chown root:root \$rootDir/root/\$i; done
+		for i in passwd shadow group; do chmod 600 \$rootDir/root/etc/\$i && chown root:root \$rootDir/root/etc/\$i; done
 		for i in passwd group; do chmod 644 \$rootDir/root/etc/\$i; done
 	fi
 
