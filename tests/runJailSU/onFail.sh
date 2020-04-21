@@ -4,12 +4,13 @@ sh=$1
 testPath=$2
 jtPath=$3
 
+lift() {
+	echo "$@" > $testPath/../fifo
+}
+
 cd $testPath/basic
-sleep 1
 if [ -e run/jail.pid ]; then
-
-	$jtPath stop
-
+	lift $jtPath stop $testPath/basic
 	sleep 1
 
 	if [ ! -e run/jail.pid ] ; then

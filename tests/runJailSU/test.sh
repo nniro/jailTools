@@ -6,14 +6,16 @@ sh=$1
 testPath=$2
 jtPath=$3
 
+lift() {
+	echo "$@" > $testPath/../fifo
+}
+
 $jtPath new $testPath/basic 2>&1 || exit 1
 cd $testPath/basic
 sed -e 's/jailNet=true/jailNet=false/' -i rootCustomConfig.sh
-echo starting the jail
-echo exit | $jtPath start 2>&1 || exit 1
 
 echo Starting a daemon
-$jtPath daemon 2>&1 || exit 1
+lift $jtPath daemon $testPath/basic 2>&1 || exit 1
 timeout 5 sh -c 'while :; do if [ -e run/jail.pid ]; then break; fi ; done'
 
 if [ ! -e run/jail.pid ]; then
@@ -24,7 +26,7 @@ fi
 echo "Attempting to re-enter the daemonized jail"
 echo exit | $jtPath shell 2>&1 || exit 1
 echo "Stopping the daemonized jail"
-$jtPath stop 2>&1 || exit 1
+lift $jtPath stop $testPath/basic 2>&1 || exit 1
 sleep 1
 
 exit 0

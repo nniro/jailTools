@@ -2,12 +2,56 @@
 
 tf=tests
 
+user=
+
+bb=../busybox/busybox
+
 privileged=0
 if [ "$(id -u)" != "0" ]; then
-	echo "This script has limited testing abilities when it's not run as root"
+	if [ "$POWERBOX" = "" ]; then
+		echo "This script has limited testing abilities when it's not run as root"
+	else
+		privileged=1
+	fi
+	user=$(id -u)
 else # the user is root
-	privileged=1
+
+	uid=$($bb stat -c %u $0)
+	gid=$($bb stat -c %g $0)
+
+	[ ! -d $tf ] && $bb chpst -u $uid:$gid mkdir $tf
+
+	# we set a powerbox to do the commands
+	[ ! -e $tf/fifo ] && $bb chpst -u $uid:$gid mkfifo $tf/fifo
+
+	(
+		while :; do
+			in=$(cat $tf/fifo);
+			if [ "$in" = "quit" ]; then
+				exit 0
+			fi
+			echo "[root] '$in'"
+			if echo "$in" | grep -q "^$PWD/$tf/bin/jt/[^/]*/jailtools [^ ]*\( $PWD/$tf/.*\|\)$"; then
+				$in 2>&1
+			else
+				echo [root] command denied
+			fi
+		done
+	) &
+	powerboxId=$!
+
+	$bb env - POWERBOX=fifo $bb chpst -u $uid:$gid $bb sh $0 $@
+
+	echo quit > $tf/fifo
+
+	rm $tf/fifo
+
+	exit 0
 fi
+
+lift() {
+	echo $@ > $tf/fifo
+}
 
 # test folder
 [ ! -d $tf ] && mkdir $tf
@@ -89,7 +133,7 @@ isFailed=0
 for shell in $shells; do
 	echo
 	echo "Doing tests with the shell $shell"
-	shellPath=$tf/bin/$shell
+	shellPath=$PWD/$tf/bin/$shell
 	jtPath=$PWD/$tf/bin/jt/$shell/jailtools
 	for cTest in $availTests; do
 		if $(echo $cTest | grep -q 'SU$') ; then
@@ -105,8 +149,8 @@ for shell in $shells; do
 				isFailed=1
 				break
 			fi
-			mkdir $tf/$cTest
-			result=$($shell $cTest/test.sh $shellPath $tf/$cTest $jtPath)
+			mkdir $PWD/$tf/$cTest
+			result=$($shell $cTest/test.sh $shellPath $PWD/$tf/$cTest $jtPath)
 		       	if [ $? = 0 ]; then
 				echo passed
 
@@ -125,7 +169,7 @@ for shell in $shells; do
 
 				echo "Attempting to automatically cleanse the test"
 				timeout 5 sh -c 'while :; do if [ -e run/jail.pid ]; then break; fi ; done'
-				$shell $cTest/onFail.sh $shellPath $tf/$cTest $jtPath
+				$shell $cTest/onFail.sh $shellPath $PWD/$tf/$cTest $jtPath
 
 				if [ "$?" = "1" ]; then
 					echo "Automatic cleanse failed"
@@ -143,3 +187,8 @@ for shell in $shells; do
 		break
 	fi
 done
+
+# stop the powerbox
+if [ "$privilege" = "1" ]; then
+	lift quit
+fi
