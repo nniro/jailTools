@@ -259,6 +259,7 @@ stopCustom() {
 cmdParse() {
 	local args=\$1
 	local ownPath=\$2
+	shift 2
 	local err=0
 
 	case \$args in
@@ -293,11 +294,10 @@ cmdParse() {
 					echo "Entering the already started jail \\\`\$jailName'" >&2
 				else
 					echo "Entering the already started jail \\\`\$jailName' unprivileged" >&2
-
 					runChrootArgs="-r"
 				fi
 				innerNSpid=\$nsPid
-                                [ "\$nsPid" != "" ] || echo "Unable to get the running namespace, bailing out" && execNS sh -c "\$(runChroot \$runChrootArgs \$ownPath)"
+				[ "\$nsPid" != "" ] || echo "Unable to get the running namespace, bailing out" && execNS sh -c "\$(runChroot \$runChrootArgs \$ownPath \$@)"
 				exit \$?
 			else # we start a new jail
 				runJail \$ownPath
