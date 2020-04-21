@@ -840,8 +840,10 @@ stopChroot() {
 
 	if [ -e \$rootDir/run/ns.pid ]; then
 		kill -9 \$innerNSpid >/dev/null 2>/dev/null
-		rm \$rootDir/run/ns.pid
-		rm \$rootDir/run/jail.pid
+		if [ "\$?" = "0" ]; then
+			rm -f \$rootDir/run/ns.pid
+			rm -f \$rootDir/run/jail.pid
+		fi
 	fi
 }
 
@@ -860,7 +862,7 @@ execRemNS() {
 		nsenterArgs="\$(printf "%s" "\$nsenterArgs" | sed -e 's/-n//g')" # remove '-n'
 	fi
 
-	#echo "NS [\$nsPid] -- args : \$nsenterArgs exec : \$@"
+	#echo "NS [\$nsPid] -- args : \$nsenterArgs exec : \$@" >&2
 	$nsenterPath --preserve-credentials \$nsenterArgs -t \$nsPid -- "\$@"
 }
 

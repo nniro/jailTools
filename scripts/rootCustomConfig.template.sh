@@ -288,7 +288,6 @@ cmdParse() {
 			prepareChroot \$ownPath >/dev/null 2>/dev/null
 			if [ "\$?" != "0" ]; then
 				local nsPid=\$(cat \$ownPath/run/ns.pid)
-				local nsenterArgs=""
 				local runChrootArgs=""
 				if [ "\$privileged" = "1" ]; then
 					echo "Entering the already started jail \\\`\$jailName'" >&2
@@ -296,7 +295,6 @@ cmdParse() {
 					echo "Entering the already started jail \\\`\$jailName' unprivileged" >&2
 
 					runChrootArgs="-r"
-					nsenterArgs="-U"
 				fi
 				innerNSpid=\$nsPid
                                 [ "\$nsPid" != "" ] || echo "Unable to get the running namespace, bailing out" && execNS sh -c "\$(runChroot \$runChrootArgs \$ownPath)"
