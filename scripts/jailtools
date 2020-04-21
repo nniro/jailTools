@@ -65,10 +65,9 @@ case $cmd in
 	;;
 
 	start|stop|shell)
-		if [ "$1" = "" ]; then
-			jPath="."
-		else
-			if [ -e $1 ]; then
+		jPath="."
+		if [ "$1" != "" ]; then
+			if [ -d $1 ]; then
 				jPath="$1"
 				shift
 			fi
