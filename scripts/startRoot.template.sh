@@ -857,7 +857,7 @@ execRemNS() {
 	nsenterArgs="\$nsenterArgs $nsenterSupport"
 
 	if [ "\$jailNet" = "false" ] || ([ "\$privileged" = "0" ] && [ "\$setNetAccess" = "true" ]); then
-		nsenterArgs="\$(printf "%s" "\$nsenterArgs" | sed -e 's/-n //')" # remove '-n'
+		nsenterArgs="\$(printf "%s" "\$nsenterArgs" | sed -e 's/-n//g')" # remove '-n'
 	fi
 
 	#echo "NS [\$nsPid] -- args : \$nsenterArgs exec : \$@"
