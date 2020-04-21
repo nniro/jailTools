@@ -17,6 +17,7 @@ if [ -e run/jail.pid ]; then
 	fi
 else
 	echo "run/jail.pid doesn't exist"
+	exit 0
 fi
 
 exit 1

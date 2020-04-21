@@ -6,7 +6,7 @@ sh=$1
 testPath=$2
 jtPath=$3
 
-$jtPath new $testPath/basic >/dev/null || exit 1
+$jtPath new $testPath/basic 2>&1 || exit 1
 cd $testPath/basic
 sed -e 's/jailNet=true/jailNet=false/' -i rootCustomConfig.sh
 echo starting the jail
@@ -22,13 +22,13 @@ if [ ! -e run/jail.pid ]; then
 fi
 
 echo "Attempting to re-enter the daemonized jail"
-echo exit | $jtPath shell || exit 1
+echo exit | $jtPath shell 2>&1 || exit 1
 echo "Stopping the daemonized jail"
-$jtPath stop || exit 1
+$jtPath stop 2>&1 || exit 1
 sleep 1
 
 echo "Starting a jail with the shell command"
-echo exit | $jtPath shell || exit 1
+echo exit | $jtPath shell 2>&1 || exit 1
 
 echo "Now we start a new jail and expect it to actually fail"
 sed -e 's/^\([[:space:]]*runJail \$rootDir\).*$/\1 fusionReactorStarter ignite ahahahah/' -i rootCustomConfig.sh
