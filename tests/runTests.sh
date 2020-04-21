@@ -135,7 +135,7 @@ for shell in $shells; do
 					echo "Automatic cleanse complete"
 				fi
 			fi
-			rm -R $tf/$cTest
+			rm -Rf $tf/$cTest
 		fi
 	done
 
