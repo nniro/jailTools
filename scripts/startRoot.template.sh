@@ -645,8 +645,10 @@ prepareChroot() {
 		runChrootArgs="-r"
 	fi # unprivileged
 
-	if [ "\$jailNet" = "true" ] || ([ "\$privileged" = "0" ] && [ "\$netNS" = "true" ] && [ "\$setNetAccess" = "false" ]); then
-		unshareArgs="\$unshareArgs -n"
+	if [ "\$jailNet" = "true" ]; then
+		if [ "\$privileged" = "1" ] || ([ "\$privileged" = "0" ] && [ "\$setNetAccess" = "false" ]); then
+			unshareArgs="\$unshareArgs -n"
+		fi
 	fi
 
 	($unsharePath \$unshareArgs ${unshareSupport}f -- sh -c "exec \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)") &
