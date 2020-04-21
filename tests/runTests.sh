@@ -109,13 +109,14 @@ for shell in $shells; do
 			result=$($shell $cTest/test.sh $shellPath $tf/$cTest $jtPath)
 		       	if [ $? = 0 ]; then
 				echo passed
+
+				timeout 5 sh -c 'while :; do if [ -e run/jail.pid ]; then break; fi ; done'
+				if find $tf/$ctest | grep -q jail.pid ; then
+					echo "We detected a running jail where there should be none. Automatically failing the test."
+					isFailed=1
+				fi
 			else
 				echo failed
-				isFailed=1
-			fi
-
-			if find $tf/$ctest | grep -q jail.pid ; then
-				echo "We detected a running jail where there should be none. Automatically failing the test."
 				isFailed=1
 			fi
 
@@ -123,6 +124,7 @@ for shell in $shells; do
 				printf "Test failed with : \n\n%s\n\n" "$result"
 
 				echo "Attempting to automatically cleanse the test"
+				timeout 5 sh -c 'while :; do if [ -e run/jail.pid ]; then break; fi ; done'
 				$shell $cTest/onFail.sh $shellPath $tf/$cTest $jtPath
 
 				if [ "$?" = "1" ]; then
