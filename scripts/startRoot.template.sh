@@ -298,6 +298,11 @@ joinBridge() {
 	local internalIpNum=\$6
 	local ipIntBitmask=24 # hardcoded for now, we set this very rarely
 
+	if [ "\$privileged" = "0" ]; then
+		echo "This is not possible from an unprivileged jail" >&2
+		return
+	fi
+
 	$ipPath link add \$vethExternal type veth peer name \$vethInternal
 	$ipPath link set \$vethExternal up
 	$ipPath link set \$vethInternal netns \$innerNSpid
