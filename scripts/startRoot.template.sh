@@ -176,9 +176,8 @@ addDevices() {
 				execNS cmkdir -e -m 755 \$rootDir/root/\$(dirname \$i)
 			fi
 
-			execNS mknod \$rootDir/root\$i \$(getDeviceInfo \$rootDir \$i)
-			execNS chmod \$(\$bb stat -c %a \$i) \$rootDir/root\$i
-			execNS chgrp \$(cat \$rootDir/root/etc/group | grep "\${user}:" | sed -e 's/.*:\([0-9]*\):$/\1/') \$rootDir/root\$i
+			execNS touch \$rootDir/root\$i
+			execNS mount --bind \$i \$rootDir/root\$i
 		fi
 		shift
 	done
