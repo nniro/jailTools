@@ -790,6 +790,13 @@ stopChroot() {
 
 	stopCustom \$rootDir
 
+	if [ "\$privileged" = "0" ]; then
+		if [ "\$(stat -c %U \$rootDir/root)" = "root" ]; then
+			echo "This jail was started as root and it needs to be stopped as root as well."
+			exit 1
+		fi
+	fi
+
 	if [ ! -e \$rootDir/run/ns.pid ]; then
 		echo "This jail is not running, can't stop it. Bailing out." >&2
 		exit 1
