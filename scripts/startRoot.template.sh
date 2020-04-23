@@ -861,7 +861,7 @@ execRemNS() {
 		nsenterArgs="$(echo $nsenterArgs | sed -e 's/-U//g')"
 	fi
 
-	if [ "$jailNet" = "false" ] || ([ "$privileged" = "0" ] && [ "$setNetAccess" = "true" ]); then
+	if [ "$jailNet" = "false" ] || ([ "$privileged" = "0" ] && [ "$setNetAccess" = "true" ] && [ "$($bb stat -c %U $rootDir/root)" != "root" ]); then
 		nsenterArgs="$(printf "%s" "$nsenterArgs" | $bb sed -e 's/-n//g')" # remove '-n'
 	fi
 
