@@ -61,83 +61,22 @@ else
 	fi
 fi
 
-if [ ! -e $ownPath/../busybox/busybox ]; then
+busyboxPath="$ownPath/../busybox/busybox"
+
+if [ ! -e $busyboxPath ]; then
 	echo "Please run 'make' in \`$ownPath' to compile the necessary dependencies first"
 	exit 1
 fi
 
-# check for mandatory commands
-for cmd in mount umount; do
-	cmdPath="${cmd}Path"
-	eval "$cmdPath"="$(PATH="$PATH:/sbin:/usr/sbin:/usr/local/sbin" command which $cmd 2>/dev/null)"
-	eval "cmdPath=\${$cmdPath}"
-
-	if [ "$cmdPath" = "" ]; then
-		echo "Cannot find the command \`$cmd'. It is mandatory, bailing out."
-		exit 1
-	fi
-done
-
-ipPath="$ownPath/../busybox/busybox ip"
-mountpointPath="$ownPath/../busybox/busybox mountpoint"
-nsenterPath="$ownPath/../busybox/busybox nsenter"
-unsharePath="$ownPath/../busybox/busybox unshare"
-chpstPath="$ownPath/../busybox/busybox chpst"
-brctlPath="$ownPath/../busybox/busybox brctl"
-pgrepPath="$ownPath/../busybox/busybox pgrep"
-
 # check the kernel's namespace support
-unshareSupport=$(for ns in m u i n p U C; do $unsharePath -$ns 'echo "Operation not permitted"; exit' 2>&1 | grep -q "Operation not permitted" && printf $ns; done)
-
-netNS=false
-if echo $unshareSupport | grep -q 'n'; then # check for network namespace support
-	netNS=true
-	# we remove this bit from the variable because we use it differently from the other namespaces.
-	unshareSupport=$(echo $unshareSupport | sed -e 's/n//')
-fi
+unshareSupport=$(for ns in m u i n p U C; do $busyboxPath unshare -$ns 'echo "Operation not permitted"; exit' 2>&1 | grep -q "Operation not permitted" && printf $ns; done)
 
 if ! echo $unshareSupport | grep -q 'm'; then # check for mount namespace support
 	echo "Linux kernel Mount namespace support was not detected. It is mandatory to use this tool. Bailing out."
 	exit 1
 fi
 
-userNS=false
-if echo $unshareSupport | grep -q 'U'; then # check for user namespace support
-	# we remove this bit from the variable because we use it differently from the other namespaces.
-	userNS=true
-	unshareSupport=$(echo $unshareSupport | sed -e 's/U//')
-fi
-
-# Preparing nsenter's arguments
-nsenterSupport=""
-
-len=${#unshareSupport}
-i=0
-while [ $((i < len)) = 1 ]; do
-	nsenterSupport="$nsenterSupport -$(substring $i 1 $unshareSupport)"
-	i=$((i + 1))
-done
-
-if [ "$netNS" = "true" ]; then
-	nsenterSupport="$nsenterSupport -n"
-fi
-
-if $($unsharePath --help 2>&1 | grep "kill-child" > /dev/null); then
-	unshareSupport="--kill-child -$unshareSupport"
-else
-	unshareSupport="-$unshareSupport"
-fi
-
 # optional commands
-
-iptablesPath=$(PATH="$PATH:/sbin:/usr/sbin:/usr/local/sbin" command which iptables 2>/dev/null)
-
-if [ "$iptablesPath" = "" ]; then
-	hasIptables=false
-	iptablesPath=iptables
-else
-	hasIptables=true
-fi
 
 jailName=$(basename $1)
 newChrootHolder=$1

@@ -3,7 +3,9 @@ cat > $newChrootHolder/startRoot.sh << EOF
 #! $sh
 # Don't change anything in this script! Use rootCustomConfig.sh for your changes!
 
-case "\$(readlink -f /proc/\$$/exe)" in
+bb=$busyboxPath
+
+case "\$(\$bb readlink -f /proc/\$$/exe)" in
 	*zsh)
 		setopt shwordsplit
 	;;
@@ -12,13 +14,13 @@ esac
 _JAILTOOLS_RUNNING=1
 
 privileged=0
-if [ "\$(id -u)" != "0" ]; then
+if [ "\$(\$bb id -u)" != "0" ]; then
 	echo "You are running this script unprivileged, most features will not work" >&2
 else
 	privileged=1
 fi
 
-ownPath=\$(dirname \$0)
+ownPath=\$(\$bb dirname \$0)
 firewallInstr="run/firewall.instructions"
 
 # substring offset <optional length> string
@@ -26,7 +28,7 @@ firewallInstr="run/firewall.instructions"
 substring() {
         local init=\$1; shift
         if [ "\$2" != "" ]; then toFetch="\(.\{\$1\}\).*"; shift; else local toFetch="\(.*\)"; fi
-        echo "\$1" | sed -e "s/^.\{\$init\}\$toFetch$/\1/"
+        echo "\$1" | \$bb sed -e "s/^.\{\$init\}\$toFetch$/\1/"
 }
 
 # convert the path of this script to an absolute path
@@ -46,12 +48,24 @@ fi
 
 user=$mainJailUsername
 
-userNS=$userNS
-netNS=$netNS
-hasIptables=$hasIptables
-iptablesBin=$iptablesPath
-
 innerNSpid=""
+
+unshareSupport="-\$(for ns in m u i n p U C; do \$bb unshare -\$ns 'echo "Operation not permitted"; exit' 2>&1 | grep -q "Operation not permitted" && printf \$ns; done)"
+
+netNS=false
+if echo \$unshareSupport | grep -q 'n'; then # check for network namespace support
+	netNS=true
+	# we remove this bit from the variable because we use it differently from the other namespaces.
+	unshareSupport=\$(echo \$unshareSupport | sed -e 's/n//')
+fi
+
+if echo \$unshareSupport | grep -q 'U'; then userNS=true; else userNS=false; fi
+
+nsenterSupport=\$(echo "\$unshareSupport" | sed -e 's/^-//' | sed -e 's/\(.\)/-\1 /g')
+if [ "\$netNS" = "true" ]; then nsenterSupport="\$nsenterSupport -n"; fi
+
+# we get the uid and gid of this script, this way even when ran as root, we still get the right credentials
+userCreds=\$(\$bb stat -c %u:%g \$0)
 
 if [ "\$privileged" = "0" ]; then
 	if [ "\$userNS" != "true" ]; then
@@ -66,19 +80,9 @@ if [ "\$netNS" = "false" ] && [ "\$jailNet" = "true" ]; then
 fi
 
 if [ "\$configNet" = "true" ]; then
-	# final attempt to find iptables
-	if [ "\$hasIptables" = "false" ]; then
-		iptablesBin=\$(PATH="\$PATH:/sbin:/usr/sbin:/usr/local/sbin" command which iptables 2>/dev/null)
+	iptablesBin=\$(PATH="\$PATH:/sbin:/usr/sbin:/usr/local/sbin" command which iptables 2>/dev/null)
 
-		if [ "\$iptablesBin" = "" ]; then
-			hasIptables=false
-			iptablesPath=iptables
-		else
-			hasIptables=true
-		fi
-	fi
-
-	if [ "\$hasIptables" = "false" ]; then
+	if [ "\$iptablesBin" = "" ]; then
 		echo "The firewall \\\`iptables' was chosen but it needs the command \\\`iptables' which is not available or it's not in the available path. Setting configNet to false." >&2
 		configNet=false
 	fi
@@ -125,7 +129,7 @@ cmkdir() {
 	arguments="\$@"
 
 	for dir in \$(echo \$arguments); do
-		local subdirs="\$(echo \$dir | sed -e 's/\//\n/g')"
+		local subdirs="\$(echo \$dir | \$bb sed -e 's/\//\n/g')"
 		if [ "\$(substring 0 1 \$dir)" = "/" ]; then # checking for an absolute path
 			local parentdir="/"
 		else # relative path
@@ -153,18 +157,10 @@ cmkdir() {
 	fi
 }
 
-getDeviceInfo() {
-	rootDir=\$1
-	shift
-	# TODO this could be implemented with stat -c "%F %t %T"  just that the '%F' gives something like "character special file"
-	printf "%c %d %d\n" \$(\$rootDir/root/bin/busybox stat \$1 | grep "\(special file\|Device type\)" | sed -ne 's/.* \(.\)[^ ]* special file$/\1/ p; N; s/.* Device type: \([^,]*\),\(.*\)$/ 0x\1 0x\2/ p' | sed -ne 'N; s/\n// p')
-}
-
 addDevices() {
 	local rootDir=\$1
 	shift
 	local i=""
-	local bb="\$rootDir/root/bin/busybox"
 
 	while [ "\$1" != "" ]; do
 		i="/dev/\$1"
@@ -196,7 +192,7 @@ parseArgs() {
 	done
 	[ \$((\$OPTIND > 1)) = 1 ] && shift \$(expr \$OPTIND - 1)
 	local title="\$1"
-	local validArguments="\$(printf "%s" "\$2" | sed -e "s/\('[^']*'\) /\1\n/g" | sed -e "/^'/ b; s/ /\n/g" | sed -e "s/'//g")"
+	local validArguments="\$(printf "%s" "\$2" | \$bb sed -e "s/\('[^']*'\) /\1\n/g" | \$bb sed -e "/^'/ b; s/ /\n/g" | \$bb sed -e "s/'//g")"
 	shift 2
 
 	oldIFS="\$IFS"
@@ -224,10 +220,10 @@ cmdCtl() {
 	shift 2
 	local result=""
 
-	exists() { printf "%s" "\$2" | grep "\(^\|;\)\$1;" >/dev/null 2>/dev/null;}
-	remove() { exists "\$1" "\$2" && (printf "%s" "\$2" | sed -e "s@\(^\|;\)\$1;@\1@") || printf "%s" "\$2";}
+	exists() { printf "%s" "\$2" | \$bb grep "\(^\|;\)\$1;" >/dev/null 2>/dev/null;}
+	remove() { exists "\$1" "\$2" && (printf "%s" "\$2" | \$bb sed -e "s@\(^\|;\)\$1;@\1@") || printf "%s" "\$2";}
 	add() { exists "\$1" "\$2" && printf "%s" "\$2" || printf "%s%s;" "\$2" "\$1";}
-	list() { printf "%s" "\$1" | sed -e 's@;@\n@g';}
+	list() { printf "%s" "\$1" | \$bb sed -e 's@;@\n@g';}
 
 
 	if [ ! -e \$file ]; then
@@ -270,10 +266,10 @@ mountMany() {
 				echo \$rootDir/\$mount does not exist, creating it >&2
 				cmkdir -m 755 \$rootDir/\$mount
 			fi
-			execNS sh -c "$mountpointPath \$rootDir/\$mount >/dev/null 2>/dev/null || $mountPath -o \$mountOps --bind \$mount \$rootDir/\$mount"
+			execNS sh -c "\$bb mountpoint \$rootDir/\$mount >/dev/null 2>/dev/null || \$bb mount -o \$mountOps --bind \$mount \$rootDir/\$mount"
 		else # isOutput = true
 			result="\$result if [ ! -d \"\$rootDir/\$mount\" ]; then \$(cmkdir -e -m 755 \$rootDir/\$mount) fi;"
-			result="\$result $mountpointPath \$rootDir/\$mount >/dev/null 2>/dev/null || $mountPath -o \$mountOps --bind \$mount \$rootDir/\$mount;"
+			result="\$result \$bb mountpoint \$rootDir/\$mount >/dev/null 2>/dev/null || \$bb mount -o \$mountOps --bind \$mount \$rootDir/\$mount;"
 		fi
 	done
 
@@ -303,35 +299,35 @@ joinBridge() {
 		return
 	fi
 
-	$ipPath link add \$vethExternal type veth peer name \$vethInternal
-	$ipPath link set \$vethExternal up
-	$ipPath link set \$vethInternal netns \$innerNSpid
-	execNS $ipPath link set \$vethInternal up
+	\$bb ip link add \$vethExternal type veth peer name \$vethInternal
+	\$bb ip link set \$vethExternal up
+	\$bb ip link set \$vethInternal netns \$innerNSpid
+	execNS \$bb ip link set \$vethInternal up
 
 	if [ "\$externalNetnsId" = "" ]; then
-		local masterBridgeIp=\$($ipPath addr show \$externalBridgeName | grep 'inet ' | grep "scope link" | sed -e 's/^.*inet \([^/]*\)\/.*$/\1/')
+		local masterBridgeIp=\$(\$bb ip addr show \$externalBridgeName | \$bb grep 'inet ' | \$bb grep "scope link" | \$bb sed -e 's/^.*inet \([^/]*\)\/.*$/\1/')
 	else
-		local masterBridgeIp=\$(execRemNS \$externalNetnsId $ipPath addr show \$externalBridgeName | grep 'inet ' | grep "scope link" | sed -e 's/^.*inet \([^/]*\)\/.*$/\1/')
+		local masterBridgeIp=\$(execRemNS \$externalNetnsId \$bb ip addr show \$externalBridgeName | \$bb grep 'inet ' | \$bb grep "scope link" | \$bb sed -e 's/^.*inet \([^/]*\)\/.*$/\1/')
 	fi
-	local masterBridgeIpCore=\$(echo \$masterBridgeIp | sed -e 's/\(.*\)\.[0-9]*$/\1/')
+	local masterBridgeIpCore=\$(echo \$masterBridgeIp | \$bb sed -e 's/\(.*\)\.[0-9]*$/\1/')
 	local newIntIp=\${masterBridgeIpCore}.\$internalIpNum
 
 	if [ "\$externalNetnsId" = "" ]; then
-		execNS $ipPath addr add \$newIntIp/\$ipIntBitmask dev \$vethInternal scope link
+		execNS \$bb ip addr add \$newIntIp/\$ipIntBitmask dev \$vethInternal scope link
 	else
-		$ipPath link set \$vethExternal netns \$externalNetnsId
-		execRemNS \$externalNetnsId $ipPath link set \$vethExternal up
-		execNS $ipPath addr add \$newIntIp/\$ipIntBitmask dev \$vethInternal scope link
+		\$bb ip link set \$vethExternal netns \$externalNetnsId
+		execRemNS \$externalNetnsId \$bb ip link set \$vethExternal up
+		execNS \$bb ip addr add \$newIntIp/\$ipIntBitmask dev \$vethInternal scope link
 	fi
 
 	if [ "\$isDefaultRoute" = "true" ]; then
-		execNS $ipPath route add default via \$masterBridgeIp dev \$vethInternal proto kernel src \$newIntIp
+		execNS \$bb ip route add default via \$masterBridgeIp dev \$vethInternal proto kernel src \$newIntIp
 	fi
 
 	if [ "\$externalNetnsId" = "" ]; then
-		$brctlPath addif \$externalBridgeName \$vethExternal
+		\$bb brctl addif \$externalBridgeName \$vethExternal
 	else
-		execRemNS \$externalNetnsId $brctlPath addif \$externalBridgeName \$vethExternal
+		execRemNS \$externalNetnsId \$bb brctl addif \$externalBridgeName \$vethExternal
 	fi
 }
 
@@ -341,9 +337,9 @@ leaveBridge() {
 	local externalBridgeName=\$3
 
 	if [ "\$externalNetnsId" = "" ]; then
-		$brctlPath delif \$externalBridgeName \$vethExternal
+		\$bb brctl delif \$externalBridgeName \$vethExternal
 	else
-		execRemNS \$externalNetnsId $brctlPath delif \$externalBridgeName \$vethExternal
+		execRemNS \$externalNetnsId \$bb brctl delif \$externalBridgeName \$vethExternal
 	fi
 }
 
@@ -359,9 +355,9 @@ joinBridgeByJail() {
 	if [ -d \$jailLocation/root ] && [ -d \$jailLocation/run ] && [ -f \$jailLocation/startRoot.sh ] && [ -f \$jailLocation/rootCustomConfig.sh ]; then
 		local confPath=\$jailLocation/rootCustomConfig.sh
 
-		local neededConfig="\$(cat \$confPath | sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p;')"
+		local neededConfig="\$(cat \$confPath | \$bb sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p;')"
 		for cfg in jailName createBridge bridgeName; do
-			eval "local rem\$cfg"="\$(printf "%s" "\$neededConfig" | sed -ne "/^\$cfg/ p" | sed -e 's/#.*//' | sed -e 's/^[^=]\+=\(.*\)$/\1/' | sed -e 's/\${\([^:]\+\):/\${rem\1:/' -e 's/\$\([^{(]\+\)/\$rem\1/')"
+			eval "local rem\$cfg"="\$(printf "%s" "\$neededConfig" | \$bb sed -ne "/^\$cfg/ p" | \$bb sed -e 's/#.*//' | \$bb sed -e 's/^[^=]\+=\(.*\)$/\1/' | \$bb sed -e 's/\${\([^:]\+\):/\${rem\1:/' -e 's/\$\([^{(]\+\)/\$rem\1/')"
 		done
 
 		if [ "\$remcreateBridge" != "true" ]; then
@@ -389,9 +385,9 @@ leaveBridgeByJail() {
 	if [ -d \$jailLocation/root ] && [ -d \$jailLocation/run ] && [ -f \$jailLocation/startRoot.sh ] && [ -f \$jailLocation/rootCustomConfig.sh ]; then
 		local confPath=\$jailLocation/rootCustomConfig.sh
 
-		local neededConfig=\$(cat \$confPath | sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p;')
+		local neededConfig=\$(cat \$confPath | \$bb sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p;')
 		for cfg in jailName createBridge bridgeName; do
-			eval "local rem\$cfg"="\$(printf "%s" "\$neededConfig" | sed -ne "/^\$cfg/ p" | sed -e 's/#.*//' | sed -e 's/^[^=]\+=\(.*\)$/\1/' | sed -e 's/\${\([^:]\+\):/\${rem\1:/' -e 's/\$\([^{(]\+\)/\$rem\1/')"
+			eval "local rem\$cfg"="\$(printf "%s" "\$neededConfig" | \$bb sed -ne "/^\$cfg/ p" | \$bb sed -e 's/#.*//' | \$bb sed -e 's/^[^=]\+=\(.*\)$/\1/' | \$bb sed -e 's/\${\([^:]\+\):/\${rem\1:/' -e 's/\$\([^{(]\+\)/\$rem\1/')"
 		done
 
 		if [ "\$remcreateBridge" != "true" ]; then
@@ -584,7 +580,7 @@ firewall() {
 				upstream=\$1 # the snat goes through here
 				downstream=\$2 # this is the device to snat
 
-				baseAddr=\$(echo \$ipInt | sed -e 's/\.[0-9]*$/\.0/') # convert 192.168.xxx.xxx to 192.168.xxx.0
+				baseAddr=\$(echo \$ipInt | \$bb sed -e 's/\.[0-9]*$/\.0/') # convert 192.168.xxx.xxx to 192.168.xxx.0
 
 				if [ "\$deleteMode" = "false" ]; then
 					\$fwCmd -t nat -N \${upstream}_\${downstream}_masq
@@ -642,11 +638,11 @@ prepareChroot() {
 		return 1
 	fi
 	if [ "\$privileged" = "1" ] && [ "\$userNS" = "true" ]; then
-		preUnshare="$chpstPath -u $uid:$gid"
-		unshareArgs="-Ur"
+		preUnshare="\$bb chpst -u \$userCreds"
+		unshareArgs="-r"
 		runChrootArgs="-r"
 	else # unprivileged
-		unshareArgs="-Ur"
+		unshareArgs="-r"
 		runChrootArgs="-r"
 	fi # unprivileged
 
@@ -656,16 +652,16 @@ prepareChroot() {
 		fi
 	fi
 
-	(\$preUnshare $unsharePath \$unshareArgs ${unshareSupport}f -- sh -c "exec \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)") &
+	(\$preUnshare \$bb unshare \$unshareArgs \${unshareSupport}f -- sh -c "exec \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)") &
 	innerNSpid=\$!
 	sleep 1
-	innerNSpid=\$($pgrepPath -P \$innerNSpid)
+	innerNSpid=\$(\$bb pgrep -P \$innerNSpid)
 	echo \$innerNSpid > \$rootDir/run/ns.pid
 	chmod o+r \$rootDir/run/ns.pid
 
-	execNS $mountPath --bind \$rootDir/root \$rootDir/root
-	execNS $mountPath -tproc none -o hidepid=2 \$rootDir/root/proc
-	execNS $mountPath -t tmpfs -o size=256k tmpfs \$rootDir/root/dev
+	execNS \$bb mount --bind \$rootDir/root \$rootDir/root
+	execNS \$bb mount -tproc none -o hidepid=2 \$rootDir/root/proc
+	execNS \$bb mount -t tmpfs -o size=256k tmpfs \$rootDir/root/dev
 
 	# dev
 	mountMany \$rootDir/root "rw,noexec" \$devMountPoints
@@ -678,26 +674,26 @@ prepareChroot() {
 
 	if [ "\$jailNet" = "true" ]; then
 		# loopback device is activated
-		execNS $ipPath link set up lo
+		execNS \$bb ip link set up lo
 
 		if [ "\$createBridge" = "true" ]; then
 			# setting up the bridge
-			execNS $brctlPath addbr \$bridgeName
-			execNS $ipPath addr add \$bridgeIp/\$bridgeIpBitmask dev \$bridgeName scope link
-			execNS $ipPath link set up \$bridgeName
+			execNS \$bb brctl addbr \$bridgeName
+			execNS \$bb ip addr add \$bridgeIp/\$bridgeIpBitmask dev \$bridgeName scope link
+			execNS \$bb ip link set up \$bridgeName
 		fi
 
 		if [ "\$configNet" = "true" ]; then
-			$ipPath link add \$vethExt type veth peer name \$vethInt
-			$ipPath link set \$vethExt up
-			$ipPath link set \$vethInt netns \$innerNSpid
-			execNS $ipPath link set \$vethInt up
+			\$bb ip link add \$vethExt type veth peer name \$vethInt
+			\$bb ip link set \$vethExt up
+			\$bb ip link set \$vethInt netns \$innerNSpid
+			execNS \$bb ip link set \$vethInt up
 
-			execNS $ipPath addr add \$ipInt/\$ipIntBitmask dev \$vethInt scope link
+			execNS \$bb ip addr add \$ipInt/\$ipIntBitmask dev \$vethInt scope link
 
-			$ipPath addr add \$extIp/\$extIpBitmask dev \$vethExt scope link
-			$ipPath link set \$vethExt up
-			execNS $ipPath route add default via \$extIp dev \$vethInt proto kernel src \$ipInt
+			\$bb ip addr add \$extIp/\$extIpBitmask dev \$vethExt scope link
+			\$bb ip link set \$vethExt up
+			execNS \$bb ip route add default via \$extIp dev \$vethInt proto kernel src \$ipInt
 
 			if [ "\$setNetAccess" = "true" ] && [ "\$netInterface" != "" ]; then
 				externalFirewall \$rootDir snat \$netInterface \$vethExt
@@ -718,7 +714,7 @@ prepareChroot() {
 }
 
 runChroot() {
-	local chrootArgs="-u $uid:$gid"
+	local chrootArgs="-u \$userCreds"
 	OPTIND=0
 	while getopts r f 2>/dev/null ; do
 		case \$f in
@@ -739,7 +735,7 @@ runChroot() {
 		done
 	fi
 
-	printf "%s" "$chpstPath \$chrootArgs -/ \$rootDir/root env - PATH=/usr/bin:/bin USER=\$user HOME=/home UID=$uid HOSTNAME=nowhere.here TERM=linux \$chrootCmd"
+	printf "%s" "\$bb chpst \$chrootArgs -/ \$rootDir/root env - PATH=/usr/bin:/bin USER=\$user HOME=/home HOSTNAME=nowhere.here TERM=linux \$chrootCmd"
 }
 
 runJail() {
@@ -762,7 +758,7 @@ runJail() {
 	if [ \$((\$# > 0)) = 1 ]; then
 		while [ "\$1" != "" ]; do
 			local curArg=""
-			if [ "\$(printf "%s" "\$1" | sed -ne '/ / ! a0' -e '/ / a1')" = "1" ]; then
+			if [ "\$(printf "%s" "\$1" | \$bb sed -ne '/ / ! a0' -e '/ / a1')" = "1" ]; then
 				curArg="'\$1'"
 			else
 				curArg="\$1"
@@ -779,7 +775,7 @@ runJail() {
 		if [ "\$chrootCmd" = "" ]; then
 			chrootCmd="sh -c 'while :; do sleep 9999; done'"
 		else
-			chrootCmd=\$(printf "%s" "\$chrootCmd" | sed -e 's/\\x27/"/g') # replace all ' with "
+			chrootCmd=\$(printf "%s" "\$chrootCmd" | \$bb sed -e 's/\\x27/"/g') # replace all ' with "
 			chrootCmd="sh -c '\${chrootCmd}; while :; do sleep 9999; done'"
 		fi
 	fi
@@ -788,7 +784,7 @@ runJail() {
 		runChrootArgs="-r"
 	fi
 
-	execNS $sh -c "exec \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)"
+	execNS \$bb sh -c "exec \$(runChroot \$runChrootArgs \$rootDir \$chrootCmd)"
 	return \$?
 }
 
@@ -798,7 +794,7 @@ stopChroot() {
 	stopCustom \$rootDir
 
 	if [ "\$privileged" = "0" ]; then
-		if [ "\$(stat -c %U \$rootDir/root)" = "root" ]; then
+		if [ "\$(\$bb stat -c %U \$rootDir/root)" = "root" ]; then
 			echo "This jail was started as root and it needs to be stopped as root as well."
 			exit 1
 		fi
@@ -810,15 +806,15 @@ stopChroot() {
 	fi
 	innerNSpid="\$(cat \$rootDir/run/ns.pid)"
 
-	if [ "\$innerNSpid" = "" ] || [ "\$(pstree \$innerNSpid)" = "" ]; then
+	if [ "\$innerNSpid" = "" ] || [ "\$(\$bb pstree \$innerNSpid)" = "" ]; then
 		echo "This jail doesn't seem to be running anymore, please check lsns to confirm" >&2
 		exit 1
 	fi
 
 	if [ "\$jailNet" = "true" ]; then
 		if [ "\$createBridge" = "true" ]; then
-			execNS $ipPath link set down \$bridgeName
-			execNS $brctlPath delbr \$bridgeName
+			execNS \$bb ip link set down \$bridgeName
+			execNS \$bb brctl delbr \$bridgeName
 		fi
 	fi
 
@@ -827,7 +823,7 @@ stopChroot() {
 	"
 	# removing the firewall rules inserted into the instructions file
 	for cmd in \$(cmdCtl "\$rootDir/\$firewallInstr" list); do
-		remCmd=\$(printf "%s" "\$cmd" | sed -e 's@firewall \(.*\) \(in\|ex\)ternal \(.*\)\$@firewall \1 \2ternal -d \3@')
+		remCmd=\$(printf "%s" "\$cmd" | \$bb sed -e 's@firewall \(.*\) \(in\|ex\)ternal \(.*\)\$@firewall \1 \2ternal -d \3@')
 
 		IFS="\$oldIFS" # we set back IFS for remCmd
 		eval \$remCmd
@@ -839,8 +835,8 @@ stopChroot() {
 	IFS="\$oldIFS"
 
 	if [ "\$privileged" = "1" ]; then
-		for i in bin root etc lib usr sbin sys . ; do chown $uid:$gid \$rootDir/root/\$i; done
-		for i in passwd shadow group; do chown $uid:$gid \$rootDir/root/etc/\$i; done
+		for i in bin root etc lib usr sbin sys . ; do chown \$userCreds \$rootDir/root/\$i; done
+		for i in passwd shadow group; do chown \$userCreds \$rootDir/root/etc/\$i; done
 	fi
 
 	if [ -e \$rootDir/run/ns.pid ]; then
@@ -861,14 +857,14 @@ execRemNS() {
 	if [ "\$privileged" = "0" ]; then
 		nsenterArgs="-U"
 	fi
-	nsenterArgs="\$nsenterArgs $nsenterSupport"
+	nsenterArgs="\$nsenterArgs \$nsenterSupport"
 
 	if [ "\$jailNet" = "false" ] || ([ "\$privileged" = "0" ] && [ "\$setNetAccess" = "true" ]); then
-		nsenterArgs="\$(printf "%s" "\$nsenterArgs" | sed -e 's/-n//g')" # remove '-n'
+		nsenterArgs="\$(printf "%s" "\$nsenterArgs" | \$bb sed -e 's/-n//g')" # remove '-n'
 	fi
 
 	#echo "NS [\$nsPid] -- args : \$nsenterArgs exec : \$@" >&2
-	$nsenterPath --preserve-credentials \$nsenterArgs -t \$nsPid -- "\$@"
+	\$bb nsenter --preserve-credentials \$nsenterArgs -t \$nsPid -- "\$@"
 }
 
 case \$1 in

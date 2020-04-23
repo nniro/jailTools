@@ -20,7 +20,7 @@ fi
 substring() {
         local init=\$1; shift
         if [ "\$2" != "" ]; then toFetch="\(.\{\$1\}\).*"; shift; else local toFetch="\(.*\)"; fi
-        echo "\$1" | sed -e "s/^.\{\$init\}\$toFetch$/\1/"
+        echo "\$1" | \$bb sed -e "s/^.\{\$init\}\$toFetch$/\1/"
 }
 
 ################# Configuration ###############
@@ -75,7 +75,7 @@ setNetAccess=false
 # class as the extIp.
 # Just change the ending number to set the IP.
 # defaults to "2"
-ipInt=\$(echo \$extIp | sed -e 's/^\(.*\)\.[0-9]*$/\1\./')2
+ipInt=\$(echo \$extIp | \$bb sed -e 's/^\(.*\)\.[0-9]*$/\1\./')2
 # chroot internal IP mask
 ipIntBitmask=24
 # These are setup only if configNet is true
