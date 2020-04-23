@@ -144,19 +144,12 @@ defNetInterface=$(ip route | grep '^default' | sed -e 's/^.* dev \([^ ]*\) .*$/\
 
 echo Internet facing network interface : $defNetInterface
 
-# this creates startRoot.sh in the destination jail
-. $ownPath/startRoot.template.sh
+populateFile $ownPath/startRoot.template.sh @SHELL@ "$sh" @BUSYBOXPATH@ "$busyboxPath" @MAINJAILUSERNAME@ "$mainJailUsername" > $newChrootHolder/startRoot.sh
 
-# this creates rootCustomConfig.sh in the destination jail
-. $ownPath/rootCustomConfig.template.sh
+populateFile $ownPath/rootCustomConfig.template.sh @SHELL@ "$sh" @JAILNAME@ "$jailName" @DEFAULTNETINTERFACE@ "$defNetInterface" > $newChrootHolder/rootCustomConfig.sh
 
 # we save the default initial rootCustomConfig for update purposes
 cp $newChrootHolder/rootCustomConfig.sh $newChrootHolder/._rootCustomConfig.sh.initial
-
-# we fix the EOF inside the script
-sed -e "s/^\@EOF$/EOF/g" -i $newChrootHolder/startRoot.sh
-sed -e "s/^\@EOF$/EOF/g" -i $newChrootHolder/rootCustomConfig.sh
-sed -e "s/^\@EOF$/EOF/g" -i $newChrootHolder/._rootCustomConfig.sh.initial
 
 echo "Copying /etc data"
 etcFiles=""
