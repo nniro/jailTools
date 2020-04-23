@@ -1,0 +1,106 @@
+From 36ca9599a4b42513a6e4206de6d71eafbc10eac3 Mon Sep 17 00:00:00 2001
+From: Nicholas Niro <blowfist@xroutine.net>
+Date: Wed, 22 Apr 2020 23:36:11 -0400
+Subject: [PATCH 1/2] ip: added support for setting netns on devices.
+
+---
+ networking/ip.c                |  4 ++--
+ networking/libiproute/iplink.c | 35 ++++++++++++++++++++++++++++++++--
+ 2 files changed, 35 insertions(+), 4 deletions(-)
+
+diff --git a/networking/ip.c b/networking/ip.c
+index 034ee4fc8..b5638c1d9 100644
+--- a/networking/ip.c
++++ b/networking/ip.c
+@@ -155,9 +155,9 @@
+ //usage:
+ //--------------123456789.123456789.123456789.123456789.123456789.123456789.123456789.123....79
+ //usage:#define iplink_trivial_usage
+-//usage:       /*Usage:iplink*/"set IFACE [up|down] [arp on|off] [multicast on|off]\n"
++//usage:       /*Usage:iplink*/"set|add|del|show IFACE [up|down] [arp on|off] [multicast on|off]\n"
+ //usage:       "	[promisc on|off] [mtu NUM] [name NAME] [qlen NUM] [address MAC]\n"
+-//usage:       "	[master IFACE | nomaster]"
++//usage:       "	[master IFACE | nomaster] [netns PID]"
+ // * short help shows only "set" command, long help continues (with just one "\n")
+ // * and shows all other commands:
+ //usage:#define iplink_full_usage "\n"
+diff --git a/networking/libiproute/iplink.c b/networking/libiproute/iplink.c
+index 1a1064bdc..68d199044 100644
+--- a/networking/libiproute/iplink.c
++++ b/networking/libiproute/iplink.c
+@@ -152,6 +152,30 @@ static void set_master(char *dev, int master)
+ 		xfunc_die();
+ }
+ 
++/* Exits on error */
++static void set_netns(char *dev, int netns)
++{
++	struct rtnl_handle rth;
++	struct {
++		struct nlmsghdr  n;
++		struct ifinfomsg i;
++		char             buf[1024];
++	} req;
++
++	memset(&req, 0, sizeof(req));
++	req.n.nlmsg_len = NLMSG_LENGTH(sizeof(struct ifinfomsg));
++	req.n.nlmsg_flags = NLM_F_REQUEST;
++	req.n.nlmsg_type = RTM_NEWLINK;
++	req.i.ifi_family = preferred_family;
++
++	xrtnl_open(&rth);
++	req.i.ifi_index = xll_name_to_index(dev);
++	//printf("netns %i for %i\n", netns, req.i.ifi_index);
++	addattr_l(&req.n, sizeof(req), IFLA_NET_NS_PID, &netns, 4);
++	if (rtnl_talk(&rth, &req.n, 0, 0, NULL, NULL, NULL) < 0)
++		xfunc_die();
++}
++
+ /* Exits on error */
+ static int get_address(char *dev, int *htype)
+ {
+@@ -226,6 +250,7 @@ static int do_set(char **argv)
+ 	int qlen = -1;
+ 	int mtu = -1;
+ 	int master = -1;
++	int netns = -1;
+ 	char *newaddr = NULL;
+ 	char *newbrd = NULL;
+ 	struct ifreq ifr0, ifr1;
+@@ -234,11 +259,11 @@ static int do_set(char **argv)
+ 	/* If you add stuff here, update iplink_full_usage */
+ 	static const char keywords[] ALIGN1 =
+ 		"up\0""down\0""name\0""mtu\0""qlen\0""multicast\0"
+-		"arp\0""promisc\0""address\0"
++		"arp\0""promisc\0""address\0""netns\0"
+ 		"master\0""nomaster\0"
+ 		"dev\0" /* must be last */;
+ 	enum { ARG_up = 0, ARG_down, ARG_name, ARG_mtu, ARG_qlen, ARG_multicast,
+-		ARG_arp, ARG_promisc, ARG_addr,
++		ARG_arp, ARG_promisc, ARG_addr, ARG_netns,
+ 		ARG_master, ARG_nomaster,
+ 		ARG_dev };
+ 	enum { PARM_on = 0, PARM_off };
+@@ -276,6 +301,9 @@ static int do_set(char **argv)
+ 			master = xll_name_to_index(*argv);
+ 		} else if (key == ARG_nomaster) {
+ 			master = 0;
++		} else if (key == ARG_netns) {
++			NEXT_ARG();
++			netns = get_unsigned(*argv, "netns");
+ 		} else if (key >= ARG_dev) {
+ 			/* ^^^^^^ ">=" here results in "dev IFACE" treated as default */
+ 			if (key == ARG_dev) {
+@@ -463,6 +491,9 @@ static int do_set(char **argv)
+ 	if (master != -1) {
+ 		set_master(dev, master);
+ 	}
++	if (netns != -1) {
++		set_netns(dev, netns);
++	}
+ 	if (mask)
+ 		do_chflags(dev, flags, mask);
+ 	return 0;
+-- 
+2.24.1.485.gad05a3d8e5.dirty
+

@@ -33,6 +33,7 @@ $(MUSL): musl/lib/libc.so
 
 $(BUSYBOX): $(MUSL) busybox/configure
 	cp busybox.config busybox/.config
+	sh -c 'cd busybox; git apply $(PROJECTROOT)/patches/busybox/*.patch'
 	sed -e 's@ gcc@ $(PROJECTROOT)/$(GCC)@ ;s@)gcc@)$(PROJECTROOT)/$(GCC)@' -i busybox/Makefile
 	make HOSTCFLAGS=-static HOSTLDFLAGS=-static -C busybox
 
@@ -56,7 +57,7 @@ $(SSHD): openssh/configure $(MUSL) $(ZLIB)
 clean:
 	make -C musl clean
 	make -C busybox clean
-	sh -c 'cd busybox; git checkout Makefile'
+	sh -c 'cd busybox; git reset --hard'
 	make -C zlib clean
 	make -C openssh clean
 	rm -Rf usr/bin/* usr/lib/* usr/include/*
