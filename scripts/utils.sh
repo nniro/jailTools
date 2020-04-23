@@ -17,3 +17,17 @@ substring() {
         if [ "$2" != "" ]; then toFetch="\(.\{$1\}\).*"; shift; else local toFetch="\(.*\)"; fi
         echo "$1" | sed -e "s/^.\{$init\}$toFetch$/\1/"
 }
+
+# arguments : <input file> [<to replace string> <replacement string>, ...]
+populateFile() {
+	local inFile=$1
+	shift
+	local result=""
+
+	while [ "$1" != "" ] && [ "$2" != "" ]; do
+		result="$result s%$1$%$2%g;"
+		shift 2
+	done
+
+	cat $inFile | sed -e "$result"
+}

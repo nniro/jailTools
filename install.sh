@@ -12,6 +12,8 @@ case "$(readlink -f /proc/$$/exe)" in
 	;;
 esac
 
+. $(dirname $0)/scripts/utils.sh
+
 if [ "$1" != "" ]; then
 	if [ ! -d $1 ]; then
 		echo "Please ensure the path is a directory and is writable"
@@ -24,7 +26,7 @@ if [ "$1" != "" ]; then
 		fi
 
 		# we change the internal path to the path where this script is
-		cat $scriptsDir/scripts/jailtools.template.sh | sed -e "1 s@#! /bin/sh@#! $sh@" | sed -e "s@jailToolsPath=ScriptPath@jailToolsPath=$scriptsDir@" > $1/jailtools
+		populateFile $scriptsDir/scripts/jailtools.template.sh \/bin\/sh "$sh" ScriptPath $scriptsDir > $1/jailtools
 		ln -sfT $1/jailtools $1/jtools
 		ln -sfT $1/jailtools $1/jt
 		chmod u+x $1/jailtools
