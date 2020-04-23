@@ -24,7 +24,7 @@ if [ "$1" != "" ]; then
 		fi
 
 		# we change the internal path to the path where this script is
-		cat $scriptsDir/scripts/jailtools | sed -e "1 s@#! /bin/sh@#! $sh@" | sed -e "s@jailToolsPath=ScriptPath@jailToolsPath=$scriptsDir@" > $1/jailtools
+		cat $scriptsDir/scripts/jailtools.template.sh | sed -e "1 s@#! /bin/sh@#! $sh@" | sed -e "s@jailToolsPath=ScriptPath@jailToolsPath=$scriptsDir@" > $1/jailtools
 		ln -sfT $1/jailtools $1/jtools
 		ln -sfT $1/jailtools $1/jt
 		chmod u+x $1/jailtools
