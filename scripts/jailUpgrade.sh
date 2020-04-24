@@ -7,14 +7,64 @@ if [ "$jailToolsPath" = "" ] || [ ! -d $jailToolsPath ]; then
 	exit 1
 fi
 
-# if the result is 0 this means the files are the same
-fileDiff() {
-	diff -q $2/$1 $3/$1 >/dev/null
-}
+configFile=rootCustomConfig.sh
+
+filesUpgrade=$(cat << EOF
+._rootCustomConfig.sh.initial
+jailLib.sh
+startRoot.sh
+EOF
+)
 
 startUpgrade() {
 	# we are already garanteed that the first argument is the jail path and it is valid
 	local jPath=$1
+	shift
+
+	bb=$jailToolsPath/busybox/busybox
+
+	case $1 in
+		--continue)
+
+			if [ ! -e $jPath/$configFile.merged ]; then
+				echo "This command is to continue a failed automatic upgrade session."
+				echo "It is not currently the case, bailing out."
+				exit 1
+			fi
+
+			mv $jPath/$configFile.merged $jPath/$configFile
+			[ -e $jPath/$configFile.patch ] && rm $jPath/$configFile.patch
+			[ -e $jPath/$configFile.new ] && rm $jPath/$configFile.new
+			for file in $jPath/$filesUpgrade; do
+				[ -e $jPath/$file.new ] && mv $jPath/$file.new $file
+			done
+
+			exit 0
+		;;
+
+		--abort)
+			[ -e $jPath/$configFile.new ] && rm $jPath/$configFile.new
+			[ -e $jPath/$configFile.patch ] && rm $jPath/$configFile.patch
+			for file in $filesUpgrade; do
+				[ -e $jPath/$file.new ] && rm $jPath/$file.new
+			done
+			exit 0
+		;;
+
+		"")
+		;;
+
+		*)
+			echo "upgrade: invalid command \`$1'"
+			exit 1
+		;;
+	esac
+
+	# if the result is 0 this means the files are the same
+	fileDiff() {
+		$bb diff -q $2/$1 $3/$1 >/dev/null 2>/dev/null
+		return $?
+	}
 
 	# convert the path of this script to an absolute path
 	if [ "$jPath" = "." ]; then
@@ -30,7 +80,7 @@ startUpgrade() {
 	fi
 	local jailName=$(basename $jPath)
 
-	if [ ! -e $jPath/._rootCustomConfig.sh.initial ]; then
+	if [ ! -e $jPath/._$configFile.initial ]; then
 		echo "This jail is too old to be upgraded automatically, please upgrade it manually first"
 		exit 1
 	fi
@@ -40,13 +90,16 @@ startUpgrade() {
 		exit 1
 	fi
 
-	if [ -e $jPath/startRoot.sh.orig ] || [ -e $jPath/rootCustomConfig.sh.orig ] || [ -e $jPath/rootCustomConfig.sh.patch ]; then
-		echo "Either startRoot.sh.orig or rootCustomConfig.sh.orig or rootCustomConfig.sh.patch are present."
-		echo "Please either remove them or move them somewhere else as we don't want to override them"
-		echo "They could contain important backups from a previously failed upgrade attempt"
-		echo "rerun this script once that is done"
-		exit 1
-	fi
+	for file in $filesUpgrade; do
+		if [ -e $jPath/$file.new ]; then
+			echo "There is an already started upgrade attempt going. Please finish with that one first."
+			echo
+			echo "either do	: jt upgrade --continue"
+			echo "or 	: jt upgrade --abort"
+			echo
+			exit 1
+		fi
+	done
 
 	local njD=$jPath/.__jailUpgrade # the temporary new jail path
 	[ ! -d $njD ] && mkdir $njD
@@ -55,63 +108,80 @@ startUpgrade() {
 
 	jailtools new $nj >/dev/null
 
-	if $(fileDiff startRoot.sh $jPath $nj) && $(fileDiff ._rootCustomConfig.sh.initial $jPath $nj) ; then
+	isChanged="false"
+	for file in $filesUpgrade; do
+		fileDiff $file $jPath $nj
+		echo "difference for $file : $?"
+		if ! fileDiff $file $jPath $nj; then
+			isChanged="true"
+			break
+		fi
+	done
+
+	if [ "$isChanged" = "false" ]; then
 		echo "Jail already at the latest version."
 	else
 		echo "Initial Checks complete. Upgrading jail."
 
-		cp $jPath/rootCustomConfig.sh $jPath/rootCustomConfig.sh.orig
-		cp $jPath/startRoot.sh $jPath/startRoot.sh.orig
-		# first patch
-		$jailToolsPath/busybox/busybox diff -p $jPath/._rootCustomConfig.sh.initial $jPath/rootCustomConfig.sh > $jPath/rootCustomConfig.sh.patch
-		cp $nj/rootCustomConfig.sh $jPath
-		cp $nj/startRoot.sh $jPath
+		$bb diff -p $jPath/._$configFile.initial $jPath/$configFile > $jPath/$configFile.patch
 
-
-		# we first make a patch from the initial
-		# we then make a patch from the new jail to the current jail
-		# these 2 patches are attempted in order, if one of them pass, we do it
-		# otherwise, we have to rely on the user to patch manually
-
-		# first attempt
+		cp $nj/$configFile $jPath/$configFile.new
+		for file in $filesUpgrade; do
+			cp $nj/$file $jPath/$file.new
+		done
 
 		[ ! -d $jPath/.backup ] && mkdir $jPath/.backup
-		local backupF=$jPath/.backup/$($jailToolsPath/busybox/busybox date +"%Y.%m.%d-%T")
+		local backupF=$jPath/.backup/$($bb date +"%Y.%m.%d-%T")
 		mkdir $backupF
 
-		if cat $jPath/rootCustomConfig.sh.patch | $jailToolsPath/busybox/busybox patch; then
-			cp $nj/._rootCustomConfig.sh.initial $jPath
+		cp $jPath/$configFile $backupF
+		cp $jPath/$configFile.patch $backupF
+		for file in $filesUpgrade; do
+			cp $jPath/$file $backupF
+		done
+
+		if cat $jPath/$configFile.patch | $bb patch; then
+			rm $jPath/$configFile.new
+			for file in $filesUpgrade; do
+				mv $jPath/$file.new $jPath/$file
+			done
+			rm $jPath/$configFile.patch
 
 			echo "Done upgrading jail. Thank you for using the jailUpgrade services."
 		else 
-			cp $nj/._rootCustomConfig.sh.initial $jPath/rootCustomConfig.sh.initial.new
-			cp rootCustomConfig.sh rootCustomConfig.sh.new
-			cp $jPath/rootCustomConfig.sh.orig rootCustomConfig.sh
-			cp $jPath/startRoot.sh startRoot.sh.new
-			cp $jPath/startRoot.sh.orig startRoot.sh
-
+			echo
+			echo "*******************************************************************"
+			echo
 			echo "There was an error upgrading your custom configuration file."
-			echo "You will need to upgrade it manually and here are the steps :"
-			echo "We moved the files of the upgrade in the path : $backupF"
-			echo "You could attempt to upgrade manually by comparing your rootCustomConfig.sh with rootCustomConfig.sh.new and merge the changes manually."
-			echo "Or you can check the backup path to determine what exactly went wrong."
-
-			echo "Alternatively, you can use a tool like GNU diff3 to handle the changes for you. Do this :"
-			echo "diff3 -m rootCustomConfig.sh.new ._rootCustomConfig.sh.initial rootCustomConfig.sh > rootCustomConfig.sh.merged"
-			echo "At this point, the file rootCustomConfig.sh.merged will contain the changes that you can manually merge."
-			echo "When you are done, just move rootCustomConfig.sh.merged to rootCustomConfig.sh"
-			echo "Also copy startRoot.sh.new to startRoot.sh"
-			echo "And rootCustomConfig.sh.initial.new to ._rootCustomConfig.sh.initial"
-
-			echo "In the meantime, we have not upgraded any of your files, so you can continue using the jail like normal."
+			echo
+			echo
+			echo "You will need to upgrade it manually. Here's a few suggestions on how to do that :"
+			echo "	NOTE : do your changes in the file $configFile.merged"
+			echo
+			echo " 1- You could attempt to upgrade manually by comparing your $configFile.merged with $configFile.new and merge the changes yourself."
+			echo
+			echo " 2- you can check the backup path to determine what exactly went wrong."
+			echo
+			echo " 3- you can use a tool like GNU diff3 to handle the changes for you. like so :"
+			echo
+			echo "	diff3 -m $configFile.new ._$configFile.initial $configFile > $configFile.merged"
+			echo
+			echo
+			echo "When you are done merging $configFile.merged just do :"
+			echo
+			echo "	jt upgrade --continue"
+			echo
+			echo
+			echo "You can abort this upgrade by doing :"
+			echo
+			echo "	jt upgrade --abort"
+			echo
+			echo "This will put everything back to what it was before."
 			echo
 			echo "We're sorry for the inconvenience. Thank you for using the jailUpgrade services."
-		fi
 
-		mv $jPath/rootCustomConfig.sh.orig $backupF
-		mv $jPath/startRoot.sh.orig $backupF
-		mv $jPath/rootCustomConfig.sh.patch $backupF
-		cp $jPath/._rootCustomConfig.sh.initial $backupF
+			cp $jPath/$configFile.new $jPath/$configFile.merged
+		fi
 	fi
 
 	if [ "$njD" != "" ] && [ -d $nj ]; then

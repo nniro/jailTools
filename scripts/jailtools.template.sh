@@ -100,15 +100,17 @@ case $cmd in
 	;;
 
 	upgrade)
-		if [ "$1" = "" ]; then
-			jPath="."
-		else
-			jPath="$1"
+		jPath="."
+		if [ "$1" != "" ]; then
+			if [ -d $1 ]; then
+				jPath="$1"
+				shift
+			fi
 		fi
 
 		if detectJail $jPath; then
 			. $jailToolsPath/scripts/jailUpgrade.sh
-			startUpgrade $@
+			startUpgrade $jPath $@
 		else
 			echo "These commands are only valid inside the root of a jail created by jailTools" >&2
 			exit 1

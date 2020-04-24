@@ -83,6 +83,37 @@ vethExt=$(substring 0 13 $jailName)ex
 vethInt=$(substring 0 13 $jailName)in
 
 
+# Command part
+
+# Set the starting environment variables.
+# The syntax is "variable=value"  separated by spaces and the whole between double quotes
+# like so : "foo=bar one=1 two=2"
+# leave empty for nothing
+# these environment variables are set for these commands : daemon, start and shell
+runEnvironment=""
+
+# These commands are run inside the jail itself.
+#
+# You can also set command specific environment variables for each.
+# Just set them before your command, like so :
+# "foo=bar one=1 two=2 sh"
+# Just remember if you put environment variables, at least put one
+# command like 'sh' at the end, otherwise it won't work.
+# The defaults is 'sh' when left empty.
+
+# the command that is run when you do : jt daemon
+# leave empty for the default
+daemonCommand=""
+
+# the command that is run when you do : jt start
+# leave empty for the default
+startCommand=""
+
+# the command that is run when you do : jt shell
+# leave empty for the default
+shellCommand=""
+
+
 ################# Mount Points ################
 
 # it's important to note that these mount points will *only* mount a directory
@@ -112,8 +143,8 @@ EOF
 
 ################ Functions ###################
 
-# this is called before the shell command and of course the start command
-# put your firewall rules here
+# this is called before each command that start a jail (daemon and start)
+# among other, put your firewall rules here
 prepCustom() {
 	local rootDir=$1
 
@@ -132,6 +163,7 @@ prepCustom() {
 
 	# we check if the file first exists. If not, we create it.
 	# you can do the same thing with directories by doing "[ ! -d ..." and "&& mkdir ..."
+	# Do note that it is no longer necessary to unmount these directories in stopCustom.
 	# [ ! -e $rootDir/root/home/.Xauthority ] && touch .Xauthority
 	#
 	# mounting Xauthority manually (crucial for supporting X11)
@@ -218,95 +250,18 @@ prepCustom() {
 	# externalFirewall $rootDir openTcpPort $vethInt $vethExt 1:65535
 }
 
-startCustom() {
-	local rootDir=$1
-
-	# if you want both the "shell" command and this "start" command to have the same parameters,
-	# place your instructions in prepCustom and only place "start" specific instructions here.
-
-	# put your chroot starting scripts/instructions here
-	# here's an example, by default this is the same as the shell command.
-	# just supply your commands to it's arguments.
-	# If you want to use your own command with environment variables, do it like so :
-	# runJail $rootDir FOO=bar sh someScript.sh
-	# you can't do it like so :
-	# runJail $rootDir env - FOO=bar sh someScript.sh
-	# this would nullify important environment variables we set in runJail/runChroot
-	# You can override the defaults too, just set them using the above method.
-	runJail $rootDir
-
-	# if you need to add logs, just pipe them to the directory : $rootDir/run/someLog.log
-
-	return $?
-}
-
 stopCustom() {
 	local rootDir=$1
 	# put your stop instructions here
 
-	# this is to be used in combination with the mount --bind example in prepCustom
-	# execNS mountpoint $rootDir/root/home/.Xauthority >/dev/null && umount $rootDir/root/home/.Xauthority
+	# It's unnecessary to unmount directories or files that were manually mounted in
+	# prepCustom. This is being done automatically.
+
+	# It's unnecessary to remove firewall rules here as this is being done automatically.
 
 	# this is to be used in combination with the joinBridgeByJail line in prepCustom
 	# leaveBridgeByJail /home/yourUser/jails/tor
 
 	# this is to be used in combination with the joinBridge line in prepCustom
 	# leaveBridge "extInt" "" "br0"
-}
-
-cmdParse() {
-	local args=$1
-	local ownPath=$2
-	shift 2
-	local err=0
-
-	case $args in
-		daemon)
-			echo "This command is not meant to be called directly, use the jailtools super script to start the daemon properly, otherwise it will just stay running with no interactivity possible."
-			prepareChroot $ownPath || exit 1
-			runJail -d $ownPath
-			err=$?
-			stopChroot $ownPath
-			exit $err
-		;;
-
-		start)
-			prepareChroot $ownPath || exit 1
-			startCustom $ownPath
-			err=$?
-			stopChroot $ownPath
-			exit $err
-		;;
-
-		stop)
-			stopChroot $ownPath
-			exit $?
-		;;
-
-		shell)
-			prepareChroot $ownPath >/dev/null 2>/dev/null
-			if [ "$?" != "0" ]; then
-				local nsPid=$(cat $ownPath/run/ns.pid)
-				local runChrootArgs=""
-				if [ "$privileged" = "1" ]; then
-					echo "Entering the already started jail \`$jailName'" >&2
-				else
-					echo "Entering the already started jail \`$jailName' unprivileged" >&2
-					runChrootArgs="-r"
-				fi
-				innerNSpid=$nsPid
-				[ "$nsPid" != "" ] || echo "Unable to get the running namespace, bailing out" && execNS sh -c "$(runChroot $runChrootArgs $ownPath $@)"
-				exit $?
-			else # we start a new jail
-				runJail $ownPath
-				err=$?
-				stopChroot $ownPath
-				exit $err
-			fi
-		;;
-
-		*)
-			echo "$0 : start|stop|shell|daemon"
-		;;
-	esac
 }
