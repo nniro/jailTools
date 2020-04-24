@@ -31,7 +31,7 @@ echo "Starting a jail with the shell command"
 echo exit | $jtPath shell 2>&1 || exit 1
 
 echo "Now we start a new jail and expect it to actually fail"
-sed -e 's/^\([[:space:]]*runJail \$rootDir\).*$/\1 fusionReactorStarter ignite ahahahah/' -i rootCustomConfig.sh
+sed -e 's/^\(startCommand=\)""$/\1"fusionReactorStarter ignite ahahahah"/' -i rootCustomConfig.sh
 echo exit | $jtPath start 2>&1 && exit 1
 
 

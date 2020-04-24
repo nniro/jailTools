@@ -34,7 +34,9 @@ doCheck() {
 		echo "Failed, the httpd service is not running"
 		echo "here is the info on the running process : \"$(pstree $(cat run/jail.pid))\""
 		echo "here is the line in rootCustomConfig.sh :"
-		grep 'runJail -d \$ownPath' rootCustomConfig.sh
+		grep '^daemonCommand=' rootCustomConfig.sh
+		echo "jail pid : $(cat run/jail.pid) - ns pid : $(cat run/ns.pid)"
+		echo "stopping the jail"
 		$jtPath stop 2>&1
 		exit 1
 	fi
@@ -47,7 +49,7 @@ cd $testPath/basic
 echo "Testing standard daemon with a direct command put in the background"
 cp ._rootCustomConfig.sh.initial rootCustomConfig.sh
 sed -e 's/jailNet=true/jailNet=false/' -i rootCustomConfig.sh
-sed -e 's/^\([[:space:]]*runJail -d \$ownPath\).*$/\1 \x2Fusr\x2Fsbin\x2Fhttpd -p 8000/' -i rootCustomConfig.sh
+sed -e 's/^\(daemonCommand=\)""$/\1"\x2Fusr\x2Fsbin\x2Fhttpd -p 8000"/' -i rootCustomConfig.sh
 $jtPath daemon 2>&1 || exit 1
 doCheck
 $jtPath stop 2>&1
@@ -56,7 +58,7 @@ sleep 1
 echo "Testing standard daemon with a direct command put in the foreground"
 cp ._rootCustomConfig.sh.initial rootCustomConfig.sh
 sed -e 's/jailNet=true/jailNet=false/' -i rootCustomConfig.sh
-sed -e 's/^\([[:space:]]*runJail -d \$ownPath\).*$/\1 \x2Fusr\x2Fsbin\x2Fhttpd -p 8000 -f/' -i rootCustomConfig.sh
+sed -e 's/^\(daemonCommand=\)""$/\1"\x2Fusr\x2Fsbin\x2Fhttpd -p 8000 -f"/' -i rootCustomConfig.sh
 $jtPath daemon 2>&1 || exit 1
 doCheck
 $jtPath stop 2>&1
@@ -65,7 +67,7 @@ sleep 1
 echo "Testing daemon with a shell that calls the command single quoted and is put in the background"
 cp ._rootCustomConfig.sh.initial rootCustomConfig.sh
 sed -e 's/jailNet=true/jailNet=false/' -i rootCustomConfig.sh
-sed -e 's/^\([[:space:]]*runJail -d \$ownPath\).*$/\1 sh -c \x27\x2Fusr\x2Fsbin\x2Fhttpd -p 8000\x27/' -i rootCustomConfig.sh
+sed -e 's/^\(daemonCommand=\)""$/\1"sh -c \x27\x2Fusr\x2Fsbin\x2Fhttpd -p 8000\x27"/' -i rootCustomConfig.sh
 $jtPath daemon 2>&1 || exit 1
 doCheck
 $jtPath stop 2>&1
@@ -74,7 +76,7 @@ sleep 1
 echo "Testing daemon with a shell that calls the command single quoted and is put in the foreground"
 cp ._rootCustomConfig.sh.initial rootCustomConfig.sh
 sed -e 's/jailNet=true/jailNet=false/' -i rootCustomConfig.sh
-sed -e 's/^\([[:space:]]*runJail -d \$ownPath\).*$/\1 sh -c \x27\x2Fusr\x2Fsbin\x2Fhttpd -p 8000 -f\x27/' -i rootCustomConfig.sh
+sed -e 's/^\(daemonCommand=\)""$/\1"sh -c \x27\x2Fusr\x2Fsbin\x2Fhttpd -p 8000 -f\x27"/' -i rootCustomConfig.sh
 $jtPath daemon 2>&1 || exit 1
 doCheck
 $jtPath stop 2>&1
@@ -83,7 +85,7 @@ sleep 1
 echo "Testing daemon with a shell that calls the command double quoted and is put in the background"
 cp ._rootCustomConfig.sh.initial rootCustomConfig.sh
 sed -e 's/jailNet=true/jailNet=false/' -i rootCustomConfig.sh
-sed -e 's/^\([[:space:]]*runJail -d \$ownPath\).*$/\1 sh -c \x22\x2Fusr\x2Fsbin\x2Fhttpd -p 8000\x22/' -i rootCustomConfig.sh
+sed -e 's/^\(daemonCommand=\)""$/\1"sh -c \\\x22\x2Fusr\x2Fsbin\x2Fhttpd -p 8000\\\x22"/' -i rootCustomConfig.sh
 $jtPath daemon 2>&1 || exit 1
 doCheck
 $jtPath stop 2>&1
@@ -92,7 +94,7 @@ sleep 1
 echo "Testing daemon with a shell that calls the command double quoted and is put in the foreground"
 cp ._rootCustomConfig.sh.initial rootCustomConfig.sh
 sed -e 's/jailNet=true/jailNet=false/' -i rootCustomConfig.sh
-sed -e 's/^\([[:space:]]*runJail -d \$ownPath\).*$/\1 sh -c \x22\x2Fusr\x2Fsbin\x2Fhttpd -p 8000 -f\x22/' -i rootCustomConfig.sh
+sed -e 's/^\(daemonCommand=\)""$/\1"sh -c \\\x22\x2Fusr\x2Fsbin\x2Fhttpd -p 8000 -f\\\x22"/' -i rootCustomConfig.sh
 $jtPath daemon 2>&1 || exit 1
 doCheck
 $jtPath stop 2>&1
