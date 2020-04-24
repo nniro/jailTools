@@ -70,10 +70,12 @@ cmdParse() {
 		;;
 
 		shell)
-			prepareChroot $ownPath >/dev/null 2>/dev/null
 			if [ "$?" != "0" ]; then
 				local nsPid=$(cat $ownPath/run/ns.pid)
 				local runChrootArgs=""
+			
+				prepareChroot $ownPath >/dev/null 2>/dev/null
+
 				if [ "$privileged" = "1" ]; then
 					echo "Entering the already started jail \`$jailName'" >&2
 				else
