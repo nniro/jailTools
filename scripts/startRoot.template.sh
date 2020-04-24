@@ -26,8 +26,8 @@ fi
 . $ownPath/jailLib.sh
 
 prepareCmd() {
-	local env=$1
-	local cmd=$2
+	local env="$1"
+	local cmd="$2"
 	local result=
 
 	if [ "$cmd" = "" ]; then
