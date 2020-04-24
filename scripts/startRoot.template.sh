@@ -70,7 +70,7 @@ cmdParse() {
 		;;
 
 		shell)
-			if [ "$?" != "0" ]; then
+			if [ -e $ownPath/run/ns.pid ]; then
 				local nsPid=$(cat $ownPath/run/ns.pid)
 				local runChrootArgs=""
 			
