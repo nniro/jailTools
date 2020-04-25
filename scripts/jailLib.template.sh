@@ -139,7 +139,7 @@ cmkdir() {
 		fi
 		for subdir in $(echo $subdirs); do
 			if [ "$isOutput" = "false" ]; then
-				if [ ! -d $parentdir$subdir ]; then
+				if execNS test ! -d $parentdir$subdir; then
 					execNS mkdir $callArgs $parentdir$subdir
 				fi
 			else
@@ -171,7 +171,7 @@ addDevices() {
 			return 1
 		else
 			if [ "$(dirname $i)" != "/dev" ]; then
-				execNS cmkdir -e -m 755 $rootDir/root/$(dirname $i)
+				cmkdir -e -m 755 $rootDir/root/$(dirname $i)
 			fi
 
 			execNS touch $rootDir/root$i
@@ -264,7 +264,7 @@ mountMany() {
 
 	for mount in $(echo $@); do
 		if [ "$isOutput" = "false" ]; then
-			if [ ! -d "$rootDir/$mount" ]; then
+			if execNS test ! -d "$rootDir/$mount"; then
 				echo $rootDir/$mount does not exist, creating it >&2
 				cmkdir -m 755 $rootDir/$mount
 			fi
