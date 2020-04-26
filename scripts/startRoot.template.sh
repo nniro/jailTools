@@ -3,6 +3,8 @@
 
 bb=@BUSYBOXPATH@
 
+ownPath=$($bb dirname $0)
+
 # substring offset <optional length> string
 # cuts a string at the starting offset and wanted length.
 substring() {
