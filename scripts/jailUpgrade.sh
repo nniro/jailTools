@@ -39,6 +39,7 @@ startUpgrade() {
 				[ -e $jPath/$file.new ] && mv $jPath/$file.new $file
 			done
 
+			echo "Done upgrading jail. Thank you for using the jailUpgrade service."
 			exit 0
 		;;
 
@@ -48,6 +49,8 @@ startUpgrade() {
 			for file in $filesUpgrade; do
 				[ -e $jPath/$file.new ] && rm $jPath/$file.new
 			done
+
+			echo "Reverted changes done by the upgrade. Thank you for using the jailUpgrade service."
 			exit 0
 		;;
 
@@ -111,7 +114,6 @@ startUpgrade() {
 	isChanged="false"
 	for file in $filesUpgrade; do
 		fileDiff $file $jPath $nj
-		echo "difference for $file : $?"
 		if ! fileDiff $file $jPath $nj; then
 			isChanged="true"
 			break
@@ -147,7 +149,7 @@ startUpgrade() {
 			done
 			rm $jPath/$configFile.patch
 
-			echo "Done upgrading jail. Thank you for using the jailUpgrade services."
+			echo "Done upgrading jail. Thank you for using the jailUpgrade service."
 		else 
 			echo
 			echo "*******************************************************************"
@@ -178,7 +180,7 @@ startUpgrade() {
 			echo
 			echo "This will put everything back to what it was before."
 			echo
-			echo "We're sorry for the inconvenience. Thank you for using the jailUpgrade services."
+			echo "We're sorry for the inconvenience. Thank you for using the jailUpgrade service."
 
 			cp $jPath/$configFile.new $jPath/$configFile.merged
 		fi
