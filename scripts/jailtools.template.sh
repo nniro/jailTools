@@ -56,10 +56,18 @@ case $cmd in
 	;;
 
 	cp|cpDep)
-		if [ -d ./root ] && [ -d ./run ] && [ -f ./startRoot.sh ] && [ -f ./rootCustomConfig.sh ]; then
-			$sh $jailToolsPath/scripts/cpDep.sh $PWD $@
+		jPath="."
+		if [ "$1" != "" ]; then
+			if [ -d $1 ] && detectJail $1; then
+				jPath="$1"
+				shift
+			fi
+		fi
+		if detectJail $jPath; then
+			$sh $jailToolsPath/scripts/cpDep.sh $jPath $@
 		else
-			$sh $jailToolsPath/scripts/cpDep.sh $@
+			echo "These commands are only valid inside the root of a jail created by jailTools" >&2
+			exit 1
 		fi
 		exit $?
 	;;
@@ -83,10 +91,12 @@ case $cmd in
 	;;
 
 	daemon)
-		if [ "$1" = "" ]; then
-			jPath="."
-		else
-			jPath="$1"
+		jPath="."
+		if [ "$1" != "" ]; then
+			if [ -d $1 ]; then
+				jPath="$1"
+				shift
+			fi
 		fi
 
 		if detectJail $jPath; then
