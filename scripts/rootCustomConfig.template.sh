@@ -164,7 +164,7 @@ prepCustom() {
 	# we check if the file first exists. If not, we create it.
 	# you can do the same thing with directories by doing "[ ! -d ..." and "&& mkdir ..."
 	# Do note that it is no longer necessary to unmount these directories in stopCustom.
-	# [ ! -e $rootDir/root/home/.Xauthority ] && touch .Xauthority
+	# [ ! -e $rootDir/root/home/.Xauthority ] && touch $rootDir/root/home/.Xauthority
 	#
 	# mounting Xauthority manually (crucial for supporting X11)
 	# execNS mount --bind /home/yourUser/.Xauthority $rootDir/root/home/.Xauthority
