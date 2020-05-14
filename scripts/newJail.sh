@@ -144,9 +144,9 @@ defNetInterface=$(ip route | grep '^default' | sed -e 's/^.* dev \([^ ]*\) .*$/\
 
 echo Internet facing network interface : $defNetInterface
 
-populateFile $ownPath/jailLib.template.sh @SHELL@ "$sh" @BUSYBOXPATH@ "$busyboxPath" > $newChrootHolder/jailLib.sh
+populateFile $ownPath/jailLib.template.sh @SHELL@ "$sh" @BUSYBOXPATH@ "$busyboxPath" @MAINJAILUSERNAME@ "$mainJailUsername" > $newChrootHolder/jailLib.sh
 
-populateFile $ownPath/startRoot.template.sh @SHELL@ "$sh" @BUSYBOXPATH@ "$busyboxPath" @MAINJAILUSERNAME@ "$mainJailUsername" > $newChrootHolder/startRoot.sh
+populateFile $ownPath/startRoot.template.sh @SHELL@ "$sh" @BUSYBOXPATH@ "$busyboxPath" > $newChrootHolder/startRoot.sh
 
 populateFile $ownPath/rootCustomConfig.template.sh @SHELL@ "$sh" @JAILNAME@ "$jailName" @DEFAULTNETINTERFACE@ "$defNetInterface" > $newChrootHolder/rootCustomConfig.sh
 
