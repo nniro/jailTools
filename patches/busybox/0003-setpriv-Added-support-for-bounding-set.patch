@@ -1,0 +1,140 @@
+From fc3a96c0f73df83eba06f6e22c91985692635593 Mon Sep 17 00:00:00 2001
+From: Nicholas Niro <blowfist@xroutine.net>
+Date: Mon, 18 May 2020 02:39:04 -0400
+Subject: [PATCH] setpriv: Added support for --bounding-set.
+
+---
+ include/libbb.h      |  1 +
+ libbb/capability.c   |  5 +++++
+ util-linux/setpriv.c | 47 +++++++++++++++++++++++++++++++++++++++++---
+ 3 files changed, 50 insertions(+), 3 deletions(-)
+
+diff --git a/include/libbb.h b/include/libbb.h
+index 021100db1..de9883685 100644
+--- a/include/libbb.h
++++ b/include/libbb.h
+@@ -1559,6 +1559,7 @@ extern void run_shell(const char *shell, int loginshell, const char **args) NORE
+ const char *get_shell_name(void) FAST_FUNC;
+ 
+ #if ENABLE_FEATURE_SETPRIV_CAPABILITIES || ENABLE_RUN_INIT
++int get_caps_count(void) FAST_FUNC;
+ unsigned cap_name_to_number(const char *cap) FAST_FUNC;
+ void printf_cap(const char *pfx, unsigned cap_no) FAST_FUNC;
+ void drop_capability(int cap_ordinal) FAST_FUNC;
+diff --git a/libbb/capability.c b/libbb/capability.c
+index d0ae78b91..45f5f9d07 100644
+--- a/libbb/capability.c
++++ b/libbb/capability.c
+@@ -58,6 +58,11 @@ static const char *const capabilities[] = {
+ 	"audit_read",
+ };
+ 
++int get_caps_count(void)
++{
++	return sizeof(capabilities) / sizeof(char *);
++}
++
+ unsigned FAST_FUNC cap_name_to_number(const char *cap)
+ {
+ 	unsigned i, n;
+diff --git a/util-linux/setpriv.c b/util-linux/setpriv.c
+index b69b8cbb6..cc2c43db8 100644
+--- a/util-linux/setpriv.c
++++ b/util-linux/setpriv.c
+@@ -58,6 +58,7 @@
+ //usage:	IF_FEATURE_SETPRIV_CAPABILITIES(
+ //usage:     "\n--inh-caps CAP,CAP	Set inheritable capabilities"
+ //usage:     "\n--ambient-caps CAP,CAP	Set ambient capabilities"
++//usage:     "\n--bounding-set CAP,CAP	Set bounding set capabilities"
+ //usage:	)
+ 
+ //setpriv from util-linux 2.28:
+@@ -115,11 +116,13 @@ enum {
+ 	IF_FEATURE_SETPRIV_DUMP(OPTBIT_DUMP,)
+ 	IF_FEATURE_SETPRIV_CAPABILITIES(OPTBIT_INH,)
+ 	IF_FEATURE_SETPRIV_CAPABILITIES(OPTBIT_AMB,)
++	IF_FEATURE_SETPRIV_CAPABILITIES(OPTBIT_BND,)
+ 	OPTBIT_NNP,
+ 
+ 	IF_FEATURE_SETPRIV_DUMP(OPT_DUMP = (1 << OPTBIT_DUMP),)
+ 	IF_FEATURE_SETPRIV_CAPABILITIES(OPT_INH  = (1 << OPTBIT_INH),)
+ 	IF_FEATURE_SETPRIV_CAPABILITIES(OPT_AMB  = (1 << OPTBIT_AMB),)
++	IF_FEATURE_SETPRIV_CAPABILITIES(OPT_BND  = (1 << OPTBIT_BND),)
+ 	OPT_NNP  = (1 << OPTBIT_NNP),
+ };
+ 
+@@ -186,6 +189,41 @@ static void set_ambient_caps(char *string)
+ 		cap = strtok(NULL, ",");
+ 	}
+ }
++
++static void set_bounding_set_caps(char *capstring)
++{
++	uint64_t cCaps = 0, intr = 1; /* all values present in cCaps are dropped, so this calls for a reverse logic */
++	int capsTotal = get_caps_count();
++
++	capstring = strtok(capstring, ",");
++
++	while (capstring) {
++		unsigned int cap;
++
++		if (!strncmp("all", &capstring[1], 3)) {
++			if (capstring[0] == '-')
++				cCaps = 0xffffffffffffffff;
++			else
++				cCaps = 0;
++		} else {
++			cap = parse_cap(capstring);
++			if (cap < 0)
++				bb_error_msg_and_die("error, %s is an invalid cap name or it has to be prefixed with either '-' or '+'\n", capstring);
++
++			if (capstring[0] == '-') {
++				intr <<= cap; cCaps |= intr; intr = 1;
++			} else { /* XOR (remove) the value only if it is already present */
++				intr <<= cap; cCaps & intr ? cCaps ^= intr : cCaps; intr = 1;
++			}
++		}
++		capstring = strtok(NULL, ",");
++	}
++
++	for (int i = 0; i < capsTotal; i++) {
++		if (cCaps & ((uint64_t)1 << i)) /* any cap in cCaps are dropped, so this calls for a reverse logic */
++			prctl(PR_CAPBSET_DROP, i, 0, 0, 0);
++	}
++}
+ #endif /* FEATURE_SETPRIV_CAPABILITIES */
+ 
+ #if ENABLE_FEATURE_SETPRIV_DUMP
+@@ -297,16 +335,17 @@ int setpriv_main(int argc UNUSED_PARAM, char **argv)
+ 		IF_FEATURE_SETPRIV_CAPABILITIES(
+ 		"inh-caps\0"     Required_argument	"\xfe"
+ 		"ambient-caps\0" Required_argument	"\xfd"
++		"bounding-set\0" Required_argument	"\xfc"
+ 		)
+ 		;
+ 	int opts;
+-	IF_FEATURE_SETPRIV_CAPABILITIES(char *inh_caps, *ambient_caps;)
++	IF_FEATURE_SETPRIV_CAPABILITIES(char *inh_caps, *ambient_caps, *bounding_set;)
+ 
+ 	opts = getopt32long(argv, "+"
+ 		IF_FEATURE_SETPRIV_DUMP("d")
+-		IF_FEATURE_SETPRIV_CAPABILITIES("\xfe:\xfd:"),
++		IF_FEATURE_SETPRIV_CAPABILITIES("\xfe:\xfd:\xfc:"),
+ 		setpriv_longopts
+-		IF_FEATURE_SETPRIV_CAPABILITIES(, &inh_caps, &ambient_caps)
++		IF_FEATURE_SETPRIV_CAPABILITIES(, &inh_caps, &ambient_caps, &bounding_set)
+ 	);
+ 	argv += optind;
+ 
+@@ -327,6 +366,8 @@ int setpriv_main(int argc UNUSED_PARAM, char **argv)
+ 		set_inh_caps(inh_caps);
+ 	if (opts & OPT_AMB)
+ 		set_ambient_caps(ambient_caps);
++	if (opts & OPT_BND)
++		set_bounding_set_caps(bounding_set);
+ #endif
+ 
+ 	if (!argv[0])
+-- 
+2.26.2
+

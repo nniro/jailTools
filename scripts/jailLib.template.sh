@@ -654,7 +654,7 @@ prepareChroot() {
 		fi
 	fi
 
-	($preUnshare $bb unshare $unshareArgs ${unshareSupport}f -- sh -c "exec $(runChroot $runChrootArgs $rootDir $chrootCmd)") &
+	($preUnshare $bb unshare $unshareArgs ${unshareSupport}f -- $bb setpriv --bounding-set -all,+setpcap,+sys_chroot sh -c "exec $(runChroot $runChrootArgs $rootDir setpriv --bounding-set -all,+net_bind_service $chrootCmd)") &
 	innerNSpid=$!
 	sleep 1
 	innerNSpid=$($bb pgrep -P $innerNSpid)
@@ -787,7 +787,7 @@ runJail() {
 	fi
 
 	#echo "runJail running : $chrootCmd"
-	execNS $bb sh -c "exec $(runChroot $runChrootArgs $rootDir $chrootCmd)"
+	execNS $bb setpriv --bounding-set -all,+setpcap,+sys_chroot,+net_bind_service $bb sh -c "exec $(runChroot $runChrootArgs $rootDir setpriv --bounding-set -all,+net_bind_service $chrootCmd)"
 	return $?
 }
 
