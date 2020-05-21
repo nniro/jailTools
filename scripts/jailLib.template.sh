@@ -658,7 +658,7 @@ prepareChroot() {
 		fi
 	fi
 
-	($preUnshare $bb unshare $unshareArgs ${unshareSupport}f -- $bb setpriv --bounding-set -all,+setpcap,+sys_chroot sh -c "exec $(runChroot $runChrootArgs $rootDir setpriv --bounding-set -all,+net_bind_service $chrootCmd)") &
+	($preUnshare $bb unshare $unshareArgs ${unshareSupport}f -- $bb setpriv --bounding-set -all,+setpcap,+sys_chroot $bb sh -c "exec $(runChroot $runChrootArgs $rootDir setpriv --bounding-set -all,+net_bind_service $chrootCmd)") &
 	innerNSpid=$!
 	sleep 1
 	innerNSpid=$($bb pgrep -P $innerNSpid)
