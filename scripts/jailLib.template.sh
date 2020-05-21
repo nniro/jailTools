@@ -57,7 +57,24 @@ if echo $unshareSupport | grep -q 'n'; then # check for network namespace suppor
 	unshareSupport=$(echo $unshareSupport | sed -e 's/n//')
 fi
 
-if echo $unshareSupport | grep -q 'U'; then userNS=true; else userNS=false; fi
+if echo $unshareSupport | grep -q 'U'; then
+	if [ -e /proc/sys/kernel/unprivileged_userns_clone ]; then
+		if [ "$(cat /proc/sys/kernel/unprivileged_userns_clone)" = "0" ]; then
+			if [ "$privileged" = "0" ]; then
+				echo "User namespace support is currently disabled. This has to be enabled to support starting a jail unprivileged." >&2
+				echo "Until the change is done, creating a jail requires privileges." >&2
+				echo "\tPlease do (as root) : echo 1 > /proc/sys/kernel/unprivileged_userns_clone   or find the method suitable for your distribution to activate unprivileged user namespace clone" >&2
+			fi
+			userNS=false
+		else
+			userNS=true
+		fi
+	else
+		userNS=true
+	fi
+else
+	userNS=false
+fi
 
 nsenterSupport=$(echo "$unshareSupport" | sed -e 's/^-//' | sed -e 's/\(.\)/-\1 /g')
 if [ "$netNS" = "true" ]; then nsenterSupport="$nsenterSupport -n"; fi
@@ -647,9 +664,13 @@ prepareChroot() {
 		preUnshare="$bb chpst -u $userCreds"
 		unshareArgs="-r"
 		runChrootArgs="-r"
-	else # unprivileged
+	elif [ "$privileged" = "0" ] && [ "$userNS" = "true" ]; then # unprivileged
 		unshareArgs="-r"
 		runChrootArgs="-r"
+	else
+		unshareArgs=""
+		runChrootArgs=""
+		unshareSupport=$(echo "$unshareSupport" | sed -e 's/U//g')
 	fi # unprivileged
 
 	if [ "$jailNet" = "true" ]; then
@@ -658,10 +679,16 @@ prepareChroot() {
 		fi
 	fi
 
-	($preUnshare $bb unshare $unshareArgs ${unshareSupport}f -- $bb setpriv --bounding-set -all,+setpcap,+sys_chroot $bb sh -c "exec $(runChroot $runChrootArgs $rootDir setpriv --bounding-set -all,+net_bind_service $chrootCmd)") &
+	($preUnshare $bb unshare $unshareArgs ${unshareSupport}f -- $bb setpriv --bounding-set -all,+setpcap,+sys_chroot,+dac_override,+setuid,+setgid $bb sh -c "exec $(runChroot $runChrootArgs $rootDir $chrootCmd)") &
 	innerNSpid=$!
 	sleep 1
 	innerNSpid=$($bb pgrep -P $innerNSpid)
+
+	if [ "$innerNSpid" = "" ]; then
+		echo "Creating the inner namespace session failed, bailing out" >&2
+		return 1
+	fi
+
 	echo $innerNSpid > $rootDir/run/ns.pid
 	chmod o+r $rootDir/run/ns.pid
 
@@ -741,7 +768,7 @@ runChroot() {
 		done
 	fi
 
-	printf "%s" "$bb chpst $chrootArgs -/ $rootDir/root env - PATH=/usr/bin:/bin USER=$user HOME=/home HOSTNAME=nowhere.here TERM=linux $chrootCmd"
+	printf "%s" "$bb chpst -/ $rootDir/root setpriv --bounding-set -all,+setuid,+setgid,+net_bind_service chpst $chrootArgs env - PATH=/usr/bin:/bin USER=$user HOME=/home HOSTNAME=nowhere.here TERM=linux $chrootCmd"
 }
 
 runJail() {
@@ -791,7 +818,7 @@ runJail() {
 	fi
 
 	#echo "runJail running : $chrootCmd"
-	execNS $bb setpriv --bounding-set -all,+setpcap,+sys_chroot,+net_bind_service $bb sh -c "exec $(runChroot $runChrootArgs $rootDir setpriv --bounding-set -all,+net_bind_service $chrootCmd)"
+	execNS $bb setpriv --bounding-set -all,+setpcap,+sys_chroot,+dac_override,+setuid,+setgid,+net_bind_service $bb sh -c "exec $(runChroot $runChrootArgs $rootDir $chrootCmd)"
 	return $?
 }
 
