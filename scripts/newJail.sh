@@ -95,7 +95,7 @@ touch $newChrootHolder/rootCustomConfig.sh
 
 for fPath in $filesystem; do
 	mkdir $newChrootDir/$fPath
-	chmod 704 $newChrootDir/$fPath
+	chmod 705 $newChrootDir/$fPath
 done
 
 if [ -h /lib64 ]; then
