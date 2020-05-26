@@ -33,7 +33,7 @@ $(MUSL): musl/lib/libc.so
 
 $(BUSYBOX): $(MUSL) busybox/configure
 	cp busybox.config busybox/.config
-	sh -c 'cd busybox; git apply $(PROJECTROOT)/patches/busybox/*.patch'
+	sh -c 'cd busybox; git apply $(PROJECTROOT)/patches/busybox/*.patch 2>/dev/null; exit 0'
 	sed -e 's@ gcc@ $(PROJECTROOT)/$(GCC)@ ;s@)gcc@)$(PROJECTROOT)/$(GCC)@' -i busybox/Makefile
 	make HOSTCFLAGS=-static HOSTLDFLAGS=-static -C busybox
 
