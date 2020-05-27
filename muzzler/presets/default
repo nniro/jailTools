@@ -1,0 +1,8 @@
+[config]
+description=Default Syscalls
+
+[presets]
+process
+fs
+control
+basic

@@ -1,0 +1,13 @@
+[config]
+description=Process IO
+
+[syscalls]
+kill
+vhangup
+getrlimit
+getgroups
+exit_group
+^.etpriority
+pidfd_send_signal
+setreuid
+setregid

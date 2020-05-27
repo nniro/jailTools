@@ -1,0 +1,10 @@
+[config]
+description=Miscellaneous
+
+[syscalls]
+personality
+^sem
+^msg
+^process
+^rseq
+pidfd_open

@@ -1,0 +1,10 @@
+[config]
+description=System Information
+
+[syscalls]
+# core system information
+syslog
+getcpu
+uname
+getrusage
+sysinfo

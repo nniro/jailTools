@@ -1,0 +1,7 @@
+[config]
+description=Security
+
+[syscalls]
+prctl
+seccomp
+bpf

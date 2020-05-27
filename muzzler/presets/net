@@ -1,0 +1,16 @@
+[config]
+description=Networking IO
+
+[syscalls]
+sock
+^bind
+listen
+accept
+connect
+sendto
+recvfrom
+peer
+sendmmsg
+sendmsg
+recvmsg
+recvmmsg

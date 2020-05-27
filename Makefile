@@ -7,20 +7,32 @@ MUSL=musl
 BUSYBOX=busybox
 ZLIB=zlib
 SSHD=sshd
+SECCOMP=seccomp
 LDFLAGS=-static
 GCC=$(MUSLGCC)
 PROJECTROOT=$(PWD)
+MUZZLER=
+MUZZLER_CLEAN=
 
-.PHONY: $(MUSL) $(BUSYBOX) $(ZLIB) $(SSHD)
+.PHONY: $(MUSL) $(BUSYBOX) $(ZLIB) $(SECCOMP) $(SSHD)
 
-ALL: $(SSHD) $(BUSYBOX) $(MUSL)
+hasMeson=$(shell which meson >/dev/null 2>/dev/null && echo yes || echo no)
 
-musl/configure:
+ifeq ($(hasMeson),yes)
+	MUZZLER=muzzler
+	MUZZLER_CLEAN=muzzler_clean
+.PHONY: $(MUZZLER) $(MUZZLER_CLEAN)
+endif
+
+ALL: $(MUZZLER) $(SECCOMP) $(SSHD) $(BUSYBOX) $(MUSL)
+
+musl/.ready:
 	git submodule init musl
 	git submodule update musl
 	sh -c 'cd musl; ./configure --prefix=$(PROJECTROOT)/usr'
+	touch musl/.ready
 
-$(MUSL): musl/configure
+$(MUSL): musl/.ready
 	$(MAKE) -C musl
 	$(MAKE) -C musl install
 
@@ -61,11 +73,38 @@ openssh/Makefile: openssh/configure
 $(SSHD): openssh/Makefile $(ZLIB) $(MUSL)
 	$(MAKE) -C openssh
 
+libseccomp/configure: $(MUSL)
+	git submodule init libseccomp
+	git submodule update libseccomp
+
+libseccomp/Makefile: libseccomp/configure
+	sh -c 'cd libseccomp; sh autogen.sh'
+	sh -c 'cd libseccomp; CC=$(PROJECTROOT)/$(GCC) CFLAGS="-static -Os" LDFLAGS="-static" ./configure --prefix=$(PROJECTROOT)/usr'
+
+$(SECCOMP): libseccomp/Makefile $(MUSL)
+	$(MAKE) -C libseccomp
+	$(MAKE) -C libseccomp install
+
+mesonNative:
+	echo "[binaries]\nc = '$(PROJECTROOT)/usr/bin/musl-gcc'" > mesonNative
+
+buildMuzzler/build.ninja: mesonNative $(SECCOMP) $(MUSL)
+	meson --prefix=$(PROJECTROOT)/usr --native-file mesonNative ./muzzler buildMuzzler
+
+$(MUZZLER): buildMuzzler/build.ninja $(SECCOMP) $(MUSL)
+	ninja -C buildMuzzler install
+
+$(MUZZLER_CLEAN):
+	-ninja -C buildMuzzler clean
+	rm -Rf buildMuzzler
+
 .PHONY: clean
-clean:
+clean: $(MUZZLER_CLEAN)
 	$(MAKE) -C musl clean
+	rm musl/.ready
 	$(MAKE) -C busybox clean
 	sh -c 'cd busybox; git reset --hard; rm .ready'
 	$(MAKE) -C zlib clean
 	$(MAKE) -C openssh clean
+	$(MAKE) -C libseccomp clean
 	rm -Rf usr/bin/* usr/lib/* usr/include/*

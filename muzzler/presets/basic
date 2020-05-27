@@ -1,0 +1,54 @@
+[config]
+description=Basic IO
+
+[syscalls]
+^read
+^write
+^pread
+^pwrite
+^exit
+^open
+seek
+close
+pipe
+dup
+clone
+^wait
+
+# process memory allocation
+brk
+
+sleep
+
+sendfile
+random
+
+^mq_
+itimer
+getcap
+splice
+gettimeofday
+^times
+^timer
+
+# file events
+eventfd
+inotify
+anotify
+
+mmap
+munmap
+mprotect
+
+poll
+select
+
+memfd
+^clock
+signalfd
+^rt_
+setsid
+
+# futex
+futex
+robust_list

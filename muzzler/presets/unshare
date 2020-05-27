@@ -1,0 +1,6 @@
+[config]
+description=Namespaces
+
+[syscalls]
+unshare
+setns

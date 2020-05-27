@@ -1,0 +1,11 @@
+[config]
+description=Control IO
+
+[syscalls]
+^exec
+fcntl
+ioctl
+
+setpgid
+
+set_tid_address

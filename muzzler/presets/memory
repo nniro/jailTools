@@ -1,0 +1,17 @@
+[config]
+description=Memory IO
+
+[syscalls]
+shm
+mremap
+mlock
+munlock
+msync
+madvise
+mbind
+^move
+membarrier
+pkey_
+pages
+mincore
+userfaultfd

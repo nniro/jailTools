@@ -1,0 +1,55 @@
+[config]
+description=Dangerous syscalls
+
+[syscalls]
+# chroot and pivot_root
+root
+
+# boot related
+boot
+shutdown
+
+# kernel related
+module
+mknod
+kexec
+kcmp
+
+# time setting
+clock_adjtime
+clock_settime
+settimeofday
+adjtimex
+
+# networking
+sethostname
+setdomainname
+
+# services
+nfs
+
+# mounting
+mount
+swap
+
+# filesystem
+quota
+
+# misc
+#set.*uid
+#set.*gid
+setuid
+setgid
+setresuid
+setresgid
+setgroups
+setfsuid
+setfsgid
+capset
+syscall
+sched
+^link
+mempolicy
+key
+prlimit
+setrlimit
