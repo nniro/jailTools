@@ -17,7 +17,7 @@ musl/configure:
 	git submodule init musl
 	git submodule update musl
 
-busybox/configure: $(MUSL)
+busybox/Makefile: $(MUSL)
 	git submodule init busybox
 	git submodule update busybox
 	ln -sf /usr/include/linux usr/include/
@@ -31,7 +31,7 @@ musl/lib/libc.so: musl/configure
 $(MUSL): musl/lib/libc.so
 	make -C musl install
 
-$(BUSYBOX): $(MUSL) busybox/configure
+$(BUSYBOX): $(MUSL) busybox/Makefile
 	cp busybox.config busybox/.config
 	sh -c 'cd busybox; git apply $(PROJECTROOT)/patches/busybox/*.patch 2>/dev/null; exit 0'
 	sed -e 's@ gcc@ $(PROJECTROOT)/$(GCC)@ ;s@)gcc@)$(PROJECTROOT)/$(GCC)@' -i busybox/Makefile
