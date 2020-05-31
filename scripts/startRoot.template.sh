@@ -30,12 +30,17 @@ fi
 prepareCmd() {
 	local env="$1"
 	local cmd="$2"
+	shift 2
 	local result=
 
-	if [ "$cmd" = "" ]; then
-		result="$env sh"
+	if [ "$1" != "" ]; then
+		result="$env $@"
 	else
-		result="$env $cmd"
+		if [ "$cmd" = "" ]; then
+			result="$env sh"
+		else
+			result="$env $cmd"
+		fi
 	fi
 
 	#echo $result >&2
@@ -60,7 +65,7 @@ cmdParse() {
 
 		start)
 			prepareChroot $ownPath || exit 1
-			runJail $ownPath $(prepareCmd "$runEnvironment" "$startCommand") $@
+			runJail $ownPath $(prepareCmd "$runEnvironment" "$startCommand" $@)
 			err=$?
 			stopChroot $ownPath
 			exit $err
@@ -84,7 +89,7 @@ cmdParse() {
 					echo "Entering the already started jail \`$jailName' unprivileged" >&2
 					runChrootArgs="-r"
 				fi
-				[ "$nsPid" != "" ] || echo "Unable to get the running namespace, bailing out" && execRemNS $nsPid sh -c "$(runChroot $runChrootArgs $ownPath $(prepareCmd "$runEnvironment" "$shellCommand") $@)"
+				[ "$nsPid" != "" ] || echo "Unable to get the running namespace, bailing out" && execRemNS $nsPid sh -c "$(runChroot $runChrootArgs $ownPath $(prepareCmd "$runEnvironment" "$shellCommand" $@))"
 				exit $?
 			else # we start a new jail
 				echo "This jail is not started, please start it with the \"daemon\" command" >&2
