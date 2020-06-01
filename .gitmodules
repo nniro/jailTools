@@ -13,4 +13,4 @@
 	url = https://github.com/openssh/openssh-portable.git
 [submodule "libseccomp"]
 	path = libseccomp
-	url = https://github.com/seccomp/libseccomp.git
+	url = https://github.com/seccomp/libseccomp
