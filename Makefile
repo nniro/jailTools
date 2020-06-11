@@ -26,7 +26,11 @@ endif
 
 ALL: $(MUZZLER) $(SECCOMP) $(SSHD) $(BUSYBOX) $(MUSL)
 
-musl/.ready:
+
+.ready:
+	$(shell sh checkExist.sh)
+
+musl/.ready: .ready
 	git submodule init musl
 	git submodule update musl
 	sh -c 'cd musl; ./configure --prefix=$(PROJECTROOT)/usr'
@@ -100,11 +104,12 @@ $(MUZZLER_CLEAN):
 
 .PHONY: clean
 clean: $(MUZZLER_CLEAN)
-	$(MAKE) -C musl clean
-	rm musl/.ready
-	$(MAKE) -C busybox clean
-	sh -c 'cd busybox; git reset --hard; rm .ready'
-	$(MAKE) -C zlib clean
-	$(MAKE) -C openssh clean
-	$(MAKE) -C libseccomp clean
+	-$(MAKE) -C musl clean
+	-rm musl/.ready
+	-$(MAKE) -C busybox clean
+	-sh -c 'cd busybox; git reset --hard; rm .ready'
+	-$(MAKE) -C zlib clean
+	-$(MAKE) -C openssh clean
+	-$(MAKE) -C libseccomp clean
 	rm -Rf usr/bin/* usr/lib/* usr/include/*
+	rm .ready
