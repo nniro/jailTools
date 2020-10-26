@@ -773,7 +773,7 @@ runChroot() {
 		done
 	fi
 
-	printf "%s" "$bb chpst -/ $rootDir/root setpriv --bounding-set -all,+setuid,+setgid,+net_bind_service chpst $chrootArgs env - PATH=/usr/bin:/bin USER=$user HOME=/home HOSTNAME=nowhere.here TERM=linux $chrootCmd"
+	printf "%s" "$bb chpst -/ $rootDir/root busybox setpriv --bounding-set -all,+setuid,+setgid,+net_bind_service chpst $chrootArgs env - PATH=/usr/bin:/bin USER=$user HOME=/home HOSTNAME=nowhere.here TERM=linux $chrootCmd"
 }
 
 runJail() {
