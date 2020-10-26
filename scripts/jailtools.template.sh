@@ -2,8 +2,6 @@
 
 jailToolsPath=@SCRIPT_PATH@
 
-uid=$(id -u)
-
 . $jailToolsPath/scripts/utils.sh # detectJail
 
 if [ "$jailToolsPath" = "@SCRIPT_PATH@" ]; then
