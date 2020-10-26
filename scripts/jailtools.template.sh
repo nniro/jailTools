@@ -18,7 +18,7 @@ uid=$(id -u)
 
 . $jailToolsPath/scripts/utils.sh # detectJail
 
-if [ "$jailToolsPath" = "ScriptPath" ]; then
+if [ "$jailToolsPath" = "@SCRIPT_PATH@" ]; then
 	exit 1 # this script has to be installed to be used.
 fi
 
