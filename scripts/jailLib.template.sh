@@ -89,7 +89,7 @@ if [ "$privileged" = "0" ]; then
 	fi
 	if [ "$configNet" = "true" ]; then 
 		configNet="false"
-		echo "Unprivileged jails do not support the setting configNet, turning it off"
+		echo "Unprivileged jails do not support the setting configNet, turning it off" >&2
 	fi
 fi
 
