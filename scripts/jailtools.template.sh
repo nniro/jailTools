@@ -41,12 +41,23 @@ showHelp() {
 	printf "    start, stop, shell\t\tthese are jailTools specific commands to be used inside a jailTools directory only.\n"
 }
 
+showJailPathError() {
+	echo "These commands are only valid inside the root of a jail created by jailTools or with a valid jail path" >&2
+	exit 1
+}
+
 cmd=$1
 if [ "$cmd" = "" ]; then
 	showHelp
 	exit 0
 fi
 shift
+
+jPath="."
+
+checkJailPath() {
+	[ "$1" != "" ] && [ -d $1 ] && detectJail $1
+}
 
 case $cmd in
 	help|h)
@@ -59,75 +70,37 @@ case $cmd in
 	;;
 
 	cp|cpDep)
-		jPath="."
-		if [ "$1" != "" ]; then
-			if [ -d $1 ] && detectJail $1; then
-				jPath="$1"
-				shift
-			fi
-		fi
-		if detectJail $jPath; then
-			$sh $jailToolsPath/scripts/cpDep.sh $jPath $@
-		else
-			echo "These commands are only valid inside the root of a jail created by jailTools" >&2
-			exit 1
-		fi
+		checkJailPath $1 && jPath="$1" && shift
+		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
+
+		$sh $jailToolsPath/scripts/cpDep.sh $jPath $@
 		exit $?
 	;;
 
 	start|stop|shell)
-		jPath="."
-		if [ "$1" != "" ]; then
-			if [ -d $1 ]; then
-				jPath="$1"
-				shift
-			fi
-		fi
+		checkJailPath $1 && jPath="$1" && shift
+		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
 
-		if detectJail $jPath; then
-			$sh $jPath/startRoot.sh $cmd $@
-		else
-			echo "These commands are only valid inside the root of a jail created by jailTools" >&2
-			exit 1
-		fi
+		$sh $jPath/startRoot.sh $cmd $@
 		exit $?
 	;;
 
 	daemon)
-		jPath="."
-		if [ "$1" != "" ]; then
-			if [ -d $1 ]; then
-				jPath="$1"
-				shift
-			fi
-		fi
+		checkJailPath $1 && jPath="$1" && shift
+		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
 
-		if detectJail $jPath; then
-			($bb nohup $sh $jPath/startRoot.sh 'daemon' 2>&1 > $jPath/run/daemon.log) &
-			#if [ "$?" != "0" ]; then echo "There was an error starting the daemon, it may already be running."; fi
-		else
-			echo "These commands are only valid inside the root of a jail created by jailTools" >&2
-			exit 1
-		fi
+		($bb nohup $sh $jPath/startRoot.sh 'daemon' 2>&1 > $jPath/run/daemon.log) &
+		#if [ "$?" != "0" ]; then echo "There was an error starting the daemon, it may already be running."; fi
+
 		exit $?
 	;;
 
 	upgrade)
-		jPath="."
-		if [ "$1" != "" ]; then
-			if [ -d $1 ]; then
-				jPath="$1"
-				shift
-			fi
-		fi
+		checkJailPath $1 && jPath="$1" && shift
+		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
 
-		if detectJail $jPath; then
-			. $jailToolsPath/scripts/jailUpgrade.sh
-			startUpgrade $jPath $@
-		else
-			echo "These commands are only valid inside the root of a jail created by jailTools" >&2
-			exit 1
-		fi
+		. $jailToolsPath/scripts/jailUpgrade.sh
+		startUpgrade $jPath $@
 	;;
 
 	*)
