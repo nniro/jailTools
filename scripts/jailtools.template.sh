@@ -27,6 +27,8 @@ if [ ! -e $jailToolsPath/busybox/busybox ]; then
 	exit 1
 fi
 
+bb=$jailToolsPath/busybox/busybox
+
 showHelp() {
 	echo "Usage:"
 	echo "  $(basename $0) <command> [jail path] [command options]"
@@ -101,7 +103,7 @@ case $cmd in
 		fi
 
 		if detectJail $jPath; then
-			($jailToolsPath/busybox/busybox nohup $sh $jPath/startRoot.sh 'daemon' 2>&1 > $jPath/run/daemon.log) &
+			($bb nohup $sh $jPath/startRoot.sh 'daemon' 2>&1 > $jPath/run/daemon.log) &
 			#if [ "$?" != "0" ]; then echo "There was an error starting the daemon, it may already be running."; fi
 		else
 			echo "These commands are only valid inside the root of a jail created by jailTools" >&2
