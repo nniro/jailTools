@@ -26,7 +26,7 @@ if [ "$1" != "" ]; then
 		fi
 
 		# we change the internal path to the path where this script is
-		populateFile $scriptsDir/scripts/jailtools.template.sh \/bin\/sh "$sh" ScriptPath $scriptsDir > $1/jailtools
+		populateFile $scriptsDir/scripts/jailtools.template.sh \/bin\/sh "$sh" @SCRIPT_PATH@ $scriptsDir > $1/jailtools
 		ln -sfT $1/jailtools $1/jtools
 		ln -sfT $1/jailtools $1/jt
 		chmod u+x $1/jailtools

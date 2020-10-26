@@ -12,7 +12,7 @@ case "$(readlink -f /proc/$$/exe)" in
 	;;
 esac
 
-jailToolsPath=ScriptPath
+jailToolsPath=@SCRIPT_PATH@
 
 uid=$(id -u)
 
