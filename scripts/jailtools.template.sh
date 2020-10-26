@@ -29,7 +29,8 @@ fi
 
 showHelp() {
 	echo "Usage:"
-	echo "  $(basename $0) <command> [command options]"
+	echo "  $(basename $0) <command> [jail path] [command options]"
+	echo "	(leave the jail path empty for the current directory)"
 	echo
 	echo "Available commands :"
 	printf "    help, h\t\t\tdisplay this help\n"
