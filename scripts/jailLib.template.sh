@@ -375,6 +375,11 @@ joinBridgeByJail() {
 	local isDefaultRoute=$2
 	local internalIpNum=$3
 
+	if [ "$privileged" = "0" ]; then
+		echo "This is not possible from an unprivileged jail" >&2
+		return
+	fi
+
 	if [ -d $jailLocation/root ] && [ -d $jailLocation/run ] && [ -f $jailLocation/startRoot.sh ] && [ -f $jailLocation/rootCustomConfig.sh ]; then
 		local confPath=$jailLocation/rootCustomConfig.sh
 
