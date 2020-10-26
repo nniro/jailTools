@@ -1,17 +1,5 @@
 #! /bin/sh
 
-case "$(readlink -f /proc/$$/exe)" in
-	*busybox)
-		sh="$(readlink -f /proc/$$/exe) sh"
-		echo "using shell : $sh" >&2
-	;;
-
-	*)
-		sh="$(readlink -f /proc/$$/exe)"
-		echo "using shell : $sh" >&2
-	;;
-esac
-
 jailToolsPath=@SCRIPT_PATH@
 
 uid=$(id -u)
@@ -65,7 +53,7 @@ case $cmd in
 	;;
 
 	new|create)
-		$sh $jailToolsPath/scripts/newJail.sh $@
+		$bb sh $jailToolsPath/scripts/newJail.sh $@
 		exit $?
 	;;
 
@@ -73,7 +61,7 @@ case $cmd in
 		checkJailPath $1 && jPath="$1" && shift
 		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
 
-		$sh $jailToolsPath/scripts/cpDep.sh $jPath $@
+		$bb sh $jailToolsPath/scripts/cpDep.sh $jPath $@
 		exit $?
 	;;
 
@@ -81,7 +69,7 @@ case $cmd in
 		checkJailPath $1 && jPath="$1" && shift
 		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
 
-		$sh $jPath/startRoot.sh $cmd $@
+		$bb sh $jPath/startRoot.sh $cmd $@
 		exit $?
 	;;
 
@@ -89,7 +77,7 @@ case $cmd in
 		checkJailPath $1 && jPath="$1" && shift
 		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
 
-		($bb nohup $sh $jPath/startRoot.sh 'daemon' 2>&1 > $jPath/run/daemon.log) &
+		($bb nohup $bb sh $jPath/startRoot.sh 'daemon' 2>&1 > $jPath/run/daemon.log) &
 		#if [ "$?" != "0" ]; then echo "There was an error starting the daemon, it may already be running."; fi
 
 		exit $?
