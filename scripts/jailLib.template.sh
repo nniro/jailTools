@@ -87,9 +87,9 @@ if [ "$privileged" = "0" ]; then
 		echo "The user namespace is not supported. Can't start an unprivileged jail without it, bailing out." >&2
 		exit 1
 	fi
-	if [ "$configNet" = "true" ]; then 
-		configNet="false"
-		echo "Unprivileged jails do not support the setting configNet, turning it off" >&2
+	if [ "$networking" = "true" ]; then
+		networking="false"
+		echo "Unprivileged jails do not support the setting networking, turning it off" >&2
 	fi
 fi
 
@@ -98,18 +98,18 @@ if [ "$netNS" = "false" ] && [ "$jailNet" = "true" ]; then
 	echo "jailNet is set to false automatically as it needs network namespace support which is not available." >&2
 fi
 
-if [ "$configNet" = "true" ]; then
+if [ "$networking" = "true" ]; then
 	iptablesBin=$(PATH="$PATH:/sbin:/usr/sbin:/usr/local/sbin" command which iptables 2>/dev/null)
 
 	if [ "$iptablesBin" = "" ]; then
-		echo "The firewall \`iptables' was chosen but it needs the command \`iptables' which is not available or it's not in the available path. Setting configNet to false." >&2
-		configNet=false
+		echo "The firewall \`iptables' was chosen but it needs the command \`iptables' which is not available or it's not in the available path. Setting networking to false." >&2
+		networking=false
 	fi
 fi
 
 if [ "$(cat /proc/sys/net/ipv4/ip_forward)" = "0" ]; then
-	configNet=false
-	echo "The ip_forward bit in /proc/sys/net/ipv4/ip_forward is disabled. This has to be enabled to get handled network support. Setting configNet to false." >&2
+	networking=false
+	echo "The ip_forward bit in /proc/sys/net/ipv4/ip_forward is disabled. This has to be enabled to get handled network support. Setting networking to false." >&2
 	echo "\tPlease do (as root) : echo 1 > /proc/sys/net/ipv4/ip_forward  or find the method suitable for your distribution to activate IP forwarding." >&2
 fi
 
@@ -721,7 +721,7 @@ prepareChroot() {
 			execNS $bb ip link set up $bridgeName
 		fi
 
-		if [ "$configNet" = "true" ]; then
+		if [ "$networking" = "true" ]; then
 			$bb ip link add $vethExt type veth peer name $vethInt
 			$bb ip link set $vethExt up
 			$bb ip link set $vethInt netns $innerNSpid

@@ -47,10 +47,10 @@ bridgeIpBitmask=24
 # When it's false, you can still manually connect to the net if you like or
 # join a bridge to gain fine grained access to ressources.
 # Only valid if jailNet=true
-configNet=false
+networking=false
 
 # this is the external IP.
-# Only valid if configNet=true
+# Only valid if networking=true
 extIp=192.168.12.1
 extIpBitmask=24
 
@@ -65,7 +65,7 @@ netInterface=@DEFAULTNETINTERFACE@
 # SNAT or Masquerading. This will make the jail able to
 # access the internet and your LAN as if it was on the
 # host system.
-# Only valid if configNet=true
+# Only valid if networking=true
 setNetAccess=false
 
 # chroot internal IP
@@ -76,7 +76,7 @@ setNetAccess=false
 ipInt=$(echo $extIp | $bb sed -e 's/^\(.*\)\.[0-9]*$/\1\./')2
 # chroot internal IP mask
 ipIntBitmask=24
-# These are setup only if configNet is true
+# These are setup only if networking is true
 # the external veth interface name (only 15 characters maximum)
 vethExt=$(substring 0 13 $jailName)ex
 # the internal veth interface name (only 15 characters maximum)
