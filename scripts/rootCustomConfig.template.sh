@@ -25,14 +25,17 @@ substring() {
 
 jailName=@JAILNAME@
 
-# if you set to false, the chroot will have exactly the same
-# network access as the base system.
+# If set to true, this will create a new network namespace for the jail
+# enabling the jail to have it's own "private" network access.
+# When false, the jail gets exactly the same network access as the
+# base system.
 jailNet=true
 
-# If set to true, we will create a new bridge with the name
-# bridgeName(see below) in our ns creatensId. This permits
-# external sources to join it and potentially gaining access
-# to services on this jail.
+# If set to true, a new bridge will be created with the name
+# bridgeName(see below). This permits external sources to join
+# it (jails or otherwise) and potentially gaining access to
+# services from this jail.
+# NOTE : Creating a bridge requires privileged access.
 createBridge=false
 # this is the bridge we will create if createBridge=true
 bridgeName=$(substring 0 13 $jailName)
@@ -40,13 +43,13 @@ bridgeName=$(substring 0 13 $jailName)
 bridgeIp=192.168.99.1
 bridgeIpBitmask=24
 
-# If you put true here the script will create a veth pair on the base
-# namespace and in the jail and do it's best to allow the internet through
-# these. The default routing will pass through this device to potentially
-# give internet access through it, depending on your choice of firewall below.
-# When it's false, you can still manually connect to the net if you like or
-# join a bridge to gain fine grained access to ressources.
-# Only valid if jailNet=true
+# This creates a pair of virtual ethernet devices which can be
+# used to access the ressources from this jail from the base system
+# and, with the help of firewall rules, access from abroad too.
+# It does not grant access to the internet by itself.
+# See setNetAccess for that.
+# NOTE : This is only available when jailNet=true.
+# NOTE : Enabling networking requires privileged access.
 networking=false
 
 # this is the external IP.
