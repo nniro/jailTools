@@ -126,12 +126,12 @@ shellCommand=""
 # manually like the Xauthority example in the function prepCustom.
 
 # dev mount points : read-write, no-exec
-devMountPoints_CUSTOM=$(cat << EOF
+devMountPoints=$(cat << EOF
 EOF
 )
 
 # read-only mount points with exec
-roMountPoints_CUSTOM=$(cat << EOF
+roMountPoints=$(cat << EOF
 /usr/share/locale
 /usr/lib/locale
 /usr/lib/gconv
@@ -139,7 +139,7 @@ EOF
 )
 
 # read-write mount points with exec
-rwMountPoints_CUSTOM=$(cat << EOF
+rwMountPoints=$(cat << EOF
 EOF
 )
 
@@ -173,7 +173,7 @@ prepCustom() {
 	# execNS mount --bind /home/yourUser/.Xauthority $rootDir/root/home/.Xauthority
 
 	# for programs, you may want to have the /sys special directory mounted.
-	# unfortunately, it won't work adding it into the roMountPoints_CUSTOM section anymore
+	# unfortunately, it won't work adding it into the roMountPoints section anymore
 	# so you have to mount it manually like so :
 	# execNS mount -tsysfs none $rootDir/root/sys
 	# NOTE : only mount this for applications, not for services as it tells a whole lot about the system itself.

@@ -113,21 +113,6 @@ if [ "$(cat /proc/sys/net/ipv4/ip_forward)" = "0" ]; then
 	echo "\tPlease do (as root) : echo 1 > /proc/sys/net/ipv4/ip_forward  or find the method suitable for your distribution to activate IP forwarding." >&2
 fi
 
-# dev mount points : read-write, no-exec
-devMountPoints=$(cat << EOF
-EOF
-)
-
-# read-only mount points with exec
-roMountPoints=$(cat << EOF
-EOF
-)
-
-# read-write mount points with exec
-rwMountPoints=$(cat << EOF
-EOF
-)
-
 # mkdir -p with a mode only applies the mode to the last child dir... this function applies the mode to all directories
 # arguments :
 #		-m [directory permission mode in octal]
@@ -706,9 +691,6 @@ prepareChroot() {
 	mountMany $rootDir/root "ro,exec" $roMountPoints
 	mountMany $rootDir/root "defaults" $rwMountPoints
 
-	mountMany $rootDir/root "rw,noexec" $devMountPoints_CUSTOM
-	mountMany $rootDir/root "ro,exec" $roMountPoints_CUSTOM
-	mountMany $rootDir/root "defaults" $rwMountPoints_CUSTOM
 
 	if [ "$jailNet" = "true" ]; then
 		# loopback device is activated
