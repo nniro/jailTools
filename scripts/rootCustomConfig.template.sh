@@ -36,7 +36,7 @@ setNetAccess=false
 # like so : "foo=bar one=1 two=2"
 # leave empty for nothing
 # these environment variables are set for these commands : daemon, start and shell
-runEnvironment=""
+runEnvironment="DISPLAY=$DISPLAY"
 
 # These commands are run inside the jail itself.
 #
@@ -70,19 +70,27 @@ shellCommand=""
 
 # dev mount points : read-write, no-exec
 devMountPoints=$(cat << EOF
+/dev/dri
+/dev/snd
 EOF
 )
 
 # read-only mount points with exec
 roMountPoints=$(cat << EOF
-/usr/share/locale
-/usr/lib/locale
-/usr/lib/gconv
+/usr/local
+/usr/lib
+/usr/lib64
+/usr/libexec
+/usr/share
+/lib
+/lib64
 EOF
 )
 
 # read-write mount points with exec
 rwMountPoints=$(cat << EOF
+/tmp/.X11-unix
+/run/user
 EOF
 )
 
