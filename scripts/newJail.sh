@@ -148,6 +148,7 @@ populateFile $ownPath/jailLib.template.sh @SHELL@ "$sh" @BUSYBOXPATH@ "$busyboxP
 
 populateFile $ownPath/startRoot.template.sh @SHELL@ "$sh" @BUSYBOXPATH@ "$busyboxPath" > $newChrootHolder/startRoot.sh
 
+populateFile $ownPath/rootDefaultConfig.template.sh @SHELL@ "$sh" @JAILNAME@ "$jailName" @DEFAULTNETINTERFACE@ "$defNetInterface" > $newChrootHolder/rootDefaultConfig.sh
 populateFile $ownPath/rootCustomConfig.template.sh @SHELL@ "$sh" @JAILNAME@ "$jailName" @DEFAULTNETINTERFACE@ "$defNetInterface" > $newChrootHolder/rootCustomConfig.sh
 
 # we save the default initial rootCustomConfig for update purposes
