@@ -40,6 +40,18 @@ bridgeIpBitmask=24
 # NOTE : Enabling networking requires privileged access.
 networking=false
 
+# To add devices (in the /dev folder) of the jail use the addDevices function. You
+# don't need to add the starting /dev path.
+# If for example you wanted to add the 'null' 'urandom' and 'zero' devices you would need :
+#
+# 	"null urandom zero"
+#
+# Note that the jail's /dev directory is now a tmpfs so it's content is purged every time
+# the jail is stopped. Also note that this puts exactly the same file permissions
+# as those on the base system.
+#availableDevices=<devices list, separated by a space>
+availableDevices="null urandom zero"
+
 # this is the external IP.
 # Only valid if networking=true
 extIp=172.16.0.1

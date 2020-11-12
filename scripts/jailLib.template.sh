@@ -691,6 +691,9 @@ prepareChroot() {
 	mountMany $rootDir/root "ro,exec" $roMountPoints
 	mountMany $rootDir/root "defaults" $rwMountPoints
 
+	if [ "$availableDevices" != "" ]; then
+		addDevices $rootDir $availableDevices
+	fi
 
 	if [ "$jailNet" = "true" ]; then
 		# loopback device is activated
