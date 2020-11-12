@@ -5,9 +5,9 @@
 # substring offset <optional length> string
 # cuts a string at the starting offset and wanted length.
 substring() {
-        local init=$1; shift
-        if [ "$2" != "" ]; then toFetch="\(.\{$1\}\).*"; shift; else local toFetch="\(.*\)"; fi
-        echo "$1" | $bb sed -e "s/^.\{$init\}$toFetch$/\1/"
+	local init=$1; shift
+	if [ "$2" != "" ]; then toFetch="\(.\{$1\}\).*"; shift; else local toFetch="\(.*\)"; fi
+	echo "$1" | $bb sed -e "s/^.\{$init\}$toFetch$/\1/"
 }
 
 # the name of the jail, leaving this at the default is recommended.
