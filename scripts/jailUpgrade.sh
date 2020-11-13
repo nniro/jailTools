@@ -11,15 +11,35 @@ configFile=rootCustomConfig.sh
 
 filesUpgrade=$(cat << EOF
 ._rootCustomConfig.sh.initial
+rootDefaultConfig.sh
 jailLib.sh
 startRoot.sh
 EOF
 )
 
+
+
 startUpgrade() {
 	# we are already garanteed that the first argument is the jail path and it is valid
 	local jPath=$1
 	shift
+
+	# convert the path of this script to an absolute path
+	if [ "$jPath" = "." ]; then
+		local jPath=$PWD
+	else
+		if [ "$(substring 0 1 $jPath)" = "/" ]; then
+			# absolute path, we do nothing
+			:
+		else
+			# relative path
+			local jPath=$PWD/$jPath
+		fi
+	fi
+
+	local njD=$jPath/.__jailUpgrade # the temporary new jail path
+	local jailName=$(basename $jPath)
+	local nj=$njD/$jailName # new jail
 
 	bb=$jailToolsPath/busybox/busybox
 
@@ -39,6 +59,8 @@ startUpgrade() {
 				[ -e $jPath/$file.new ] && mv $jPath/$file.new $file
 			done
 
+			[ -d $nj ] && rm -Rf $nj
+
 			echo "Done upgrading jail. Thank you for using the jailUpgrade service."
 			exit 0
 		;;
@@ -49,6 +71,8 @@ startUpgrade() {
 			for file in $filesUpgrade; do
 				[ -e $jPath/$file.new ] && rm $jPath/$file.new
 			done
+
+			[ -d $nj ] && rm -Rf $nj
 
 			echo "Reverted changes done by the upgrade. Thank you for using the jailUpgrade service."
 			exit 0
@@ -68,20 +92,6 @@ startUpgrade() {
 		$bb diff -q $2/$1 $3/$1 >/dev/null 2>/dev/null
 		return $?
 	}
-
-	# convert the path of this script to an absolute path
-	if [ "$jPath" = "." ]; then
-		local jPath=$PWD
-	else
-		if [ "$(substring 0 1 $jPath)" = "/" ]; then
-			# absolute path, we do nothing
-			:
-		else
-			# relative path
-			local jPath=$PWD/$jPath
-		fi
-	fi
-	local jailName=$(basename $jPath)
 
 	if [ ! -e $jPath/._$configFile.initial ]; then
 		echo "This jail is too old to be upgraded automatically, please upgrade it manually first"
@@ -104,17 +114,20 @@ startUpgrade() {
 		fi
 	done
 
-	local njD=$jPath/.__jailUpgrade # the temporary new jail path
 	[ ! -d $njD ] && mkdir $njD
 
-	local nj=$njD/$jailName
 
 	jailtools new $nj >/dev/null
 
 	isChanged="false"
 	for file in $filesUpgrade; do
-		fileDiff $file $jPath $nj
-		if ! fileDiff $file $jPath $nj; then
+		if [ -e $file ]; then
+			fileDiff $file $jPath $nj
+			if ! fileDiff $file $jPath $nj; then
+				isChanged="true"
+				break
+			fi
+		else # the file doesn't exist
 			isChanged="true"
 			break
 		fi
@@ -142,8 +155,9 @@ startUpgrade() {
 			cp $jPath/$file $backupF
 		done
 
-		if cat $jPath/$configFile.patch | $bb patch; then
-			rm $jPath/$configFile.new
+		# we apply the patch to the new configuration file
+		if cat $jPath/$configFile.patch | $bb patch $jPath/$configFile.new; then
+			mv $jPath/$configFile.new $jPath/$configFile
 			for file in $filesUpgrade; do
 				mv $jPath/$file.new $jPath/$file
 			done
