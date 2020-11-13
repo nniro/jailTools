@@ -79,6 +79,8 @@ fi
 nsenterSupport=$(echo "$unshareSupport" | sed -e 's/^-//' | sed -e 's/\(.\)/-\1 /g')
 if [ "$netNS" = "true" ]; then nsenterSupport="$nsenterSupport -n"; fi
 
+actualUser=$($bb stat -c %U $ownPath/jailLib.sh)
+
 # we get the uid and gid of this script, this way even when ran as root, we still get the right credentials
 userCreds=$($bb stat -c %u:%g $ownPath/jailLib.sh)
 
