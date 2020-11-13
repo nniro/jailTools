@@ -107,13 +107,13 @@ prepCustom() {
 	# It is necessary to use a full path rather than the $HOME env. variable because
 	# don't forget that this is being run as root.
 
-	# we check if the file first exists. If not, we create it.
-	# you can do the same thing with directories by doing "[ ! -d ..." and "&& mkdir ..."
-	# Do note that it is no longer necessary to unmount these directories in stopCustom.
-	# [ ! -e $rootDir/root/home/.Xauthority ] && touch $rootDir/root/home/.Xauthority
-	#
-	# mounting Xauthority manually (crucial for supporting X11)
-	# execNS mount --bind /home/yourUser/.Xauthority $rootDir/root/home/.Xauthority
+	# we assume that the user's home directory is /home/<their username>
+	# change this if it's not the case
+	# we mount the ~/.Xauthority file which is required for X11 support
+	mountSingle /home/$actualUser/.Xauthority /home/.Xauthority
+
+	# we mount the ~/.asoundrc file which is required to gain alsa sound
+	mountSingle /home/$actualUser/.asoundrc /home/.asoundrc
 
 	# joinBridgeByJail <jail path> <set as default route> <our last IP bit>
 	# To join an already running jail called tor at the path, we don't set it
