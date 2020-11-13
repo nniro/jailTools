@@ -36,7 +36,7 @@ setNetAccess=false
 # like so : "foo=bar one=1 two=2"
 # leave empty for nothing
 # these environment variables are set for these commands : daemon, start and shell
-runEnvironment="DISPLAY=$DISPLAY"
+runEnvironment="DISPLAY=$DISPLAY XDG_RUNTIME_DIR=/run/user/$userUID"
 
 # These commands are run inside the jail itself.
 #
@@ -72,6 +72,8 @@ shellCommand=""
 devMountPoints=$(cat << EOF
 /dev/dri
 /dev/snd
+/dev/input
+/dev/shm
 EOF
 )
 
