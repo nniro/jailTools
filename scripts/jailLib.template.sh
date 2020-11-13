@@ -249,6 +249,29 @@ cmdCtl() {
 	esac
 }
 
+mountSingle() {
+	local src="$1"
+	local dst="$2"
+	shift 2
+
+	[ ! -e $src ] && echo "source file or directory does not exist" >&2 && return
+
+	echo $dst | grep -q "^/" || dst="/$dst" # we expect a starting '/'
+
+	[ ! -d $(dirname $dst) ] && echo "Invalid mounting path chosen" >&2 && return
+
+	if [ -f $src ]; then
+		[ ! -e $rootDir/root$dst ] && touch $rootDir/root$dst
+	elif [ -d $src ]; then
+		[ ! -e $rootDir/root$dst ] && mkdir $rootDir/root$dst
+	else
+		echo "Unhandled ressource type, bailing out" >&2
+		return
+	fi
+
+	execNS mount --bind $src $rootDir/root$dst
+}
+
 mountMany() {
 	OPTIND=0
 	local rootDir=$1
