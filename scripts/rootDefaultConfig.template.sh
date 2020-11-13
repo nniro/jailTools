@@ -52,6 +52,13 @@ networking=false
 #availableDevices=<devices list, separated by a space>
 availableDevices="null urandom zero"
 
+# for programs, you may want to have the /sys special directory mounted.
+# unfortunately, it won't work adding it into the roMountPoints section anymore
+# so you have to mount it manually using this.
+# set to true to get a /sys directory in your jail.
+# NOTE : only mount this for applications, not for services as it tells a whole lot about the system itself.
+mountSys=true
+
 # this is the external IP.
 # Only valid if networking=true
 extIp=172.16.0.1

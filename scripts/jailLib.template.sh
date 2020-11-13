@@ -733,6 +733,10 @@ prepareChroot() {
 
 	prepCustom $rootDir || return 1
 
+	if [ "$mountSys" = "true" ]; then
+		execNS mount -tsysfs none $rootDir/root/sys
+	fi
+
 	return 0
 }
 

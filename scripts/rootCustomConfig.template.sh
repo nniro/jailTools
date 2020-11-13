@@ -114,12 +114,6 @@ prepCustom() {
 	# mounting Xauthority manually (crucial for supporting X11)
 	# execNS mount --bind /home/yourUser/.Xauthority $rootDir/root/home/.Xauthority
 
-	# for programs, you may want to have the /sys special directory mounted.
-	# unfortunately, it won't work adding it into the roMountPoints section anymore
-	# so you have to mount it manually like so :
-	# execNS mount -tsysfs none $rootDir/root/sys
-	# NOTE : only mount this for applications, not for services as it tells a whole lot about the system itself.
-
 	# joinBridgeByJail <jail path> <set as default route> <our last IP bit>
 	# To join an already running jail called tor at the path, we don't set it
 	# as our default internet route and we assign the interface the last IP bit of 3
