@@ -84,6 +84,7 @@ roMountPoints=$(cat << EOF
 /usr/share
 /lib
 /lib64
+/opt
 EOF
 )
 
