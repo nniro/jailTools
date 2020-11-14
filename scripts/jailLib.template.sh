@@ -84,9 +84,21 @@ else
 fi
 
 nsenterSupport=$(echo "$unshareSupport" | sed -e 's/^-//' | sed -e 's/\(.\)/-\1 /g')
-if [ "$netNS" = "true" ]; then nsenterSupport="$nsenterSupport -n"; fi
+if [ "$netNS" = "true" ]; then
+	if [ "$jailNet" = "false" ] || ([ "$privileged" = "0" ] && [ "$disableUnprivilegedNetworkNamespace" = "true" ]); then
+		:
+	else
+		nsenterSupport="$nsenterSupport -n";
+	fi
+fi
+
+if [ "$privileged" = "1" ]; then
+	nsenterSupport="$(echo $nsenterSupport | sed -e 's/-U//g')"
+fi
 
 if [ "$privileged" = "0" ]; then
+	[ "$setNetAccess" = "true" ] && echo "Can't have setNetAccess for an unprivileged jail. Setting setNetAccess to false." >&2 && setNetAccess="false"
+
 	if [ "$userNS" != "true" ]; then
 		echo "The user namespace is not supported. Can't start an unprivileged jail without it, bailing out." >&2
 		exit 1
@@ -673,6 +685,12 @@ prepareChroot() {
 	local chrootCmd="sh -c 'while :; do sleep 9999; done'"
 	local preUnshare=""
 
+	# we check if $rootDir/root is owned by root, we use this technique for when the base instance was started with a privileged account
+	# 	and when we use an unprivileged account to reenter the jail.
+	if [ "$privileged" = "0" ] && [ "$netNS" = "true" ] && [ "$($bb stat -c %U $rootDir/root)" = "root" ]; then
+		nsenterSupport="$nsenterSupport -n";
+	fi
+
 	if [ -e $rootDir/run/jail.pid ]; then
 		echo "This jail was already started, bailing out." >&2
 		return 1
@@ -691,7 +709,7 @@ prepareChroot() {
 	fi # unprivileged
 
 	if [ "$jailNet" = "true" ]; then
-		if [ "$privileged" = "1" ] || ([ "$privileged" = "0" ] && [ "$setNetAccess" = "false" ]); then
+		if [ "$privileged" = "1" ] || ([ "$privileged" = "0" ] && [ "$disableUnprivilegedNetworkNamespace" = "false" ]); then
 			unshareArgs="$unshareArgs -n"
 		fi
 	fi
@@ -761,7 +779,11 @@ prepareChroot() {
 	prepCustom $rootDir || return 1
 
 	if [ "$mountSys" = "true" ]; then
-		execNS mount -tsysfs none $rootDir/root/sys
+		if [ "$privileged" = "0" ] && [ "$disableUnprivilegedNetworkNamespace" = "true" ]; then
+			:
+		else
+			execNS mount -tsysfs none $rootDir/root/sys
+		fi
 	fi
 
 	return 0
@@ -908,15 +930,6 @@ execNS() { execRemNS $innerNSpid "$@"; }
 execRemNS() {
 	local nsPid=$1
 	shift
-	local nsenterArgs="$nsenterSupport"
-	if [ "$privileged" = "1" ]; then
-		nsenterArgs="$(echo $nsenterArgs | sed -e 's/-U//g')"
-	fi
-
-	if [ "$jailNet" = "false" ] || ([ "$privileged" = "0" ] && [ "$setNetAccess" = "true" ] && [ "$($bb stat -c %U $rootDir/root)" != "root" ]); then
-		nsenterArgs="$(printf "%s" "$nsenterArgs" | $bb sed -e 's/-n//g')" # remove '-n'
-	fi
-
-	#echo "NS [$nsPid] -- args : $nsenterArgs exec : $@" >&2
-	$bb nsenter --preserve-credentials $nsenterArgs -t $nsPid -- "$@"
+	#echo "NS [$nsPid] -- args : $nsenterSupport exec : $@" >&2
+	$bb nsenter --preserve-credentials $nsenterSupport -t $nsPid -- "$@"
 }

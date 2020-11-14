@@ -79,6 +79,12 @@ netInterface=@DEFAULTNETINTERFACE@
 # Only valid if networking=true
 setNetAccess=false
 
+# Note that this is valid _only_ for unprivileged jails.
+# 	If you want this for a privileged jail, put false to jailNet
+# This actually disables the network namespace so the jail
+# gets exactly the same network interface as the base system.
+disableUnprivilegedNetworkNamespace=true
+
 # chroot internal IP
 # the one liner script is to make sure it is of the same network
 # class as the extIp.
