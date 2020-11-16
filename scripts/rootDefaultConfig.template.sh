@@ -90,7 +90,8 @@ disableUnprivilegedNetworkNamespace=true
 # class as the extIp.
 # Just change the ending number to set the IP.
 # defaults to "2"
-ipInt=$(echo $extIp | $bb sed -e 's/^\(.*\)\.[0-9]*$/\1\./')2
+# we let jailLib set this one as extIp is usually set by the user
+#ipInt=$(echo $extIp | $bb sed -e 's/^\(.*\)\.[0-9]*$/\1\./')2
 # chroot internal IP mask
 ipIntBitmask=24
 # These are setup only if networking is true

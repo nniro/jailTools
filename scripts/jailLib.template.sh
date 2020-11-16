@@ -51,6 +51,8 @@ userCreds="$userUID:$userGID"
 
 . $ownPath/rootCustomConfig.sh
 
+[ "$ipInt" = "" ] && ipInt=$(echo $extIp | $bb sed -e 's/^\(.*\)\.[0-9]*$/\1\./')2
+
 user=@MAINJAILUSERNAME@
 
 innerNSpid=""
