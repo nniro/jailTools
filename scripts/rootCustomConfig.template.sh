@@ -21,13 +21,15 @@ fi
 #
 . $ownPath/rootDefaultConfig.sh
 
-networking=false
+networking=true
 
 extIp=172.16.0.1
 
 netInterface=@DEFAULTNETINTERFACE@
 
 setNetAccess=false
+
+disableUnprivilegedNetworkNamespace=true
 
 # Command part
 
@@ -93,7 +95,7 @@ EOF
 # read-write mount points with exec
 rwMountPoints=$(cat << EOF
 /tmp/.X11-unix
-/run/user
+/run/user/$userUID
 EOF
 )
 
