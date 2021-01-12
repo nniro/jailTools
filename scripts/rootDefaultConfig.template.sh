@@ -85,6 +85,10 @@ setNetAccess=false
 # gets exactly the same network interface as the base system.
 disableUnprivilegedNetworkNamespace=true
 
+corePrivileges="-all,+setpcap,+sys_chroot,+dac_override,+setuid,+setgid"
+jailPrivileges="-all,+setuid,+setgid,+net_bind_service"
+chrootPrivileges="-all,+setpcap,+sys_chroot,+dac_override,+setuid,+setgid,+net_bind_service"
+
 # chroot internal IP
 # the one liner script is to make sure it is of the same network
 # class as the extIp.

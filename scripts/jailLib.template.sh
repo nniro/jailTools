@@ -729,7 +729,7 @@ prepareChroot() {
 		fi
 	fi
 
-	($preUnshare $bb unshare $unshareArgs ${unshareSupport}f -- $bb setpriv --bounding-set -all,+setpcap,+sys_chroot,+dac_override,+setuid,+setgid $bb sh -c "exec $(runChroot $runChrootArgs $rootDir $chrootCmd)") &
+	($preUnshare $bb unshare $unshareArgs ${unshareSupport}f -- $bb setpriv --bounding-set $corePrivileges $bb sh -c "exec $(runChroot $runChrootArgs $rootDir $chrootCmd)") &
 	innerNSpid=$!
 	sleep 1
 	innerNSpid=$($bb pgrep -P $innerNSpid)
@@ -826,7 +826,7 @@ runChroot() {
 		done
 	fi
 
-	printf "%s" "$bb chpst -/ $rootDir/root busybox setpriv --bounding-set -all,+setuid,+setgid,+net_bind_service chpst $chrootArgs env - PATH=/usr/bin:/bin USER=$user HOME=/home HOSTNAME=nowhere.here TERM=linux $chrootCmd"
+	printf "%s" "$bb chpst -/ $rootDir/root busybox setpriv --bounding-set $chrootPrivileges chpst $chrootArgs env - PATH=/usr/bin:/bin USER=$user HOME=/home HOSTNAME=nowhere.here TERM=linux $chrootCmd"
 }
 
 runJail() {
@@ -876,7 +876,7 @@ runJail() {
 	fi
 
 	#echo "runJail running : $chrootCmd"
-	execNS $bb setpriv --bounding-set -all,+setpcap,+sys_chroot,+dac_override,+setuid,+setgid,+net_bind_service $bb sh -c "exec $(runChroot $runChrootArgs $rootDir $chrootCmd)"
+	execNS $bb setpriv --bounding-set $jailPrivileges $bb sh -c "exec $(runChroot $runChrootArgs $rootDir $chrootCmd)"
 	return $?
 }
 
