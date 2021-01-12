@@ -272,7 +272,7 @@ mountSingle() {
 	local dst="$2"
 	shift 2
 
-	[ ! -e $src ] && echo "source file or directory does not exist" >&2 && return
+	[ ! -e $src ] && echo "mountSingle - Warning - source file or directory '$src' does not exist" >&2 && return
 
 	echo $dst | grep -q "^/" || dst="/$dst" # we expect a starting '/'
 
@@ -318,7 +318,7 @@ mountMany() {
 				result="$result $bb mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $bb mount -o $mountOps --bind $mount $rootDir/$mount;"
 			fi
 		else
-			echo "mount: Warning - Path \`$mount' doesn't exist on the base system, can't mount it in the jail." >&2
+			echo "mountMany: Warning - Path \`$mount' doesn't exist on the base system, can't mount it in the jail." >&2
 		fi
 	done
 
@@ -344,7 +344,7 @@ joinBridge() {
 	local ipIntBitmask=24 # hardcoded for now, we set this very rarely
 
 	if [ "$privileged" = "0" ]; then
-		echo "This is not possible from an unprivileged jail" >&2
+		echo "joinBridge - Error - This is not possible from an unprivileged jail" >&2
 		return
 	fi
 
@@ -402,7 +402,7 @@ joinBridgeByJail() {
 	local internalIpNum=$3
 
 	if [ "$privileged" = "0" ]; then
-		echo "This is not possible from an unprivileged jail" >&2
+		echo "joinBridgeByJail - Error - This is not possible from an unprivileged jail" >&2
 		return
 	fi
 
