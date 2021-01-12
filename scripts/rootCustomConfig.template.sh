@@ -38,7 +38,7 @@ disableUnprivilegedNetworkNamespace=true
 # like so : "foo=bar one=1 two=2"
 # leave empty for nothing
 # these environment variables are set for these commands : daemon, start and shell
-runEnvironment="DISPLAY=$DISPLAY XDG_RUNTIME_DIR=/run/user/$userUID"
+runEnvironment="DISPLAY=$DISPLAY XDG_RUNTIME_DIR=/run/user/$userUID WAYLAND_DISPLAY=$WAYLAND_DISPLAY"
 
 # These commands are run inside the jail itself.
 #
