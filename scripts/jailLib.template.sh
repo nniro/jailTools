@@ -731,7 +731,7 @@ prepareChroot() {
 
 	execNS $bb mount --bind $rootDir/root $rootDir/root
 	execNS $bb mount -tproc none -o hidepid=2 $rootDir/root/proc
-	execNS $bb mount -t tmpfs -o size=256k,mode=705 tmpfs $rootDir/root/dev
+	execNS $bb mount -t tmpfs -o size=256k,mode=775 tmpfs $rootDir/root/dev
 
 	# dev
 	mountMany $rootDir/root "rw,noexec" $devMountPoints
