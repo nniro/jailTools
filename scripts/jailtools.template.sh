@@ -25,6 +25,7 @@ showHelp() {
 	printf "    new, create\t\t\tcreate a new jailTools directory\n"
 	printf "    cp, cpDep\t\t\tcopy files or directories (with their shared object dependencies) into the jailTools\n"
 	printf "    start, stop, shell\t\tthese are jailTools specific commands to be used inside a jailTools directory only.\n"
+	printf "    status,s\t\tShow the status of the jail.\n"
 }
 
 showJailPathError() {
@@ -79,6 +80,39 @@ case $cmd in
 		#if [ "$?" != "0" ]; then echo "There was an error starting the daemon, it may already be running."; fi
 
 		exit $?
+	;;
+
+	s|status)
+		checkJailPath $1 && jPath="$1" && shift
+		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
+		rPath=$($bb realpath $jPath)
+
+		result=$(callGetopt "status [OPTIONS]" \
+		       -o "i" "ip" "display ip information" "showIp" "false" \
+		       -o "p" "ps" "display process information" "showProcessStats" "false" \
+		       -- "$@")
+
+		if [ "$?" = "0" ]; then
+			#eval $result
+
+			runInNS() {
+				$bb sh -c "cd $rPath; source ./jailLib.sh; execRemNS $(cat $jPath/run/ns.pid) $bb chroot $rPath/root $1" 2>/dev/null
+			}
+
+			if [ "$(jailStatus $rPath)" = "1" ]; then # we check if the jail is running
+				if getVarVal 'showProcessStats' "$result" >/dev/null; then
+					runInNS ps
+				elif getVarVal 'showIp' "$result" >/dev/null; then
+					runInNS "/sbin/ip addr show dev \$vethInt" | sed -ne 's/ *inet \([0-9\.]*\).*/\1/ p'
+				else
+					echo "The jail is running"
+				fi
+			else
+				echo "The jail is not running"
+			fi
+		fi
+
+		exit 0
 	;;
 
 	upgrade)
