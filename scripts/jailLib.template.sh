@@ -407,11 +407,24 @@ joinBridgeByJail() {
 	fi
 
 	if [ -d $jailLocation/root ] && [ -d $jailLocation/run ] && [ -f $jailLocation/startRoot.sh ] && [ -f $jailLocation/rootCustomConfig.sh ]; then
+		local defConfPath=$jailLocation/rootDefaultConfig.sh
 		local confPath=$jailLocation/rootCustomConfig.sh
 
 		local neededConfig="$(cat $confPath | $bb sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p;')"
 		for cfg in jailName createBridge bridgeName; do
-			eval "local rem$cfg"="$(printf "%s" "$neededConfig" | $bb sed -ne "/^$cfg/ p" | $bb sed -e 's/#.*//' | $bb sed -e 's/^[^=]\+=\(.*\)$/\1/' | $bb sed -e 's/${\([^:]\+\):/${rem\1:/' -e 's/$\([^{(]\+\)/$rem\1/')"
+			tempVal="$(printf "%s" "$neededConfig" | $bb sed -ne "/^$cfg/ p" | $bb sed -e 's/#.*//' | $bb sed -e 's/^[^=]\+=\(.*\)$/\1/' | $bb sed -e 's/${\([^:]\+\):/${rem\1:/' -e 's/$\([^{(]\+\)/$rem\1/')"
+
+			if [ "$tempVal" = "" ] && [ -e $defConfPath ]; then
+				local neededDefConfig="$(cat $defConfPath | $bb sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p;')"
+				tempVal="$(printf "%s" "$neededDefConfig" | $bb sed -ne "/^$cfg/ p" | $bb sed -e 's/#.*//' | $bb sed -e 's/^[^=]\+=\(.*\)$/\1/' | $bb sed -e 's/${\([^:]\+\):/${rem\1:/' -e 's/$\([^{(]\+\)/$rem\1/')"
+			fi
+
+			if [ "$tempVal" = "" ]; then
+				echo "joinBridgeByJail - Error - Unable to process the remote jail's information" >&2
+				exit 1
+			fi
+
+			eval "local rem$cfg"=$tempVal
 		done
 
 		if [ "$remcreateBridge" != "true" ]; then
