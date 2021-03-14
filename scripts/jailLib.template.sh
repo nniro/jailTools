@@ -481,8 +481,8 @@ firewall() {
 	fi
 	local rootDir=''
 	local fwType=''
-	local deleteMode="false"
 	local singleRunMode="false" # it means this command should not be accounted in the firewall instructions file
+	local mode="create"
 	local arguments=''
 	local fwCmd=''
 	local cmd=''
@@ -493,10 +493,11 @@ firewall() {
 		fwType=$2
 		shift 2
 		OPTIND=0
-		while getopts ds f 2>/dev/null ; do
+		while getopts dsc f 2>/dev/null ; do
 			case $f in
-				d) deleteMode="true";;
+				d) mode="delete";;
 				s) singleRunMode="true";;
+				c) mode="check";;
 			esac
 		done
 		[ $(($OPTIND > 1)) = 1 ] && shift $(expr $OPTIND - 1)
@@ -520,126 +521,241 @@ firewall() {
 		fwFile="$rootDir/$firewallInstr"
 		[ ! -e $fwFile ] && (touch $fwFile; chmod o+r $fwFile)
 
-		if [ "$deleteMode" = "false" ]; then
-			cmdCtl "$fwFile" exists "firewall $rootDir $fwType $cmd $arguments" && return 0
-		else # deleteMode
-			if [ "$singleRunMode" = "false" ]; then
-				cmdCtl "$fwFile" exists "firewall $rootDir $fwType $cmd $arguments" || return 0
-			fi # not singleRunMode
-		fi # deleteMode
+		case $mode in
+			create)
+				cmdCtl "$fwFile" exists "firewall $rootDir $fwType $cmd $arguments" && return 0
+			;;
+
+			delete)
+				if [ "$singleRunMode" = "false" ]; then
+					cmdCtl "$fwFile" exists "firewall $rootDir $fwType $cmd $arguments" || return 0
+				fi # not singleRunMode
+			;;
+		esac
+			
 
 		case "$cmd" in
 			"blockAll")
 				parseArgs "blockAll" "" $arguments || return 1
-				if [ "$deleteMode" = "false" ]; then
-					# block all tcp packets except those that are established
-					# and related (this is appended at the bottom)
-					$fwCmd -A INPUT -p tcp -m tcp --dport 1:65535 -m state \! --state ESTABLISHED,RELATED -j REJECT
-					$fwCmd -A INPUT -p udp -m udp --dport 1:65535 -m state \! --state ESTABLISHED,RELATED -j REJECT
-					# block all outgoing packets except established ones
-					$fwCmd -A OUTPUT -p all -m state \! --state ESTABLISHED,RELATED -j REJECT
-				else # deleteMode
-					$fwCmd -D INPUT -p tcp -m tcp --dport 1:65535 -m state \! --state ESTABLISHED,RELATED -j REJECT
-					$fwCmd -D INPUT -p udp -m udp --dport 1:65535 -m state \! --state ESTABLISHED,RELATED -j REJECT
-					$fwCmd -D OUTPUT -p all -m state \! --state ESTABLISHED,RELATED -j REJECT
-				fi # deleteMode
+				case $mode in
+					create)
+						t="-A"
+					;;
+
+					delete)
+						t="-D"
+					;;
+
+					check)
+						t="-C"
+					;;
+				esac
+
+				# block all tcp packets except those that are established
+				# and related (this is appended at the bottom)
+				$fwCmd $t INPUT -p tcp -m tcp --dport 1:65535 -m state \! --state ESTABLISHED,RELATED -j REJECT
+				[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+				$fwCmd $t INPUT -p udp -m udp --dport 1:65535 -m state \! --state ESTABLISHED,RELATED -j REJECT
+				[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+				# block all outgoing packets except established ones
+				$fwCmd $t OUTPUT -p all -m state \! --state ESTABLISHED,RELATED -j REJECT
+				[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
 			;;
 
 			"openPort")
 				parseArgs "openPort" "'interface from' 'interface to' 'tcp or udp' 'destination port'" $arguments || return 1
-				if [ "$deleteMode" = "false" ]; then
-					# "inserted" so they are before the reject rules
+				case $mode in
+					create)
+						# "inserted" so they are before the reject rules
+						t="-I"
+					;;
 
-					# request ext -> int:port
-					$fwCmd -I OUTPUT -o $1 -p $3 --dport $4 -j ACCEPT
-					$fwCmd -I OUTPUT -o $2 -p $3 --sport $4 -j ACCEPT
-					$fwCmd -I INPUT -i $2 -p $3 --dport $4 -j ACCEPT
-					# response int:port -> ext
-					$fwCmd -I INPUT -i $1 -p $3 --sport $4 -j ACCEPT
-				else # deleteMode
+					delete)
+						t="-D"
+					;;
 
-					$fwCmd -D OUTPUT -o $1 -p $3 --dport $4 -j ACCEPT
-					$fwCmd -D OUTPUT -o $2 -p $3 --sport $4 -j ACCEPT
-					$fwCmd -D INPUT -i $2 -p $3 --dport $4 -j ACCEPT
-					$fwCmd -D INPUT -i $1 -p $3 --sport $4 -j ACCEPT
-				fi # deleteMode
+					check)
+						t="-C"
+					;;
+				esac
+
+
+				# request ext -> int:port
+				$fwCmd $t OUTPUT -o $1 -p $3 --dport $4 -j ACCEPT
+				[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+				$fwCmd $t OUTPUT -o $2 -p $3 --sport $4 -j ACCEPT
+				[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+				$fwCmd $t INPUT -i $2 -p $3 --dport $4 -j ACCEPT
+				[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+				# response int:port -> ext
+				$fwCmd $t INPUT -i $1 -p $3 --sport $4 -j ACCEPT
+				[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
 			;;
 
 			"openTcpPort")
 				parseArgs "openTcpPort" "'interface from' 'interface to' 'destination port'" $arguments || return 1
-				if [ "$deleteMode" = "false" ]; then
-					firewall $rootDir $fwType -s "openPort" $1 $2 "tcp" $3
-				else # deleteMode
-					firewall $rootDir $fwType -d -s "openPort" $1 $2 "tcp" $3
-				fi # deleteMode
+				case $mode in
+					create)
+						firewall $rootDir $fwType -s "openPort" $1 $2 "tcp" $3
+						[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+					;;
+
+					delete)
+						firewall $rootDir $fwType -d -s "openPort" $1 $2 "tcp" $3
+						[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+					;;
+
+					check)
+						firewall $rootDir $fwType -c -s "openPort" $1 $2 "tcp" $3
+						[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+					;;
+				esac
 			;;
 
 			"openUdpPort")
 				parseArgs "openUdpPort" "'interface' 'destination port'" $arguments || return 1
 				parseArgs "openUdpPort" "'interface from' 'interface to' 'destination port'" $arguments || return 1
-				if [ "$deleteMode" = "false" ]; then
-					firewall $rootDir $fwType -s "openPort" $1 $2 "udp" $3
-				else # deleteMode
-					firewall $rootDir $fwType -d -s "openPort" $1 $2 "udp" $3
-				fi # deleteMode
+				case $mode in
+					create)
+						firewall $rootDir $fwType -s "openPort" $1 $2 "udp" $3
+						[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+					;;
+
+					delete)
+						firewall $rootDir $fwType -d -s "openPort" $1 $2 "udp" $3
+						[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+					;;
+
+					check)
+						firewall $rootDir $fwType -c -s "openPort" $1 $2 "udp" $3
+						[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+					;;
+				esac
 			;;
 
 			"allowConnection")
 				parseArgs "allowConnection" "'tcp or udp' 'output interface' 'destination address' 'destination port'" $arguments || return 1
-				if [ "$deleteMode" = "false" ]; then
-					$fwCmd -I OUTPUT -p $1 -o $2 -d $3 --dport $4 -j ACCEPT
-				else # deleteMode
-					$fwCmd -D OUTPUT -p $1 -o $2 -d $3 --dport $4 -j ACCEPT
-				fi # deleteMode
+				case $mode in
+					create)
+						t="-I"
+					;;
+
+					delete)
+						t="-D"
+					;;
+
+					check)
+						t="-C"
+					;;
+				esac
+
+				$fwCmd $t OUTPUT -p $1 -o $2 -d $3 --dport $4 -j ACCEPT >/dev/null 2>/dev/null
 			;;
 
 			"allowTcpConnection")
 				parseArgs "allowTcpConnection" "'output interface' 'destination address' 'destination port'" $arguments || return 1
-				if [ "$deleteMode" = "false" ]; then
-					firewall $rootDir $fwType -s "allowConnection" tcp $1 $2 $3
-				else # deleteMode
-					firewall $rootDir $fwType -d -s "allowConnection" tcp $1 $2 $3
-				fi # deleteMode
+				case $mode in
+					create)
+						firewall $rootDir $fwType -s "allowConnection" tcp $1 $2 $3
+						[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+					;;
+
+					delete)
+						firewall $rootDir $fwType -d -s "allowConnection" tcp $1 $2 $3
+						[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+					;;
+
+					check)
+						firewall $rootDir $fwType -c -s "allowConnection" tcp $1 $2 $3
+						[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+					;;
+				esac
 			;;
 
 			"allowUdpConnection")
 				parseArgs "allowUdpConnection" "'output interface' 'destination address' 'destination port'" $arguments || return 1
-				if [ "$deleteMode" = "false" ]; then
-					firewall $rootDir $fwType -s "allowConnection" udp $1 $2 $3
-				else # deleteMode
-					firewall $rootDir $fwType -d -s "allowConnection" udp $1 $2 $3
-				fi # deleteMode
+				case $mode in
+					create)
+						firewall $rootDir $fwType -s "allowConnection" udp $1 $2 $3
+						[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+					;;
+
+					delete)
+						firewall $rootDir $fwType -d -s "allowConnection" udp $1 $2 $3
+						[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+					;;
+
+					check)
+						firewall $rootDir $fwType -c -s "allowConnection" udp $1 $2 $3
+						[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+					;;
+				esac
 			;;
 
 			"dnat")
 				parseArgs "dnat" "'tcp or udp' 'input interface' 'output interface' 'source port' 'destination address' 'destination port'" $arguments || return 1
-				if [ "$deleteMode" = "false" ]; then
-					$fwCmd -t nat -A PREROUTING -i $2 -p $1 -m $1 --dport $4 -j DNAT --to-destination $5:$6
-					$fwCmd -t filter -I FORWARD -p $1 -i $2 -o $3 -m state --state NEW,ESTABLISHED,RELATED -m $1 --dport $6 -j ACCEPT
-					$fwCmd -t filter -I FORWARD -p $1 -i $3 -o $2 -m state --state ESTABLISHED,RELATED -j ACCEPT
-				else # deleteMode
-					$fwCmd -t nat -D PREROUTING -i $2 -p $1 -m $1 --dport $4 -j DNAT --to-destination $5:$6
-					$fwCmd -t filter -D FORWARD -p $1 -i $2 -o $3 -m state --state NEW,ESTABLISHED,RELATED -m $1 --dport $6 -j ACCEPT
-					$fwCmd -t filter -D FORWARD -p $1 -i $3 -o $2 -m state --state ESTABLISHED,RELATED -j ACCEPT
-				fi # deleteMode
+				case $mode in
+					create)
+						t="-A"
+						t2="-I"
+					;;
+
+					delete)
+						t="-D"
+						t2="-D"
+					;;
+
+					check)
+						t="-C"
+						t2="-C"
+					;;
+				esac
+				$fwCmd -t nat $t PREROUTING -i $2 -p $1 -m $1 --dport $4 -j DNAT --to-destination $5:$6
+				[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+				$fwCmd -t filter $t2 FORWARD -p $1 -i $2 -o $3 -m state --state NEW,ESTABLISHED,RELATED -m $1 --dport $6 -j ACCEPT
+				[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+				$fwCmd -t filter $t2 FORWARD -p $1 -i $3 -o $2 -m state --state ESTABLISHED,RELATED -j ACCEPT
+				[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
 			;;
 
 			"dnatTcp")
 				parseArgs "dnatTcp" "'input interface' 'output interface' 'source port' 'destination address' 'destination port'" $arguments || return 1
-				if [ "$deleteMode" = "false" ]; then
-					firewall $rootDir $fwType -s "dnat" tcp $1 $2 $3 $4 $5
-				else # deleteMode
-					firewall $rootDir $fwType -d -s "dnat" tcp $1 $2 $3 $4 $5
-				fi # deleteMode			
+				case $mode in
+					create)
+						firewall $rootDir $fwType -s "dnat" tcp $1 $2 $3 $4 $5
+						[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+					;;
+
+					delete)
+						firewall $rootDir $fwType -d -s "dnat" tcp $1 $2 $3 $4 $5
+						[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+					;;
+
+					check)
+						firewall $rootDir $fwType -c -s "dnat" tcp $1 $2 $3 $4 $5
+						[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+					;;
+				esac
 			;;
 
 			"dnatUdp")
 				parseArgs "dnatUdp" "'input interface' 'output interface' 'source port' 'destination address' 'destination port'" $arguments || return 1
-				if [ "$deleteMode" = "false" ]; then
-					firewall $rootDir $fwType -s "dnat" udp $1 $2 $3 $4 $5
-				else # deleteMode
-					firewall $rootDir $fwType -d -s "dnat" udp $1 $2 $3 $4 $5
-				fi # deleteMode			
+				case $mode in
+					create)
+						firewall $rootDir $fwType -s "dnat" udp $1 $2 $3 $4 $5
+						[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+					;;
+
+					delete)
+						firewall $rootDir $fwType -d -s "dnat" udp $1 $2 $3 $4 $5
+						[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+					;;
+
+					check)
+						firewall $rootDir $fwType -c -s "dnat" udp $1 $2 $3 $4 $5
+						[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+					;;
+				esac
 			;;
 
 			"snat")
@@ -648,21 +764,45 @@ firewall() {
 				downstream=$2 # this is the device to snat
 
 				baseAddr=$(echo $ipInt | $bb sed -e 's/\.[0-9]*$/\.0/') # convert 192.168.xxx.xxx to 192.168.xxx.0
+				case $mode in
+					create)
+						t="-N"
+						t2="-A"
+						t3="-I"
+					;;
 
-				if [ "$deleteMode" = "false" ]; then
-					$fwCmd -t nat -N ${upstream}_${downstream}_masq
-					$fwCmd -t nat -A POSTROUTING -o $upstream -j ${upstream}_${downstream}_masq
-					$fwCmd -t nat -A ${upstream}_${downstream}_masq -s $baseAddr/$ipIntBitmask -j MASQUERADE
+					delete)
+						t="-X"
+						t2="-D"
+						t3="-D"
+					;;
 
-					$fwCmd -t filter -I FORWARD -i $downstream -o $upstream -j ACCEPT
-					$fwCmd -t filter -I FORWARD -i $upstream -o $downstream -m state --state ESTABLISHED,RELATED -j ACCEPT
-				else # deleteMode
-					$fwCmd -t nat -D POSTROUTING -o $upstream -j ${upstream}_${downstream}_masq
-					$fwCmd -t nat -D ${upstream}_${downstream}_masq -s $baseAddr/$ipIntBitmask -j MASQUERADE
-					$fwCmd -t filter -D FORWARD -i $downstream -o $upstream -j ACCEPT
-					$fwCmd -t filter -D FORWARD -i $upstream -o $downstream -m state --state ESTABLISHED,RELATED -j ACCEPT
-					$fwCmd -t nat -X ${upstream}_${downstream}_masq
-				fi # deleteMode
+					check)
+						t="-C"
+						t2="-C"
+						t3="-C"
+					;;
+				esac
+
+				if [ "$mode" = "create" ]; then
+					$fwCmd -t nat $t ${upstream}_${downstream}_masq
+					[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+				fi
+
+				$fwCmd -t nat $t2 POSTROUTING -o $upstream -j ${upstream}_${downstream}_masq
+				[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+				$fwCmd -t nat $t2 ${upstream}_${downstream}_masq -s $baseAddr/$ipIntBitmask -j MASQUERADE
+				[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+
+				$fwCmd -t filter $t3 FORWARD -i $downstream -o $upstream -j ACCEPT
+				[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+				$fwCmd -t filter $t3 FORWARD -i $upstream -o $downstream -m state --state ESTABLISHED,RELATED -j ACCEPT
+				[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+
+				if [ "$mode" = "delete" ]; then
+					$fwCmd -t nat $t ${upstream}_${downstream}_masq
+					[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
+				fi
 			;;
 
 			*)
@@ -675,13 +815,17 @@ firewall() {
 		# this can be used to reapply the firewall and also clean the rules
 		# from iptables.
 		if [ "$singleRunMode" = "false" ]; then
-			if [ "$deleteMode" = "false" ]; then
-				# we add commands to the firewall instructions file
-				cmdCtl "$fwFile" add "firewall $rootDir $fwType $cmd $arguments"
-			else # deleteMode
-				# we remove commands from the firewall instructions file
-				cmdCtl "$fwFile" remove "firewall $rootDir $fwType $cmd $arguments"
-			fi # deleteMode
+			case $mode in
+				create)
+					# we add commands to the firewall instructions file
+					cmdCtl "$fwFile" add "firewall $rootDir $fwType $cmd $arguments"
+				;;
+
+				delete)
+					# we remove commands from the firewall instructions file
+					cmdCtl "$fwFile" remove "firewall $rootDir $fwType $cmd $arguments"
+				;;
+			esac
 		fi # not singleRunMode
 
 		return 0
