@@ -25,7 +25,7 @@ showHelp() {
 	printf "    new, create\t\t\tcreate a new jailTools directory\n"
 	printf "    cp, cpDep\t\t\tcopy files or directories (with their shared object dependencies) into the jailTools\n"
 	printf "    start, stop, shell\t\tthese are jailTools specific commands to be used inside a jailTools directory only.\n"
-	printf "    status,s\t\tShow the status of the jail.\n"
+	printf "    status,s\t\t\tShow the status of the jail.\n"
 }
 
 showJailPathError() {
