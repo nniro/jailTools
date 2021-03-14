@@ -523,7 +523,9 @@ firewall() {
 
 		case $mode in
 			create)
-				cmdCtl "$fwFile" exists "firewall $rootDir $fwType $cmd $arguments" && return 0
+				if [ "$singleRunMode" = "false" ]; then
+					cmdCtl "$fwFile" exists "firewall $rootDir $fwType $cmd $arguments" && return 0
+				fi # not singleRunMode
 			;;
 
 			delete)
