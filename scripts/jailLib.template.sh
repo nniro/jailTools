@@ -837,6 +837,55 @@ internalFirewall() { local rootDir=$1; shift; firewall $rootDir "internal" $@ ; 
 # firewall on the base system
 externalFirewall() { local rootDir=$1; shift; firewall $rootDir "external" $@ ; }
 
+# checks if the firewall is correct.
+# returns 0 when everything is ok and 1 if there is either an error or there is a rule missing
+checkFirewall() {
+	rootDir=$1
+	local oldIFS="$IFS"
+	IFS="
+	"
+	for cmd in $(cmdCtl "$rootDir/$firewallInstr" list); do
+		remCmd=$(printf "%s" "$cmd" | $bb sed -e 's@firewall \(.*\) \(in\|ex\)ternal \(.*\)$@firewall \1 \2ternal -c \3@')
+
+		IFS="$oldIFS" # we set back IFS for remCmd
+		eval $remCmd
+		[ "$?" != "0" ] && return 1
+
+		oldIFS="$IFS"
+		IFS="
+		"
+	done
+	IFS="$oldIFS"
+
+	return 0
+}
+
+# reapply firewall rules
+resetFirewall() {
+	rootDir=$1
+
+	if [ "$privileged" = "0" ]; then
+		echo "This function requires superuser privileges" >&2
+		return
+	fi
+
+	local oldIFS="$IFS"
+	IFS="
+	"
+	for cmd in $(cmdCtl "$rootDir/$firewallInstr" list); do
+		remCmd=$(printf "%s" "$cmd" | $bb sed -e 's@firewall \(.*\) \(in\|ex\)ternal \(.*\)$@firewall \1 \2ternal -s \3@')
+
+		IFS="$oldIFS" # we set back IFS for remCmd
+		eval $remCmd
+		[ "$?" != "0" ] && return 1
+
+		oldIFS="$IFS"
+		IFS="
+		"
+	done
+	IFS="$oldIFS"
+}
+
 prepareChroot() {
 	local rootDir=$1
 	local unshareArgs=""
