@@ -90,6 +90,7 @@ case $cmd in
 		result=$(callGetopt "status [OPTIONS]" \
 		       -o "i" "ip" "display ip information" "showIp" "false" \
 		       -o "p" "ps" "display process information" "showProcessStats" "false" \
+		       -o "f" "firewall" "display the status of the firewall" "showFirewallStatus" "false" \
 		       -- "$@")
 
 		if [ "$?" = "0" ]; then
@@ -104,6 +105,15 @@ case $cmd in
 					runInNS ps
 				elif getVarVal 'showIp' "$result" >/dev/null; then
 					runInNS "/sbin/ip addr show dev \$vethInt" | sed -ne 's/ *inet \([0-9\.]*\).*/\1/ p'
+				elif getVarVal 'showFirewallStatus' "$result" > /dev/null; then
+					$bb sh -c "cd $rPath; source ./jailLib.sh; checkFirewall $rPath" 2>/dev/null
+					result=$?
+
+					if [ "$result" = "0" ]; then
+						echo "The firewall rules are set up correctly or there is an error"
+					else
+						echo "The firewall rules are not correct"
+					fi
 				else
 					echo "The jail is running"
 				fi
