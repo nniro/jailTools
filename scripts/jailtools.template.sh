@@ -26,6 +26,7 @@ showHelp() {
 	printf "    cp, cpDep\t\t\tcopy files or directories (with their shared object dependencies) into the jailTools\n"
 	printf "    start, stop, shell\t\tthese are jailTools specific commands to be used inside a jailTools directory only.\n"
 	printf "    status,s\t\t\tShow the status of the jail.\n"
+	printf "    firewall,f\t\t\tRe-apply the rules of the firewall if they are no longer present in the system's firewall.\n"
 }
 
 showJailPathError() {
@@ -80,6 +81,22 @@ case $cmd in
 		#if [ "$?" != "0" ]; then echo "There was an error starting the daemon, it may already be running."; fi
 
 		exit $?
+	;;
+
+	f|firewall)
+		checkJailPath $1 && jPath="$1" && shift
+		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
+		rPath=$($bb realpath $jPath)
+
+		$bb sh -c "cd $rPath; source ./jailLib.sh; checkFirewall $rPath" 2>/dev/null
+		if [ "$?" = "0" ]; then
+			echo "The firewall is working fine already"
+		else
+			echo "The firewall needs to be reapplied. Doing that now."
+			$bb sh -c "cd $rPath; source ./jailLib.sh; resetFirewall $rPath" 2>/dev/null
+		fi
+
+		exit 0
 	;;
 
 	s|status)
