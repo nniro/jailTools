@@ -127,7 +127,7 @@ case $cmd in
 					result=$?
 
 					if [ "$result" = "0" ]; then
-						echo "The firewall rules are set up correctly or there is an error"
+						echo "The firewall rules are set up correctly"
 					else
 						echo "The firewall rules are not correct"
 					fi
