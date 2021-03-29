@@ -24,7 +24,7 @@ ifeq ($(hasMeson),yes)
 .PHONY: $(MUZZLER) $(MUZZLER_CLEAN)
 endif
 
-ALL: $(MUZZLER) $(SECCOMP) $(SSHD) $(BUSYBOX) $(MUSL)
+ALL: $(BUSYBOX) $(MUSL)
 
 
 .ready:
