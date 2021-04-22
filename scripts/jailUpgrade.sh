@@ -117,7 +117,7 @@ startUpgrade() {
 	[ ! -d $njD ] && mkdir $njD
 
 
-	jailtools new $nj >/dev/null
+	jailtools new $nj >/dev/null 2>/dev/null
 
 	isChanged="false"
 	for file in $filesUpgrade; do
