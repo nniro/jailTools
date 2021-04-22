@@ -55,7 +55,7 @@ startUpgrade() {
 			mv $jPath/$configFile.merged $jPath/$configFile
 			[ -e $jPath/$configFile.patch ] && rm $jPath/$configFile.patch
 			[ -e $jPath/$configFile.new ] && rm $jPath/$configFile.new
-			for file in $jPath/$filesUpgrade; do
+			for file in $filesUpgrade; do
 				[ -e $jPath/$file.new ] && mv $jPath/$file.new $file
 			done
 
