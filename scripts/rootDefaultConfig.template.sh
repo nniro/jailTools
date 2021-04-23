@@ -85,6 +85,12 @@ setNetAccess=false
 # gets exactly the same network interface as the base system.
 disableUnprivilegedNetworkNamespace=true
 
+# activate this in case you actually need the real root user in your jail.
+# You should never use this unless you know exactly what you are doing as the
+# all powerful root user renders every security measures pretty much void.
+# *This is necessary for running sandstorm*.
+realRootInJail=false
+
 corePrivileges="-all,+setpcap,+sys_chroot,+dac_override,+setuid,+setgid"
 chrootPrivileges="-all,+setuid,+setgid,+net_bind_service"
 jailPrivileges="-all,+setpcap,+sys_chroot,+dac_override,+setuid,+setgid,+net_bind_service"
