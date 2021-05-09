@@ -81,6 +81,7 @@ EOF
 
 # read-only mount points with exec
 roMountPoints=$(cat << EOF
+/etc/ssl
 /usr/local
 /usr/lib
 /usr/lib64
