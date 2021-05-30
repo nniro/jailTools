@@ -93,6 +93,37 @@ safeCopyFile () {
 	fi
 }
 
+compDeps() {
+	file=$1
+
+	example="\
+		linux-gate.so.1 (0xb77a2000)\n\
+		libc.so.6 => /lib/libc.so.6 (0xb75c9000)\n\
+		/lib/ld-linux.so.2 (0xb77a3000)\
+	"
+
+	if [ "$file" = "" ]; then
+		echo "Please input an executable file or shared object."
+		exit 1
+	fi
+
+	if [ ! -e $file ]; then
+		echo "Error, no such file or directory: $file"
+		exit 1
+	fi
+
+	rawOutput=$(ldd $file 2> /dev/null)
+	#rawOutput=$(echo -e $example)
+
+	# handle statically linked files
+	if [ "`echo -e $rawOutput | sed -e "s/.*\(statically\|not a dynamic\).*/static/; {t toDelAll} " -e ":toDelAll {p; b delAll}; :delAll {d; b delAll}"`" = "static" ]; then
+		# we exit returning nothing for statically linked files
+		exit 0
+	fi
+
+	echo -e "$rawOutput" | sed -e "s/^\(\|[ \t]*\)\([^ ]*\) (.*)$/\2/" -e "s/[^ ]* \=> \([^ ]*\) (.*)$/\1/" | sed -e "/.*linux-gate.*/ d"
+}
+
 handle_files () {
 	local finalDest=$1
 
@@ -111,7 +142,7 @@ handle_files () {
 		fi
 
 		# the dependencies are copied first
-		deps=$($sh $ownPath/compDeps.sh $i)
+		deps=$(compDeps $i)
 		for t in $deps; do
 			#break;
 			if [ -e $t ]; then
