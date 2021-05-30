@@ -4,17 +4,14 @@ case "$(readlink -f /proc/$$/exe)" in
 	*zsh)
 		setopt shwordsplit
 		sh="$(readlink -f /proc/$$/exe)"
-		echo "using shell : $sh"
 	;;
 
 	*busybox)
 		sh="$(readlink -f /proc/$$/exe) sh"
-		echo "using shell : $sh"
 	;;
 
 	*)
 		sh="$(readlink -f /proc/$$/exe)"
-		echo "using shell : $sh"
 	;;
 esac
 
