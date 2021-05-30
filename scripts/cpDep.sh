@@ -21,7 +21,7 @@ if [ $(($# < 3)) = 1 ]; then
 	exit 1
 fi
 
-newStyleJail=0
+isJail=0
 destJail=$1
 destInJail=$2
 debugging=0
@@ -39,16 +39,8 @@ if [ ! -e $destJail ]; then
 fi
 
 if [ -d $destJail/root ] && [ -d $destJail/run ] && [ -f $destJail/startRoot.sh ] && [ -f $destJail/rootCustomConfig.sh ]; then
-	echo "New style jail directory detected"
+	isJail=1
 	destJail=$destJail/root
-	newStyleJail=1
-else
-	if [ ! -d $destJail/dev ] || [ ! -d $destJail/usr ] || [ ! -d $destJail/home ] || [ ! -d $destJail/etc ] || [ ! -d $destJail/bin ] || [ ! -d $destJail/sbin ] || [ ! -d $destJail/var ]; then
-		echo "The directory '$destJail\` does not seem to be a valid jail filesystem, bailing out." 
-		exit 1
-	fi
-
-	echo "Direct jail directory detected"
 fi
 
 createNewDir () {
@@ -135,7 +127,7 @@ handle_files () {
 
 handle_files "$destInJail" "$files"
 
-if [ "$newStyleJail" = "1" ]; then
+if [ "$isJail" = "1" ]; then
 	# parent
 	pDir=$(dirname $destJail)
 	scriptName=$(basename $0)
