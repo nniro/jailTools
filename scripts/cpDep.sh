@@ -27,12 +27,13 @@ fi
 newStyleJail=0
 destJail=$1
 destInJail=$2
+debugging=0
 shift 2
 files=$@
 
 ownPath=$(dirname $0)
 
-echo "$files -> $destJail/$destInJail"
+[ "$debugging" = "1" ] && echo "$files -> $destJail/$destInJail"
 
 if [ ! -e $destJail ]; then
 	#echo "destination root does not exist, please create one first"
@@ -59,11 +60,15 @@ createNewDir () {
 	local parent=$(dirname $distDir)
 	if [ ! -d $distDir ]; then
 		createNewDir $parent
-		echo "$distDir -> directory $distDir doesn't exist"
-		echo "$distDir -> creating directory $distDir"
-		mkdir $distDir
-	#else
-		#echo "$distDir -> directory $parent exists"
+		[ "$debugging" = "1" ] && echo "$distDir -> directory $distDir doesn't exist"
+		[ "$debugging" = "1" ] && echo "$distDir -> creating directory $distDir"
+		if [ "$debugging" = "1" ]; then
+			mkdir $distDir
+		else
+			mkdir $distDir 2>/dev/null
+		fi
+	else
+		[ "$debugging" = "1" ] && echo "$distDir -> directory $parent exists"
 	fi
 }
 
@@ -71,7 +76,7 @@ safeCopyFile () {
 	local src=$1
 	local dstDir=$2
 	local dstPath=$3
-	#echo "src=$src dstDir=$dstDir dstPath=$dstPath"
+	[ "$debugging" = "1" ] && echo "safeCopyFile : src=$src dstDir=$dstDir dstPath=$dstPath"
 	if [ -h $src ]; then # symbolic link check
 		# this ensures that the file that the link points to is also copied
 		link=$(readlink $src)
@@ -81,8 +86,9 @@ safeCopyFile () {
 		if [ ! -e $link ]; then # in case the link is relative and not absolute
 			link="$(dirname $src)/$link"
 		fi
-		#echo $src is a link to $link
+		[ "$debugging" = "1" ] && echo $src is a link to $link
 		safeCopyFile "$link" "$dstDir" "$(dirname $link)"
+		[ "$debugging" = "1" ] && echo "done copying link"
 	fi
 
 	local dstPathCmp=$dstDir/$dstPath/$(basename $src)
@@ -91,7 +97,7 @@ safeCopyFile () {
 		([ -e $dstPathCmp ] && [ -h $src ] && [ ! -h $dstPathCmp ]) ||  # this is in case our destination is not a link, so we replace it with a link
 		[ $dstPathCmp -ot $src ]; then # this is in case the destination does not exist or it is older than the origin
 		createNewDir "$dstDir/$dstPath"
-		echo "copying $src -> $dstPathCmp"
+		[ "$debugging" = "1" ] && echo "copying $src -> $dstPathCmp"
 		cp -f --no-dereference --preserve="mode,timestamps" $src $dstPathCmp
 	else # destination file already exists
 		:
@@ -104,12 +110,12 @@ handle_files () {
 	#echo about to recurse those input values : $1
 	for i in $(echo "$2"); do
 		if [ ! -e $i ]; then
-			echo "$i - No Such file or directory"
+			[ "$debugging" = "1" ] && echo "$i - No Such file or directory"
 			continue
 		fi
 		#echo cycle $i
 		if [ -d $i ]; then
-			echo recursively handle the directory $i
+			[ "$debugging" = "1" ] && echo recursively handle the directory $i
 			#echo "Next cycle destination : $finalDest/$(basename $i)"
 			handle_files "$finalDest/$(basename $i)" "$(ls -d $i/*)"
 			continue
