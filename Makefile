@@ -49,7 +49,7 @@ busybox/.ready: busybox/Makefile $(MUSL)
 
 $(BUSYBOX): busybox/.ready
 	-ln -sf /usr/include/linux usr/include/
-	-ln -sf /usr/include/asm usr/include/
+	$(if $(shell sh $(PROJECTROOT)/checkAsm.sh $(MUSLGCC)), ,$(error Could not find the directory 'asm' in either '/usr/include/' or '/usr/include/$(shell $(MUSLGCC) -dumpmachine)/'))
 	-ln -sf /usr/include/asm-generic usr/include/
 	$(MAKE) HOSTCFLAGS=-static HOSTLDFLAGS=-static -C busybox
 
