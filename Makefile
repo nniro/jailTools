@@ -1,16 +1,14 @@
 #! /bin/sh
 
+PROJECTROOT=$(PWD)
 CFLAGS=-O2 -pedantic -Wall -std=iso9899:1990
-MUSLGCC=usr/bin/musl-gcc
-MUSLOBJECTS=usr/lib/libc.a
-MUSL=musl
-BUSYBOX=busybox
+MUSLGCC=$(PROJECTROOT)/usr/bin/musl-gcc
+MUSL=$(PROJECTROOT)/usr/lib/libc.a
+BUSYBOX=$(PROJECTROOT)/busybox/busybox
 ZLIB=zlib
 SSHD=sshd
 SECCOMP=seccomp
 LDFLAGS=-static
-GCC=$(MUSLGCC)
-PROJECTROOT=$(PWD)
 MUZZLER=
 MUZZLER_CLEAN=
 
@@ -25,7 +23,6 @@ ifeq ($(hasMeson),yes)
 endif
 
 ALL: $(BUSYBOX) $(MUSL)
-
 
 .ready:
 	$(shell sh checkExist.sh)
@@ -44,13 +41,13 @@ busybox/Makefile: $(MUSL)
 	git submodule init busybox
 	git submodule update busybox
 
-busybox/.ready: busybox/Makefile
+busybox/.ready: busybox/Makefile $(MUSL)
 	cp busybox.config busybox/.config
 	sh -c 'cd busybox; git apply $(PROJECTROOT)/patches/busybox/*.patch 2>/dev/null; exit 0'
-	sed -e 's@ gcc@ $(PROJECTROOT)/$(GCC)@ ;s@)gcc@)$(PROJECTROOT)/$(GCC)@' -i busybox/Makefile
+	sed -e 's@ gcc@ $(MUSLGCC)@ ;s@)gcc@)$(MUSLGCC)@' -i $(PROJECTROOT)/busybox/Makefile
 	touch busybox/.ready
 
-$(BUSYBOX): busybox/.ready $(MUSL)
+$(BUSYBOX): busybox/.ready
 	-ln -sf /usr/include/linux usr/include/
 	-ln -sf /usr/include/asm usr/include/
 	-ln -sf /usr/include/asm-generic usr/include/
@@ -61,7 +58,7 @@ zlib/configure: $(MUSL)
 	git submodule update zlib
 
 zlib/Makefile: zlib/configure
-	sh -c 'cd zlib; CC=$(PROJECTROOT)/$(GCC) ./configure --static'
+	sh -c 'cd zlib; CC=$(MUSLGCC) ./configure --static'
 
 $(ZLIB): zlib/Makefile $(MUSL)
 	$(MAKE) -C zlib
@@ -72,7 +69,7 @@ openssh/configure: $(ZLIB) $(MUSL)
 
 openssh/Makefile: openssh/configure
 	sh -c 'cd openssh; autoconf; autoheader'
-	sh -c 'cd openssh; CC=$(PROJECTROOT)/$(GCC) CFLAGS="-static -Os" LDFLAGS="-static" ./configure --host="$(shell $(PROJECTROOT)/$(GCC) -dumpmachine)" --prefix=/ --sysconfdir=/etc/ssh/ --with-zlib=$(PROJECTROOT)/zlib --without-openssl --without-openssl-header-check'
+	sh -c 'cd openssh; CC=$(MUSLGCC) CFLAGS="-static -Os" LDFLAGS="-static" ./configure --host="$(shell $(MUSLGCC) -dumpmachine)" --prefix=/ --sysconfdir=/etc/ssh/ --with-zlib=$(PROJECTROOT)/zlib --without-openssl --without-openssl-header-check'
 
 $(SSHD): openssh/Makefile $(ZLIB) $(MUSL)
 	$(MAKE) -C openssh
@@ -83,7 +80,7 @@ libseccomp/configure: $(MUSL)
 
 libseccomp/Makefile: libseccomp/configure
 	sh -c 'cd libseccomp; sh autogen.sh'
-	sh -c 'cd libseccomp; CC=$(PROJECTROOT)/$(GCC) CFLAGS="-static -Os" LDFLAGS="-static" ./configure --prefix=$(PROJECTROOT)/usr'
+	sh -c 'cd libseccomp; CC=$(MUSLGCC) CFLAGS="-static -Os" LDFLAGS="-static" ./configure --prefix=$(PROJECTROOT)/usr'
 
 $(SECCOMP): libseccomp/Makefile $(MUSL)
 	$(MAKE) -C libseccomp
