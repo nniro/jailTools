@@ -150,6 +150,16 @@ case $cmd in
 		startUpgrade $jPath $@
 	;;
 
+	config)
+		checkJailPath $1 && jPath="$1" && shift
+		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
+		rPath=$($bb realpath $jPath)
+
+		sh $jailToolsPath/scripts/config.sh $jailToolsPath $rPath $@
+
+		exit $?
+	;;
+
 	*)
 		echo "Invalid command \`$cmd'" >&2
 		exit 1
