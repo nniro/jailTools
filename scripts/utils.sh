@@ -150,7 +150,7 @@ callGetopt() {
 	set -- "$@"
 
 	handleOpts() {
-		local in="$1"			# the input argument to parse
+		local in="$(printf "%s" "$1" | sed -e 's/\//%2f/g')"			# the input argument to parse
 		local arg="$2"			# the second argument if any
 		local caseConditionals="$3"	# we have to check the inputs against these to find the target arguments
 		local helpMessage="$4"		# the help message
@@ -182,7 +182,7 @@ callGetopt() {
 				fi
 			elif [ "$sC" = "" ] && [ "$lC" = "" ]; then
 				if [ "$hasArg" = "true" ] && printf "$rs" | grep -q "$v=\"\""; then
-					echo $(printf "$rs" | $bb sed -e "s/$v=\"\"/$v=\"$in\"/")
+					echo $(printf "$rs" | $bb sed -e "s/$v=\"\"/$v=\"$in\"/" | sed -e 's/%2f/\//g')
 					return 0
 				fi
 			fi
