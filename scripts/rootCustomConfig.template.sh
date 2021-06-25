@@ -13,7 +13,7 @@ if [ "$_JAILTOOLS_RUNNING" = "" ]; then
 	exit 1
 fi
 
-################# Configuration ###############
+################# Configuration #################
 
 # This loads the default configuration
 #
@@ -21,17 +21,17 @@ fi
 #
 . $ownPath/rootDefaultConfig.sh
 
-networking=true
+networking="true"
 
-extIp=172.16.0.1
+extIp="172.16.0.1"
 
-netInterface=@DEFAULTNETINTERFACE@
+netInterface="@DEFAULTNETINTERFACE@"
 
-setNetAccess=false
+setNetAccess="false"
 
-disableUnprivilegedNetworkNamespace=true
+disableUnprivilegedNetworkNamespace="true"
 
-# Command part
+################# Command part #################
 
 # Set the starting environment variables.
 # The syntax is "variable=value"  separated by spaces and the whole between double quotes
@@ -62,7 +62,7 @@ startCommand=""
 shellCommand=""
 
 
-################# Mount Points ################
+################# Mount Points #################
 
 # it's important to note that these mount points will *only* mount a directory
 # exactly at the same location as the base system but inside the jail.
@@ -101,7 +101,7 @@ EOF
 )
 
 
-################ Functions ###################
+################# Functions #################
 
 # this is called before each command that start a jail (daemon and start)
 # among other, put your firewall rules here
