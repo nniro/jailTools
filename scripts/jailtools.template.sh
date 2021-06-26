@@ -4,7 +4,7 @@ jailToolsPath=@SCRIPT_PATH@
 
 . $jailToolsPath/scripts/utils.sh # detectJail
 
-if [ "$jailToolsPath" = "@SCRIPT_PATH@" ]; then
+if echo "$jailToolsPath" | grep -q "SCRIPT_PATH" ; then
 	exit 1 # this script has to be installed to be used.
 fi
 
