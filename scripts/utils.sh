@@ -50,7 +50,7 @@ populateFile() {
 	local result=""
 
 	while [ "$1" != "" ] && [ "$2" != "" ]; do
-		result="$result s%$1$%$2%g;"
+		result="$result s%$1%$2%g;"
 		shift 2
 	done
 
