@@ -108,4 +108,19 @@ doCheck $jail
 $jtPath stop $jail 2>&1
 resetConfig $jail
 
+echo "Starting a daemonized httpd server from the command line"
+$jtPath config $jail -s jailNet true
+$jtPath config $jail -s disableUnprivilegedNetworkNamespace false
+timeout 5 $jtPath daemon $jail /usr/sbin/httpd -p 8000 2>&1 || exit 1
+doCheck $jail
+$jtPath stop $jail 2>&1
+resetConfig $jail
+
+echo "Starting an httpd server under a shell from the command line"
+$jtPath config $jail -s jailNet true
+$jtPath config $jail -s disableUnprivilegedNetworkNamespace false
+$jtPath daemon $jail sh -c '/usr/sbin/httpd -p 8000' 2>&1 || exit 1
+doCheck $jail
+$jtPath stop $jail 2>&1
+
 exit 0
