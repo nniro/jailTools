@@ -182,7 +182,7 @@ callGetopt() {
 				fi
 			elif [ "$sC" = "" ] && [ "$lC" = "" ]; then
 				if [ "$hasArg" = "true" ] && printf "$rs" | grep -q "$v=\"\""; then
-					echo $(printf "$rs" | $bb sed -e "s/$v=\"\"/$v=\"$in\"/" | sed -e 's/%2f/\//g')
+					echo $(printf "$rs" | $bb sed -e "s/$v=\"\"/$v=\"$in\"/" | sed -e 's/%2f/\//g' -e 's/%20/ /g')
 					return 0
 				fi
 			fi

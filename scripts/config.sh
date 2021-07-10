@@ -69,7 +69,7 @@ getCurVal() {
 setCoreVal() {
 	jailScript=$1
 	confVal=$2
-	newVal=$3
+	newVal=$(printf "%s" "$3" | sed -e 's/%20/ /g')
 
 	listConfigs $jailDir | grep -q "$confVal" || return 1
 
@@ -78,13 +78,13 @@ setCoreVal() {
 	newVal="$(printf "%s" "$newVal" | sed -e 's/\//%2f/g' | sed -e ':e ; N ; $ {s/\n/%0a/g} ; be')"
 
 	if [ "$res1" = "" ]; then
-		sed -e "s/$commandHeader/$confVal=$newVal\n\n$commandHeader/" -i $jailScript
+		sed -e "s/$commandHeader/$confVal=$newVal\n\n$commandHeader/" -e 's/%2f/\//g' -i $jailScript
 	else
 		if echo $res1 | grep -q "EOF"; then
 			sed -e "/^$confVal/ {s/.*// ; :e ; N; /EOF/ {s/.*/@CONFIG_CHANGE_ME@\\nEOF/ ; {:a ; N ; $ q; ba}}; be}" -i $jailScript
 			sed -e "s/@CONFIG_CHANGE_ME@/$confVal=$\(cat << EOF\\n$newVal/" -e 's/%2f/\//g' -e 's/%0a/\n/g' -i $jailScript
 		else
-			sed -e "s/^\($confVal\)=.*$/\1=\"$newVal\"/" -i $jailScript
+			sed -e "s/^\($confVal\)=.*$/\1=\"$newVal\"/" -e 's/%2f/\//g' -i $jailScript
 		fi
 	fi
 }
@@ -112,7 +112,7 @@ result=$(callGetopt "config [OPTIONS]" \
 	-o "s" "set" "Set configuration value" "setVal" "true" \
 	-o "l"  "list" "List configuration values" "listConf" "false" \
 	-o '' '' "" "arg1Data" "true" \
-	-- "$@")
+	-- $@)
 
 if [ "$?" = "0" ]; then
 	if getVarVal 'listConf' "$result" >/dev/null ; then

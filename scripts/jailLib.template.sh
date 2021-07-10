@@ -1044,10 +1044,11 @@ runJail() {
 	if [ $(($# > 0)) = 1 ]; then
 		while [ "$1" != "" ]; do
 			local curArg=""
-			if printf "%s" "$1" | $bb grep -q ' '; then
-				curArg="'$1'"
+			arg="$(printf "%s" "$1" | sed -e 's/%20/ /g')"
+			if printf "%s" "$arg" | $bb grep -q ' '; then
+				curArg="'$arg'"
 			else
-				curArg="$1"
+				curArg="$arg"
 			fi
 			local chrootCmd="$chrootCmd $curArg"
 			shift

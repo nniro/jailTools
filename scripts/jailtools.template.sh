@@ -47,6 +47,15 @@ checkJailPath() {
 	[ "$1" != "" ] && [ -d $1 ] && detectJail $1
 }
 
+opts=""
+while [ "$1" != "" ]; do
+	v="$(printf "%s" "$1" | sed -e 's/ /%20/g')"
+	[ "$opts" != "" ] && opts="${opts} $v" || opts="$v"
+	shift
+done
+
+set -- $opts
+
 case $cmd in
 	help|h)
 		showHelp
