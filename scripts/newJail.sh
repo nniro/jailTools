@@ -113,6 +113,7 @@ genPass() {
 echo "Populating the /etc configuration files"
 # localtime
 $sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/localtime
+echo "Done populating /etc"
 # group
 cat >> $newChrootDir/etc/group << EOF
 root:x:0:

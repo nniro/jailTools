@@ -47,6 +47,8 @@ createNewDir () {
 	local distDir=$1
 
 	local parent=$(dirname $distDir)
+
+	[ "$debugging" = "1" ] && echo "DEBUG ----- $distDir"
 	if [ ! -d $distDir ]; then
 		createNewDir $parent
 		[ "$debugging" = "1" ] && echo "$distDir -> directory $distDir doesn't exist"

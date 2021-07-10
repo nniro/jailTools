@@ -1071,7 +1071,7 @@ runJail() {
 		runChrootArgs="-r"
 	fi
 
-	#echo "runJail running : $chrootCmd"
+	#echo "runJail running : $chrootCmd" >&2
 	execNS $bb setpriv --bounding-set $jailPrivileges $bb sh -c "exec $(runChroot $runChrootArgs $rootDir $chrootCmd)"
 	return $?
 }
