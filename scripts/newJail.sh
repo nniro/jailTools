@@ -145,12 +145,12 @@ defNetInterface=$(ip route | grep '^default' | sed -e 's/^.* dev \([^ ]*\) .*$/\
 
 echo Internet facing network interface : $defNetInterface
 
-populateFile $ownPath/jailLib.template.sh @SHELL@ "$sh" @BUSYBOXPATH@ "$bb" @MAINJAILUSERNAME@ "$mainJailUsername" > $newChrootHolder/jailLib.sh
+populateFile $ownPath/jailLib.template.sh @SHELL@ "$bb sh" @BUSYBOXPATH@ "$bb" @MAINJAILUSERNAME@ "$mainJailUsername" > $newChrootHolder/jailLib.sh
 
-populateFile $ownPath/startRoot.template.sh @SHELL@ "$sh" @BUSYBOXPATH@ "$bb" > $newChrootHolder/startRoot.sh
+populateFile $ownPath/startRoot.template.sh @SHELL@ "$bb sh" @BUSYBOXPATH@ "$bb" > $newChrootHolder/startRoot.sh
 
-populateFile $ownPath/rootDefaultConfig.template.sh @SHELL@ "$sh" @JAILNAME@ "$jailName" @DEFAULTNETINTERFACE@ "$defNetInterface" > $newChrootHolder/rootDefaultConfig.sh
-populateFile $ownPath/rootCustomConfig.template.sh @SHELL@ "$sh" @JAILNAME@ "$jailName" @DEFAULTNETINTERFACE@ "$defNetInterface" > $newChrootHolder/rootCustomConfig.sh
+populateFile $ownPath/rootDefaultConfig.template.sh @SHELL@ "$bb sh" @JAILNAME@ "$jailName" @DEFAULTNETINTERFACE@ "$defNetInterface" > $newChrootHolder/rootDefaultConfig.sh
+populateFile $ownPath/rootCustomConfig.template.sh @SHELL@ "$bb sh" @JAILNAME@ "$jailName" @DEFAULTNETINTERFACE@ "$defNetInterface" > $newChrootHolder/rootCustomConfig.sh
 
 # we save the default initial rootCustomConfig for update purposes
 cp $newChrootHolder/rootCustomConfig.sh $newChrootHolder/._rootCustomConfig.sh.initial
