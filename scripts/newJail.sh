@@ -61,15 +61,15 @@ else
 	fi
 fi
 
-busyboxPath="$ownPath/../busybox/busybox"
+bb="$ownPath/../busybox/busybox"
 
-if [ ! -e $busyboxPath ]; then
+if [ ! -e $bb ]; then
 	echo "Please run 'make' in \`$ownPath' to compile the necessary dependencies first"
 	exit 1
 fi
 
 # check the kernel's namespace support
-unshareSupport=$(for ns in m u i n p U C; do $busyboxPath unshare -$ns 'echo "Operation not permitted"; exit' 2>&1 | grep -q "Operation not permitted" && printf $ns; done)
+unshareSupport=$(for ns in m u i n p U C; do $bb unshare -$ns 'echo "Operation not permitted"; exit' 2>&1 | grep -q "Operation not permitted" && printf $ns; done)
 
 if ! echo $unshareSupport | grep -q 'm'; then # check for mount namespace support
 	echo "Linux kernel Mount namespace support was not detected. It is mandatory to use this tool. Bailing out."
@@ -129,7 +129,7 @@ EOF
 chmod 644 $newChrootDir/etc/passwd
 # shadow
 cat >> $newChrootDir/etc/shadow << EOF
-root:$(echo "$(genPass 200)" | $ownPath/../busybox/busybox cryptpw -m sha512 -P 0 -S "$(genPass 16)"):0:0:99999:7:::
+root:$(echo "$(genPass 200)" | $bb cryptpw -m sha512 -P 0 -S "$(genPass 16)"):0:0:99999:7:::
 nobody:!:0:0:99999:7:::
 $mainJailUsername:!:0:0:99999:7:::
 EOF
@@ -145,9 +145,9 @@ defNetInterface=$(ip route | grep '^default' | sed -e 's/^.* dev \([^ ]*\) .*$/\
 
 echo Internet facing network interface : $defNetInterface
 
-populateFile $ownPath/jailLib.template.sh @SHELL@ "$sh" @BUSYBOXPATH@ "$busyboxPath" @MAINJAILUSERNAME@ "$mainJailUsername" > $newChrootHolder/jailLib.sh
+populateFile $ownPath/jailLib.template.sh @SHELL@ "$sh" @BUSYBOXPATH@ "$bb" @MAINJAILUSERNAME@ "$mainJailUsername" > $newChrootHolder/jailLib.sh
 
-populateFile $ownPath/startRoot.template.sh @SHELL@ "$sh" @BUSYBOXPATH@ "$busyboxPath" > $newChrootHolder/startRoot.sh
+populateFile $ownPath/startRoot.template.sh @SHELL@ "$sh" @BUSYBOXPATH@ "$bb" > $newChrootHolder/startRoot.sh
 
 populateFile $ownPath/rootDefaultConfig.template.sh @SHELL@ "$sh" @JAILNAME@ "$jailName" @DEFAULTNETINTERFACE@ "$defNetInterface" > $newChrootHolder/rootDefaultConfig.sh
 populateFile $ownPath/rootCustomConfig.template.sh @SHELL@ "$sh" @JAILNAME@ "$jailName" @DEFAULTNETINTERFACE@ "$defNetInterface" > $newChrootHolder/rootCustomConfig.sh
@@ -162,9 +162,9 @@ $sh $ownPath/cpDep.sh $newChrootHolder /etc/ $etcFiles
 
 [ -e /etc/terminfo ] && $sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/terminfo
 
-$sh $ownPath/cpDep.sh $newChrootHolder /bin $ownPath/../busybox/busybox
+$sh $ownPath/cpDep.sh $newChrootHolder /bin $bb
 
-for app in $($ownPath/../busybox/busybox --list-full); do ln -s /bin/busybox ${newChrootDir}/$app; done
+for app in $($bb --list-full); do ln -s /bin/busybox ${newChrootDir}/$app; done
 
 # we append these to update.sh
 echo "# end basic dependencies" >> $newChrootHolder/update.sh
