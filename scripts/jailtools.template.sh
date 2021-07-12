@@ -164,7 +164,7 @@ case $cmd in
 		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
 		rPath=$($bb realpath $jPath)
 
-		sh $jailToolsPath/scripts/config.sh $jailToolsPath $rPath $@
+		$bb sh $jailToolsPath/scripts/config.sh $jailToolsPath $rPath $@
 
 		exit $?
 	;;
