@@ -1,56 +1,48 @@
 :icons:
 
-TODO list in a Wekan board on sandstorm : https://nuage.xroutine.net/shared/a2O5DxqQ4BMQT9Cm_P_PYSGLHDszUBPknscCIR9KOCh
+Here's the link for the official TODO list. It's using a Wekan board and hosted on the sandstorm platform : https://nuage.xroutine.net/shared/a2O5DxqQ4BMQT9Cm_P_PYSGLHDszUBPknscCIR9KOCh
 
 = JailTools - helper script for creating jails
 
 == What is JailTools?
 
+It's a tool to isolate programs from your host system.
+So called jails contain a directory structure similar to a normal OS (like it contains /home, /etc, /dev, etc)
+and it is possible to control internet access for the programs inside the jail (you can easily remove internet access from jails).
 
-Jailtools is a toolkit for easily creating a jail for your services using chroot and namespaces. It provides a slim OS-level virtualization solution for the GNU/linux operating system.
 
+== What is JailTools in technical terms?
+
+It provides a slim OS-level virtualization solution for the GNU/linux operating system.
+It uses linux's chroot and namespace features.
 
 == Purpose
 
-JailTools makes it easy to create chroots for any purpose.
+As is, chroots are a pain to setup manually, you have to create a basic directory structure and
+copy over the dependencies of the program you want to use (especially if it's a dynamically linked program/library).
+
+JailTools makes that process easy by automating most of the work and then provides means to interface
+with jails.
+
 It has tools for copying applications and libraries to the jail, so as to also copy
 the shared objects they depend on to run correctly.
+
 JailTools creates a minimal filesystem (about 6MB in size) which is meant to include
 only the bare minimum for applications or libraries to do their job. This way, in case
 the service is compromized, the adversary will only get access to that filesystem rather
 than the host system directly.
 
-
-== Content
-
-=== *Jailtool scripts*
-
-There are 3 useful scripts :
-
-. *jailtools* - *jt*
-
-        jailtools (jt is a symbolic links to jailtools) is a super script that will be used to call other scripts and
-        do the various tasks related to jailTools directories.
-        This is the only script you will ever need to use.
-
-        'jailtool new' and 'jailtool cp' call the following scripts:
-
-. *newJail.sh*
-
-        Used to create new jails (as the name implies). (internal use only, use 'jt new' instead)
-
-. *cpDep.sh*
-
-        Used to copy binaries or libraries to the jail and it does
-        it's best to copy dependencies (shared objects) with it too. (internal use only, use 'jt cp' instead)
-
-
 == Compilation and Installation
+
+JailTools relies on busybox and to compile busybox the slim musl libc library is used.
+Busybox is compiled statically to limit to a maximum the amount of shared objects required for
+bare jails.
 
 === Quick steps :
 
-. install requirements: git, gcc, GNU make
+. compilation requirements: git, gcc, GNU make (and GNU autotools as some of the extra dependencies rely on them)
 . get the source code with 'git clone https://github.com/nniro/jailTools.git'
+. alternatively, you can recursively get all the dependencies and extra tools by doing : 'git clone --recurse-submodules https://github.com/nniro/jailTools.git'
 . 'make' will download, configure and compile musl and busybox.
 . install the super script with install.sh
 
@@ -95,7 +87,11 @@ IMPORTANT: From now on we will reference the super script jailtools as just *jt*
 
 In case you want to make the project available for all users on the system. These are the steps to do so.
 
-IMPORTANT: It is currently not possible to start jails or access them in any matter that does not require super user privileges. This means that users would need root access in order to fully use jails created with jailTools. The only way an unprivileged user could access a started jail is through network services like telnet or ssh.
+IMPORTANT: *No longer true, see next "Important" block* --- [.line-through]#It is currently not possible to start jails or access them in any matter that does not require super user privileges.
+This means that users would need root access in order to fully use jails created with jailTools.
+The only way an unprivileged user could access a started jail is through network services like telnet or ssh.#
+
+IMPORTANT: It is now possible to run jails as an unprivileged user when the linux user namespace is available. Note however that not all features work in that case. It is also possible to run a new shell from an already running jail even as an unprivileged user. This is actually the recommended way : First start a jail as a daemon or just with start (this will setup superuser only features for the jail) with a privileged user and then you can access the jail with an unprivileged user with the shell command to start your applications.
 
 Move jailTools folder to '/opt':
 
