@@ -1,14 +1,13 @@
 #! /bin/sh
 
 PROJECTROOT=$(PWD)
-CFLAGS=-O2 -pedantic -Wall -std=iso9899:1990
+
 MUSLGCC=$(PROJECTROOT)/usr/bin/musl-gcc
 MUSL=$(PROJECTROOT)/usr/lib/libc.a
 BUSYBOX=$(PROJECTROOT)/busybox/busybox
 ZLIB=zlib
 SSHD=sshd
 SECCOMP=seccomp
-LDFLAGS=-static
 MUZZLER=
 MUZZLER_CLEAN=
 
