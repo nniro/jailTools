@@ -56,7 +56,7 @@ $(BUSYBOX): $(BUSYBOX_BUILD_ROOT)/.ready
 	$(MAKE) HOSTCC=$(MUSLGCC) CC=$(MUSLGCC) HOSTCFLAGS=-static HOSTLDFLAGS=-static -C $(BUSYBOX_BUILD_ROOT)
 	printf "#! /bin/sh\n\nbb=$(BUSYBOX)" > $(PROJECTROOT)/scripts/paths.sh
 	# this is for being backward compatible with the old busybox emplacement so upgrading is possible, this should be removed soonish
-	ln -s $(BUSYBOX) $(PROJECTROOT)/busybox/busybox
+	ln -sfT $(BUSYBOX) $(PROJECTROOT)/busybox/busybox
 
 zlib/configure: $(MUSL)
 	git submodule init zlib
