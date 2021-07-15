@@ -28,14 +28,14 @@ ALL: $(BUSYBOX) $(MUSL)
 .ready:
 	$(shell sh checkExist.sh)
 
-musl/.ready: .ready
+$(MUSL_BUILD_ROOT)/.ready: .ready
 	git submodule init musl
 	git submodule update musl
 	mkdir -p $(MUSL_BUILD_ROOT)
 	sh -c 'cd $(MUSL_BUILD_ROOT); $(PROJECTROOT)/musl/configure --prefix=$(PROJECTROOT)/usr'
 	touch $(MUSL_BUILD_ROOT)/.ready
 
-$(MUSL): musl/.ready
+$(MUSL): $(MUSL_BUILD_ROOT)/.ready
 	$(MAKE) -C $(MUSL_BUILD_ROOT)
 	$(MAKE) -C $(MUSL_BUILD_ROOT) install
 
