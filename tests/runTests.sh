@@ -4,7 +4,7 @@ tf=tests
 
 user=
 
-bb=../busybox/busybox
+. ../scripts/paths.sh # this sets the variable 'bb'
 
 privileged=0
 if [ "$(id -u)" != "0" ]; then
@@ -60,7 +60,7 @@ lift() {
 mkdir $tf/bin
 
 # we provide our own busybox
-cp ../busybox/busybox $tf/bin
+cp $bb $tf/bin
 (cd $tf/bin; ln -s busybox sh)
 
 # list all available shells that we support

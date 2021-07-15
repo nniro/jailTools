@@ -4,7 +4,9 @@ PROJECTROOT=$(PWD)
 
 MUSLGCC=$(PROJECTROOT)/usr/bin/musl-gcc
 MUSL=$(PROJECTROOT)/usr/lib/libc.a
-BUSYBOX=$(PROJECTROOT)/busybox/busybox
+MUSL_BUILD_ROOT=$(PROJECTROOT)/build/musl
+BUSYBOX_BUILD_ROOT=$(PROJECTROOT)/build/busybox
+BUSYBOX=$(BUSYBOX_BUILD_ROOT)/busybox
 ZLIB=zlib
 SSHD=sshd
 SECCOMP=seccomp
@@ -29,28 +31,32 @@ ALL: $(BUSYBOX) $(MUSL)
 musl/.ready: .ready
 	git submodule init musl
 	git submodule update musl
-	sh -c 'cd musl; ./configure --prefix=$(PROJECTROOT)/usr'
-	touch musl/.ready
+	mkdir -p $(MUSL_BUILD_ROOT)
+	sh -c 'cd $(MUSL_BUILD_ROOT); $(PROJECTROOT)/musl/configure --prefix=$(PROJECTROOT)/usr'
+	touch $(MUSL_BUILD_ROOT)/.ready
 
 $(MUSL): musl/.ready
-	$(MAKE) -C musl
-	$(MAKE) -C musl install
+	$(MAKE) -C $(MUSL_BUILD_ROOT)
+	$(MAKE) -C $(MUSL_BUILD_ROOT) install
 
 busybox/Makefile: $(MUSL)
 	git submodule init busybox
 	git submodule update busybox
 
-busybox/.ready: busybox/Makefile $(MUSL)
-	cp busybox.config busybox/.config
+$(BUSYBOX_BUILD_ROOT)/.ready: busybox/Makefile $(MUSL)
+	mkdir -p $(BUSYBOX_BUILD_ROOT)
 	sh -c 'cd busybox; git apply $(PROJECTROOT)/patches/busybox/*.patch 2>/dev/null; exit 0'
-	sed -e 's@ gcc@ $(MUSLGCC)@ ;s@)gcc@)$(MUSLGCC)@' -i $(PROJECTROOT)/busybox/Makefile
-	touch busybox/.ready
+	touch $(BUSYBOX_BUILD_ROOT)/.ready
 
-$(BUSYBOX): busybox/.ready
-	-ln -sf /usr/include/linux usr/include/
+$(BUSYBOX): $(BUSYBOX_BUILD_ROOT)/.ready
+	-ln -sf /usr/include/linux $(PROJECTROOT)/usr/include/
 	$(if $(shell sh $(PROJECTROOT)/checkAsm.sh $(MUSLGCC)), ,$(error Could not find the directory 'asm' in either '/usr/include/' or '/usr/include/$(shell $(MUSLGCC) -dumpmachine)/'))
-	-ln -sf /usr/include/asm-generic usr/include/
-	$(MAKE) HOSTCFLAGS=-static HOSTLDFLAGS=-static -C busybox
+	-ln -sf /usr/include/asm-generic $(PROJECTROOT)/usr/include/
+	sh -c 'cd $(BUSYBOX_BUILD_ROOT); make KBUILD_DEFCONFIG=$(PROJECTROOT)/busybox.config KBUILD_SRC=$(PROJECTROOT)/busybox -f $(PROJECTROOT)/busybox/Makefile defconfig'
+	$(MAKE) HOSTCC=$(MUSLGCC) CC=$(MUSLGCC) HOSTCFLAGS=-static HOSTLDFLAGS=-static -C $(BUSYBOX_BUILD_ROOT)
+	echo "#! /bin/sh\n\nbb=$(BUSYBOX)" > $(PROJECTROOT)/scripts/paths.sh
+	# this is for being backward compatible with the old busybox emplacement so upgrading is possible, this should be removed soonish
+	ln -s $(BUSYBOX) $(PROJECTROOT)/busybox/busybox
 
 zlib/configure: $(MUSL)
 	git submodule init zlib
@@ -100,10 +106,9 @@ $(MUZZLER_CLEAN):
 
 .PHONY: clean
 clean: $(MUZZLER_CLEAN)
-	-$(MAKE) -C musl clean
-	-rm musl/.ready
-	-$(MAKE) -C busybox clean
-	-sh -c 'cd busybox; git reset --hard; rm .ready'
+	-sh -c 'cd build; rm -Rf musl'
+	-sh -c 'cd busybox; git reset --hard'
+	-sh -c 'cd build; rm -Rf busybox'
 	-$(MAKE) -C zlib clean
 	-$(MAKE) -C openssh clean
 	-$(MAKE) -C libseccomp clean

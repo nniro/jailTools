@@ -8,12 +8,13 @@ if echo "$jailToolsPath" | grep -q "SCRIPT_PATH" ; then
 	exit 1 # this script has to be installed to be used.
 fi
 
-if [ ! -e $jailToolsPath/busybox/busybox ]; then
+. $jailToolsPath/scripts/paths.sh # sets the 'bb' variable
+
+if [ ! -e $bb ]; then
 	echo "Please run 'make' in \`$jailToolsPath' to compile the necessary dependencies first" >&2
 	exit 1
 fi
 
-bb=$jailToolsPath/busybox/busybox
 
 showHelp() {
 	echo "Usage:"

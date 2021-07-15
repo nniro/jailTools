@@ -44,6 +44,7 @@ uid=$(id -u)
 gid=$(id -g)
 
 ownPath=$(dirname $0)
+jtPath=$(dirname $ownPath)
 
 # include common functions
 . $ownPath/utils.sh
@@ -61,7 +62,7 @@ else
 	fi
 fi
 
-bb="$ownPath/../busybox/busybox"
+. $ownPath/paths.sh # this sets the variable 'bb'
 
 if [ ! -e $bb ]; then
 	echo "Please run 'make' in \`$ownPath' to compile the necessary dependencies first"
@@ -145,9 +146,9 @@ defNetInterface=$(ip route | grep '^default' | sed -e 's/^.* dev \([^ ]*\) .*$/\
 
 echo Internet facing network interface : $defNetInterface
 
-populateFile $ownPath/jailLib.template.sh @SHELL@ "$bb sh" @BUSYBOXPATH@ "$bb" @MAINJAILUSERNAME@ "$mainJailUsername" > $newChrootHolder/jailLib.sh
+populateFile $ownPath/jailLib.template.sh @SHELL@ "$bb sh" @JTPATH@ "$jtPath" @MAINJAILUSERNAME@ "$mainJailUsername" > $newChrootHolder/jailLib.sh
 
-populateFile $ownPath/startRoot.template.sh @SHELL@ "$bb sh" @BUSYBOXPATH@ "$bb" > $newChrootHolder/startRoot.sh
+populateFile $ownPath/startRoot.template.sh @SHELL@ "$bb sh" @JTPATH@ "$jtPath" > $newChrootHolder/startRoot.sh
 
 populateFile $ownPath/rootDefaultConfig.template.sh @SHELL@ "$bb sh" @JAILNAME@ "$jailName" @DEFAULTNETINTERFACE@ "$defNetInterface" > $newChrootHolder/rootDefaultConfig.sh
 populateFile $ownPath/rootCustomConfig.template.sh @SHELL@ "$bb sh" @JAILNAME@ "$jailName" @DEFAULTNETINTERFACE@ "$defNetInterface" > $newChrootHolder/rootCustomConfig.sh

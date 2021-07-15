@@ -1,7 +1,7 @@
 #! @SHELL@
 # Don't change anything in this script! Use rootCustomConfig.sh for your changes!
 
-bb=@BUSYBOXPATH@
+. @JTPATH@/scripts/paths.sh # sets the 'bb' variable
 
 ownPath=$($bb dirname $0)
 
