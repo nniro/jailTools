@@ -108,6 +108,7 @@ $(MUZZLER_CLEAN):
 clean: $(MUZZLER_CLEAN)
 	-sh -c 'cd build; rm -Rf musl'
 	-sh -c 'cd busybox; git reset --hard'
+	-rm busybox/busybox
 	-sh -c 'cd build; rm -Rf busybox'
 	-$(MAKE) -C zlib clean
 	-$(MAKE) -C openssh clean
