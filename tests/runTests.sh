@@ -73,13 +73,6 @@ cp $bb $tf/bin
 
 availShells="$tf/bin/busybox"
 
-for cmd in dash zsh bash; do
-	cmdPath="${cmd}Path"
-	eval "$cmdPath"="$(PATH="$PATH:/sbin:/usr/sbin:/usr/local/sbin" command which $cmd 2>/dev/null)"
-	eval "cmdPath=\${$cmdPath}"
-
-	availShells="$availShells $cmdPath"
-done
 
 shells=""
 
