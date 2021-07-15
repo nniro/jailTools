@@ -54,7 +54,7 @@ $(BUSYBOX): $(BUSYBOX_BUILD_ROOT)/.ready
 	-ln -sf /usr/include/asm-generic $(PROJECTROOT)/usr/include/
 	sh -c 'cd $(BUSYBOX_BUILD_ROOT); make KBUILD_DEFCONFIG=$(PROJECTROOT)/busybox.config KBUILD_SRC=$(PROJECTROOT)/busybox -f $(PROJECTROOT)/busybox/Makefile defconfig'
 	$(MAKE) HOSTCC=$(MUSLGCC) CC=$(MUSLGCC) HOSTCFLAGS=-static HOSTLDFLAGS=-static -C $(BUSYBOX_BUILD_ROOT)
-	echo "#! /bin/sh\n\nbb=$(BUSYBOX)" > $(PROJECTROOT)/scripts/paths.sh
+	printf "#! /bin/sh\n\nbb=$(BUSYBOX)" > $(PROJECTROOT)/scripts/paths.sh
 	# this is for being backward compatible with the old busybox emplacement so upgrading is possible, this should be removed soonish
 	ln -s $(BUSYBOX) $(PROJECTROOT)/busybox/busybox
 
