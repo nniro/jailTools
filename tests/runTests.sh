@@ -170,6 +170,8 @@ for shell in $shells; do
 					break
 				else
 					echo "Automatic cleanse complete"
+					rm -Rf $tf/$cTest
+					break
 				fi
 			fi
 			rm -Rf $tf/$cTest
