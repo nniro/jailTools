@@ -12,6 +12,8 @@ $jtPath new $jail 2>&1 >/dev/null || exit 1
 
 cd $jail
 
+echo "Checking if the command 'config' exists"
+$jtPath config 2>&1 | grep -q 'Invalid command' && exit 1
 
 echo "Checking if the latest jail config can do config"
 $jtPath config --get networking | grep -q 'true' || exit 1
@@ -29,9 +31,6 @@ cp ._rootCustomConfig.sh.bak rootCustomConfig.sh
 
 echo "Accessing an invalid configuration name"
 $jtPath config --get fooBarAvecDuBeurre >/dev/null 2>/dev/null && exit 1
-
-echo "Checking if the command 'config' exists"
-$jtPath config 2>&1 | grep -q 'Invalid command' && exit 1
 
 echo "Checking basic configurations"
 $jtPath config --get jailName >/dev/null 2>/dev/null || exit 1
