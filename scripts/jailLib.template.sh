@@ -1050,7 +1050,7 @@ runJail() {
 			else
 				curArg="$arg"
 			fi
-			local chrootCmd="$chrootCmd $curArg"
+			[ "$chrootCmd" = "" ] && chrootCmd=$curArg || chrootCmd="$chrootCmd $curArg"
 			shift
 		done
 	fi
