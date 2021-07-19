@@ -127,4 +127,8 @@ EOF
 )
 $jtPath config --get devMountPoints | grep -q "$devMountPoints" || exit 1
 
+echo "with escaped double quotes"
+$jtPath config --set daemonCommand "sh -c \"/usr/sbin/httpd -p 8000\"" || exit 1
+$jtPath config --get daemonCommand | grep -q 'sh -c "/usr/sbin/httpd -p 8000"' || exit 1
+
 exit 0
