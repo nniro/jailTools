@@ -990,7 +990,7 @@ prepareChroot() {
 
 	if [ "$mountSys" = "true" ]; then
 		if [ "$privileged" = "0" ] && [ "$disableUnprivilegedNetworkNamespace" = "true" ]; then
-			echo "Could not mount the /sys directory. As an unprivileged user, the only way this is possible is by disabling the : UnprivilegedNetworkNamespace. Or you can always run this jail as a privileged user."
+			echo "Could not mount the /sys directory. As an unprivileged user, the only way this is possible is by disabling the : UnprivilegedNetworkNamespace. Or you can always run this jail as a privileged user." >&2
 		else
 			execNS mount -tsysfs none $rootDir/root/sys
 		fi
