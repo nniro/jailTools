@@ -55,6 +55,8 @@ userCreds="$userUID:$userGID"
 
 user=@MAINJAILUSERNAME@
 
+baseEnv="env - PATH=/usr/bin:/bin USER=$user HOME=/home HOSTNAME=nowhere.here TERM=linux"
+
 innerNSpid=""
 
 unshareSupport="-$(for ns in m u i n p U C; do $bb unshare -$ns 'echo "Operation not permitted"; exit' 2>&1 | grep -q "Operation not permitted" && printf $ns; done)"
@@ -1021,7 +1023,7 @@ runChroot() {
 		done
 	fi
 
-	printf "%s" "$bb chpst -/ $rootDir/root busybox setpriv --bounding-set $chrootPrivileges chpst $chrootArgs env - PATH=/usr/bin:/bin USER=$user HOME=/home HOSTNAME=nowhere.here TERM=linux $chrootCmd"
+	printf "%s" "$bb chpst -/ $rootDir/root busybox setpriv --bounding-set $chrootPrivileges chpst $chrootArgs $baseEnv $chrootCmd"
 }
 
 runJail() {
