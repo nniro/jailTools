@@ -145,20 +145,20 @@ callGetopt() {
 
 	shift # we get rid of '--'
 
-	$bb getopt -l $longOpt $smallOpt "$@" >/dev/null || return 1
+	O=$($bb getopt -l $longOpt $smallOpt "$@") || return 1
 
-	set -- "$@"
+	eval set -- $O
 
 	handleOpts() {
 		local in="$(printf "%s" "$1" | sed -e 's/\//%2f/g')"			# the input argument to parse
-		local arg="$2"			# the second argument if any
+		local arg="$(printf "%s" "$2" | sed -e 's/\x27//g')"			# the second argument if any
 		local caseConditionals="$3"	# we have to check the inputs against these to find the target arguments
 		local helpMessage="$4"		# the help message
 		local rs="$5"			# the result variable
-		oldIFS=$IFS
 		IFS=":"
 		for rawCond in $caseConditionals; do
-			IFS=","; set -- $rawCond; IFS=$oldIFS # we change the positional parameters to split the content of rawCond
+			IFS=","
+			set -- $rawCond # we change the positional parameters to split the content of rawCond
 			sC=$1		# short conditional
 			lC=$2		# long conditional
 			v=$3		# output variable name
@@ -167,18 +167,18 @@ callGetopt() {
 			[ "$in" = "--" ] && echo $rs && return 0
 			[ "$in" = "" ] && echo $rs && return 4
 
+			if [ "$in" = "-h" ] || [ "$in" = "--help" ]; then
+				printf "$helpMessage\n\n" >&2
+				return 2
+			fi
+
 			if [ "$in" = "$sC" ] || [ "$in" = "$lC" ]; then
-				if [ "$sC" = "-h" ]; then
-					printf "$helpMessage\n\n" >&2
-					return 2
+				if [ "$hasArg" = "true" ]; then
+					echo $(printf "$rs" | $bb sed -e "s/$v=\"\"/$v=\"$arg\"/")
+					return 3
 				else
-					if [ "$hasArg" = "true" ]; then
-						echo $(printf "$rs" | $bb sed -e "s/$v=\"\"/$v=\"$arg\"/")
-						return 3
-					else
-						echo $(printf "$rs" | $bb sed -e "s/$v=\"0\"/$v=\"1\"/")
-						return 0
-					fi
+					echo $(printf "$rs" | $bb sed -e "s/$v=\"0\"/$v=\"1\"/")
+					return 0
 				fi
 			elif [ "$sC" = "" ] && [ "$lC" = "" ]; then
 				if [ "$hasArg" = "true" ] && printf "$rs" | grep -q "$v=\"\""; then
@@ -187,12 +187,18 @@ callGetopt() {
 				fi
 			fi
 		done
+		# this is the catchall on the last flagless argument
+		if [ "$sC" = "" ] && [ "$lC" = "" ]; then
+			if [ "$hasArg" = "true" ]; then
+				echo $(printf "$rs" | $bb sed -e "s/$v=\"\(.*\)\"/$v=\"\1 $in\"/" | sed -e 's/%2f/\//g' -e 's/%20/ /g')
+				return 0
+			fi
+		fi
 
 		echo $rs
 	}
 
 	while true; do
-		IFS=":"
 		result=$(handleOpts "$1" "$2" "$caseCond" "$help" "$result")
 		case $? in
 			0):;;
