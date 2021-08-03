@@ -1,6 +1,7 @@
+callGetopt
+jtConfig
 basicNew
 general
 runJail
 daemon
 runJailSU
-jtConfig
