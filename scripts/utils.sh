@@ -73,7 +73,9 @@ getVarVal() {
 		oldIFS=$IFS; IFS="="
 		set -- $i; IFS=$oldIFS
 		if [ "$1" = "$var" ]; then # booleans are handled differently, they will also return a value to make their use more intuitive
-			([ "$2" != "\"\"" ] && [ "$2" != "\"0\"" ]) && echo $2 | sed -e 's/"//g' && return 0 || return 1
+			#([ "$2" != "\"\"" ] && [ "$2" != "\"0\"" ]) && echo $2 | sed -e 's/"//g' && return 0 || return 1
+			# we remove only the front and last double quotes
+			([ "$2" != "\"\"" ] && [ "$2" != "\"0\"" ]) && echo $2 | sed -e 's/^"\(.*\)"$/\1/' && return 0 || return 1
 		fi
 	done
 	return 2 # we found no argument by this name
@@ -155,6 +157,8 @@ callGetopt() {
 		local caseConditionals="$3"	# we have to check the inputs against these to find the target arguments
 		local helpMessage="$4"		# the help message
 		local rs="$5"			# the result variable
+		# add single quotes to content with spaces
+		echo "$in" | grep -q '\( \|%20\)' && in="$(echo "$in" | $bb sed -e "s/\(.*\)/'\1'/")"
 		IFS=":"
 		for rawCond in $caseConditionals; do
 			IFS=","
