@@ -165,4 +165,21 @@ echo $err | grep -q '0' || exit 1
 echo "result must contain the value"
 printf "%s" "$result" | grep -q 'showIp="0";showProcessStats="0";showTemp="0";outputData="";arg1Data="foo";arg2Data="bar avec du beurre"' || exit 1
 
+echo "test the catch all with some content in single quotes"
+result="$(stdTest foo bar 'avec du' beurre)"
+err=$?
+echo "return status must be 0"
+echo $err | grep -q '0' || exit 1
+echo "result must contain the value"
+printf "%s" "$result" | grep -q "showIp=\"0\";showProcessStats=\"0\";showTemp=\"0\";outputData=\"\";arg1Data=\"foo\";arg2Data=\"bar 'avec du' beurre\"" || exit 1
+
+echo "test the catch all with some content in double quotes"
+result="$(stdTest foo bar "avec du" beurre)"
+err=$?
+echo "return status must be 0"
+echo $err | grep -q '0' || exit 1
+echo "result must contain the value"
+printf "%s" "$result" | grep -q "showIp=\"0\";showProcessStats=\"0\";showTemp=\"0\";outputData=\"\";arg1Data=\"foo\";arg2Data=\"bar 'avec du' beurre\"" || exit 1
+
+
 exit 0
