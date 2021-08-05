@@ -163,6 +163,7 @@ cmkdir() {
 			if [ "$isOutput" = "false" ]; then
 				if execNS test ! -d $parentdir$subdir; then
 					execNS mkdir $callArgs $parentdir$subdir
+					[ "$privileged" = "1" ] && execNS chown $actualUser $parentdir$subdir
 				fi
 			else
 				result="$result mkdir -p $callArgs $parentdir$subdir;"
