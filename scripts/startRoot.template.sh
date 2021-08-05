@@ -34,12 +34,12 @@ prepareCmd() {
 	local result=
 
 	if [ "$1" != "" ]; then
-		result="$env $@"
+		result="env $env $@"
 	else
 		if [ "$cmd" = "" ]; then
-			result="$env sh"
+			result="env $env sh"
 		else
-			result="$env $cmd"
+			result="env $env $cmd"
 		fi
 	fi
 
