@@ -1,0 +1,207 @@
+From 66690dddc862868031d7c9e4d041e34bc991b007 Mon Sep 17 00:00:00 2001
+From: Nicholas Niro <blowfist@xroutine.net>
+Date: Tue, 22 Jun 2021 00:45:42 -0400
+Subject: [PATCH] unshare: Added support for chroot and uid/gid maps.
+
+---
+ util-linux/unshare.c | 85 ++++++++++++++++++++++++++++++++++++++++----
+ 1 file changed, 79 insertions(+), 6 deletions(-)
+
+diff --git a/util-linux/unshare.c b/util-linux/unshare.c
+index 61fc71197..2eba406cc 100644
+--- a/util-linux/unshare.c
++++ b/util-linux/unshare.c
+@@ -34,10 +34,13 @@
+ //usage:     "\n	-U,--user[=FILE]	Unshare user namespace"
+ //usage:     "\n	-f,--fork		Fork before execing PROG"
+ //usage:     "\n	-r,--map-root-user	Map current user to root (implies -U)"
++//usage:	 "\n	-R,--root=<DIR>		change the root directory from which the command is run"
+ //usage:     "\n	--mount-proc[=DIR]	Mount /proc filesystem first (implies -m)"
+ //usage:     "\n	--propagation slave|shared|private|unchanged"
+ //usage:     "\n				Modify mount propagation in mount namespace"
+ //usage:     "\n	--setgroups allow|deny	Control the setgroups syscall in user namespaces"
++//usage:	 "\n	--map-user=<uid>|<name>		Map the current user to uid (implies -U)"
++//usage:	 "\n	--map-group=<gid>|<name>	Map the current group to gid (implies -U)"
+ 
+ #include <sched.h>
+ #ifndef CLONE_NEWUTS
+@@ -70,6 +73,8 @@
+ # define MS_SHARED  (1 << 20)
+ #endif
+ 
++#include <stdlib.h> /* strtoul */
++
+ #include "libbb.h"
+ 
+ static void mount_or_die(const char *source, const char *target,
+@@ -86,6 +91,30 @@ static void mount_or_die(const char *source, const char *target,
+ 	}
+ }
+ 
++static uid_t fetch_user(const char *str)
++{
++	uid_t result;
++
++	result = strtoul(str, NULL, 10);
++
++	if (result == 0 && (strlen(str) > 1 || str[0] != '0'))
++		result = xuname2uid(str);
++
++	return result;
++}
++
++static gid_t fetch_group(const char *str)
++{
++	gid_t result;
++
++	result = strtoul(str, NULL, 10);
++
++	if (result == 0 && (strlen(str) > 1 || str[0] != '0'))
++		result = xgroup2gid(str);
++
++	return result;
++}
++
+ #define PATH_PROC_SETGROUPS	"/proc/self/setgroups"
+ #define PATH_PROC_UIDMAP	"/proc/self/uid_map"
+ #define PATH_PROC_GIDMAP	"/proc/self/gid_map"
+@@ -109,8 +138,11 @@ enum {
+ 	OPT_fork	= 1 << 6,
+ 	OPT_map_root	= 1 << 7,
+ 	OPT_mount_proc	= 1 << 8,
+-	OPT_propagation	= 1 << 9,
+-	OPT_setgroups	= 1 << 10,
++	OPT_newRoot	= 1 << 9,
++	OPT_propagation	= 1 << 10,
++	OPT_setgroups	= 1 << 11,
++	OPT_mapUser = 1 << 12,
++	OPT_mapGroup = 1 << 13,
+ };
+ enum {
+ 	NS_MNT_POS = 0,
+@@ -137,7 +169,7 @@ static const struct namespace_descr ns_list[] = {
+  * we are forced to use "fake" letters for them.
+  * '+': stop at first non-option.
+  */
+-#define OPT_STR "+muinpU""fr""\xfd::""\xfe:""\xff:"
++#define OPT_STR "+muinpU""fr""\xfd::""R:""\xfe:""\xff:""\xfb:""\xfc:"
+ static const char unshare_longopts[] ALIGN1 =
+ 	"mount\0"		Optional_argument	"\xf0"
+ 	"uts\0"			Optional_argument	"\xf1"
+@@ -148,8 +180,11 @@ static const char unshare_longopts[] ALIGN1 =
+ 	"fork\0"		No_argument		"f"
+ 	"map-root-user\0"	No_argument		"r"
+ 	"mount-proc\0"		Optional_argument	"\xfd"
++	"root\0"			Required_argument	"R"
+ 	"propagation\0"		Required_argument	"\xfe"
+ 	"setgroups\0"		Required_argument	"\xff"
++	"map-user\0"		Required_argument	"\xfb"
++	"map-group\0"		Required_argument	"\xfc"
+ ;
+ 
+ /* Ugly-looking string reuse trick */
+@@ -195,12 +230,17 @@ int unshare_main(int argc UNUSED_PARAM, char **argv)
+ 	unsigned int opts;
+ 	int unsflags;
+ 	uintptr_t need_mount;
++	const char *prop_newRoot;
+ 	const char *proc_mnt_target;
+ 	const char *prop_str;
+ 	const char *setgrp_str;
++	const char *prop_userMap;
++	const char *prop_groupMap;
+ 	unsigned long prop_flags;
+ 	uid_t reuid = geteuid();
+ 	gid_t regid = getegid();
++	uid_t tuid = 0; /* target uid */
++	gid_t tgid = 0; /* target gid */
+ 	struct fd_pair fdp;
+ 	pid_t child = child; /* for compiler */
+ 	struct namespace_ctx ns_ctx_list[NS_COUNT];
+@@ -209,6 +249,7 @@ int unshare_main(int argc UNUSED_PARAM, char **argv)
+ 	proc_mnt_target = "/proc";
+ 	prop_str = PRIVATE_STR;
+ 	setgrp_str = NULL;
++	prop_newRoot = "";
+ 
+ 	opts = getopt32long(argv, "^" OPT_STR "\0"
+ 		"\xf0""m" /* long opts (via their "fake chars") imply short opts */
+@@ -219,8 +260,10 @@ int unshare_main(int argc UNUSED_PARAM, char **argv)
+ 		":\xf5""U"
+ 		":rU"	   /* --map-root-user or -r implies -U */
+ 		":\xfd""m" /* --mount-proc implies -m */
++		":\xfb""U" /* --map-user implies -U */
++		":\xfc""U" /* --map-group implies -U */
+ 		, unshare_longopts,
+-		&proc_mnt_target, &prop_str, &setgrp_str,
++		&proc_mnt_target, &prop_newRoot, &prop_str, &setgrp_str, &prop_userMap, &prop_groupMap,
+ 		&ns_ctx_list[NS_MNT_POS].path,
+ 		&ns_ctx_list[NS_UTS_POS].path,
+ 		&ns_ctx_list[NS_IPC_POS].path,
+@@ -234,6 +277,8 @@ int unshare_main(int argc UNUSED_PARAM, char **argv)
+ 	//bb_error_msg("proc_mnt_target:%s", proc_mnt_target);
+ 	//bb_error_msg("prop_str:%s", prop_str);
+ 	//bb_error_msg("setgrp_str:%s", setgrp_str);
++	//bb_error_msg("root:%s", prop_newRoot);
++	//bb_error_msg("uid %d -- gid %d", opts & OPT_mapUser, opts & OPT_mapGroup);
+ 	//exit(1);
+ 
+ 	if (setgrp_str) {
+@@ -338,7 +383,29 @@ int unshare_main(int argc UNUSED_PARAM, char **argv)
+ 		/* Child continues */
+ 	}
+ 
++	if (opts & OPT_mapUser) {
++		uid_t uidMap = fetch_user(prop_userMap);
++		if (uidMap < 0) {
++			bb_error_msg("Invalid user name or UID used");
++			exit(1);
++		}
++		tuid = uidMap;
++	}
++	if (opts & OPT_mapGroup) {
++		gid_t gidMap = fetch_group(prop_groupMap);
++		if (gidMap < 0) {
++			bb_error_msg("Invalid group name or GID used");
++			exit(1);
++		}
++		tgid = gidMap;
++	}
++
+ 	if (opts & OPT_map_root) {
++		tuid = 0;
++		tgid = 0;
++	}
++
++	if (opts & OPT_map_root || opts & OPT_mapUser || opts & OPT_mapGroup) {
+ 		char uidmap_buf[sizeof("0 %u 1") + sizeof(int)*3];
+ 
+ 		/*
+@@ -348,9 +415,9 @@ int unshare_main(int argc UNUSED_PARAM, char **argv)
+ 		 * in that user namespace.
+ 		 */
+ 		xopen_xwrite_close(PATH_PROC_SETGROUPS, "deny");
+-		sprintf(uidmap_buf, "0 %u 1", (unsigned)reuid);
++		sprintf(uidmap_buf, "%u %u 1", (unsigned)tuid, (unsigned)reuid);
+ 		xopen_xwrite_close(PATH_PROC_UIDMAP, uidmap_buf);
+-		sprintf(uidmap_buf, "0 %u 1", (unsigned)regid);
++		sprintf(uidmap_buf, "%u %u 1", (unsigned)tgid, (unsigned)regid);
+ 		xopen_xwrite_close(PATH_PROC_GIDMAP, uidmap_buf);
+ 	} else
+ 	if (setgrp_str) {
+@@ -362,6 +429,12 @@ int unshare_main(int argc UNUSED_PARAM, char **argv)
+ 		mount_or_die("none", "/", NULL, prop_flags);
+ 	}
+ 
++	if (opts & OPT_newRoot) {
++		if (chroot(prop_newRoot) != 0)
++			bb_perror_msg_and_die("Can't chroot directory");
++		chdir("/");
++	}
++
+ 	if (opts & OPT_mount_proc) {
+ 		/*
+ 		 * When creating a new pid namespace, we might want the pid
+-- 
+2.20.1
+
