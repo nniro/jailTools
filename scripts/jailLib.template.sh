@@ -894,7 +894,7 @@ resetFirewall() {
 prepareChroot() {
 	local rootDir=$1
 	local unshareArgs=""
-	local runChrootArgs=""
+	local chrootArgs=""
 	local chrootCmd="sh -c 'while :; do sleep 9999; done'"
 	local preUnshare=""
 
@@ -911,13 +911,12 @@ prepareChroot() {
 	if [ "$privileged" = "1" ] && [ "$userNS" = "true" ]; then
 		preUnshare="$bb chpst -u $userCreds"
 		unshareArgs="-r"
-		runChrootArgs="-r"
 	elif [ "$privileged" = "0" ] && [ "$userNS" = "true" ]; then # unprivileged
 		unshareArgs="-r"
-		runChrootArgs="-r"
+		chrootArgs=""
 	else
 		unshareArgs=""
-		runChrootArgs=""
+		chrootArgs=""
 		unshareSupport=$(echo "$unshareSupport" | sed -e 's/U//g')
 	fi # unprivileged
 
@@ -927,7 +926,7 @@ prepareChroot() {
 		fi
 	fi
 
-	($preUnshare $bb unshare $unshareArgs ${unshareSupport}f -- $bb setpriv --bounding-set $corePrivileges $bb sh -c "exec $(runChroot $runChrootArgs $rootDir $chrootCmd)") &
+	($preUnshare $bb unshare $unshareArgs ${unshareSupport}f -- $bb setpriv --bounding-set $corePrivileges $bb sh -c "exec $bb chpst -/ $rootDir/root busybox setpriv --bounding-set $chrootPrivileges busybox chpst $chrootArgs $baseEnv $chrootCmd") &
 	innerNSpid=$!
 	sleep 1
 	innerNSpid=$($bb pgrep -P $innerNSpid)
@@ -941,7 +940,7 @@ prepareChroot() {
 	chmod o+r $rootDir/run/ns.pid
 
 	execNS $bb mount --bind $rootDir/root $rootDir/root
-	execNS $bb mount -tproc none -o hidepid=2 $rootDir/root/proc
+	execNS $bb mount -tproc none $rootDir/root/proc
 	execNS $bb mount -t tmpfs -o size=256k,mode=775 tmpfs $rootDir/root/dev
 
 	# dev
@@ -1002,42 +1001,27 @@ prepareChroot() {
 	return 0
 }
 
-runChroot() {
-	local chrootArgs="-u $userCreds"
-	OPTIND=0
-	while getopts r f 2>/dev/null ; do
-		case $f in
-			r) local chrootArgs="";; # run as root
-		esac
-	done
-	[ $(($OPTIND > 1)) = 1 ] && shift $(expr $OPTIND - 1)
-	local rootDir=$1
-	shift
+runShell() {
+       local rootDir=$1
+       local nsPid=$2
+       shift 2
 
-	if [ $(($# > 0)) = 0 ]; then
-		local chrootCmd="/bin/sh"
-	else
-		local chrootCmd=""
-		while [ "$1" != "" ]; do
-			local chrootCmd="$chrootCmd $1"
-			shift
-		done
-	fi
+       execRemNS $nsPid $bb unshare -U --map-user=$userUID --map-group=$userGID -R $rootDir/root $baseEnv $@
 
-	printf "%s" "$bb chpst -/ $rootDir/root busybox setpriv --bounding-set $chrootPrivileges chpst $chrootArgs $baseEnv $chrootCmd"
 }
 
 runJail() {
-	local runChrootArgs=""
 	local daemonize=false
 	local enableUserNS="false"
 	local jailMainMounts=""
+	local runAsRoot="false"
+	local preUnshare=""
 	OPTIND=0
 	while getopts rfd f 2>/dev/null ; do
 		case $f in
-			r) local runChrootArgs="-r";; # run as root
+			r) local runAsRoot="true";; # could be real or fake root depending if this was started privileged or not.
 			f) local enableUserNS="true";; # run as a fake root (with the user namespace)
-			d) local daemonize=true;;
+			d) local daemonize="true";;
 		esac
 	done
 	[ $(($OPTIND > 1)) = 1 ] && shift $(expr $OPTIND - 1)
@@ -1070,12 +1054,13 @@ runJail() {
 		fi
 	fi
 
-	if [ "$privileged" = "0" ]; then
-		runChrootArgs="-r"
+
+	if [ "$privileged" = "1" ]; then
+		preUnshare="$bb chpst -u $userCreds"
 	fi
 
-	#echo "runJail running : $chrootCmd" >&2
-	execNS $bb setpriv --bounding-set $jailPrivileges $bb sh -c "exec $(runChroot $runChrootArgs $rootDir $chrootCmd)"
+	execNS $preUnshare $bb sh -c "exec $bb unshare -U --map-user=$userUID --map-group=$userGID -R $rootDir/root $baseEnv $chrootCmd"
+
 	return $?
 }
 
@@ -1144,6 +1129,6 @@ execNS() { execRemNS $innerNSpid "$@"; }
 execRemNS() {
 	local nsPid=$1
 	shift
-	#echo "NS [$nsPid] -- args : $nsenterSupport exec : $@" >&2
+	#echo "NS [$nsPid] -- args : $nsenterSupport exec : \"$@\"" >&2
 	$bb nsenter --preserve-credentials $nsenterSupport -t $nsPid -- "$@"
 }

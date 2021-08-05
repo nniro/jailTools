@@ -93,7 +93,7 @@ cmdParse() {
 					echo "Entering the already started jail \`$jailName' unprivileged" >&2
 					runChrootArgs="-r"
 				fi
-				[ "$nsPid" != "" ] || echo "Unable to get the running namespace, bailing out" && execRemNS $nsPid sh -c "$(runChroot $runChrootArgs $ownPath $(prepareCmd "$runEnvironment" "$shellCommand" $@))"
+				[ "$nsPid" != "" ] || echo "Unable to get the running namespace, bailing out" && runShell $ownPath $nsPid $(prepareCmd "$runEnvironment" "$shellCommand" $@)
 				exit $?
 			else # we start a new jail
 				echo "This jail is not started, please start it with the \"daemon\" command" >&2
