@@ -20,4 +20,16 @@ echo "jail UID must be the user's UID -- user id : $uid ---- jail user id : $jUi
 echo "jail UID must not be the root UID"
 [ "$jUid" = "0" ] && exit 1
 
+# check the realRootInJail config which is supposed to provide in jail root.
+# Of course, for an unprivileged instance we only expect the fake root.
+
+echo "Setting the configuration : realRootInJail"
+
+$jtPath config $jail -s realRootInJail true
+
+jUid=$($jtPath start $jail id -u 2>/dev/null)
+
+echo "jail UID must be the root UID"
+[ "$jUid" = "0" ] || exit 1
+
 exit 0
