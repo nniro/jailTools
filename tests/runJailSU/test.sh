@@ -8,6 +8,7 @@ jtPath=$3
 
 lift() {
 	echo "$@" > $testPath/../fifo
+	cat $testPath/../fifo
 }
 
 $jtPath new $testPath/basic 2>&1 || exit 1

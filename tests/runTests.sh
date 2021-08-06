@@ -30,11 +30,12 @@ else # the user is root
 			if [ "$in" = "quit" ]; then
 				exit 0
 			fi
-			echo "[root] '$in'"
+			echo "[root] '$in'" >&2
 			if echo "$in" | grep -q "^$PWD/$tf/bin/jt/[^/]*/jailtools [^ ]*\( $PWD/$tf/.*\|\)$"; then
-				$in 2>&1
+				result="$($in)" # 2>&1
+				echo $result > $tf/fifo
 			else
-				echo [root] command denied
+				echo [root] command denied >&2
 			fi
 		done
 	) &
