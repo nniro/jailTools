@@ -1054,12 +1054,13 @@ runJail() {
 		fi
 	fi
 
-
+	unshareArgs="-U --map-user=$userUID --map-group=$userGID"
 	if [ "$privileged" = "1" ]; then
 		preUnshare="$bb chpst -u $userCreds"
 	fi
+	[ "$runAsRoot" = "true" ] && unshareArgs="-r"
 
-	execNS $preUnshare $bb sh -c "exec $bb unshare -U --map-user=$userUID --map-group=$userGID -R $rootDir/root $baseEnv $chrootCmd"
+	execNS $preUnshare $bb sh -c "exec $bb unshare $unshareArgs -R $rootDir/root $baseEnv $chrootCmd"
 
 	return $?
 }
