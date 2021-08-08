@@ -2,14 +2,23 @@
 
 tf=tests
 
+# this is the variable that is set when this script is being run as root.
+# the privileged part re-run the script unprivileged but sets this variable to
+# flag the availability of the powerbox.
+# POWERBOX
 user=
 
 . ../scripts/paths.sh # this sets the variable 'bb'
 
 privileged=0
+
+lift() {
+	[ -e $tf/fifo ] && echo $@ > $tf/fifo
+}
+
 if [ "$(id -u)" != "0" ]; then
 	if [ "$POWERBOX" = "" ]; then
-		echo "This script has limited testing abilities when it's not run as root"
+		echo "This script has limited testing abilities when it's not run as root" >&2
 	else
 		privileged=1
 	fi
@@ -41,18 +50,13 @@ else # the user is root
 	) &
 	powerboxId=$!
 
+	# we re-run this script as the normal user
 	$bb env - POWERBOX=fifo $bb chpst -u $uid:$gid $bb sh $0 $@
-
-	echo quit > $tf/fifo
 
 	rm $tf/fifo
 
 	exit 0
 fi
-
-lift() {
-	echo $@ > $tf/fifo
-}
 
 # test folder
 [ ! -d $tf ] && mkdir $tf
@@ -185,6 +189,7 @@ for shell in $shells; do
 done
 
 # stop the powerbox
-if [ "$privilege" = "1" ]; then
+if [ "$privileged" = "1" ]; then
+	sleep 2
 	lift quit
 fi
