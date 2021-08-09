@@ -1,5 +1,7 @@
 #! /bin/sh
 
+debugging=false
+
 tf=tests
 
 # this is the variable that is set when this script is being run as root.
@@ -35,16 +37,19 @@ else # the user is root
 
 	(
 		while :; do
+			[ "$debugging" = "true" ] && echo "[powerbox] waiting for input" >&2
 			in=$(cat $tf/fifo);
 			if [ "$in" = "quit" ]; then
+				[ "$debugging" = "true" ] && echo "[powerbox] got the quit command, quitting" >&2
 				exit 0
 			fi
-			echo "[root] '$in'" >&2
+			[ "$debugging" = "true" ] && echo "[powerbox] got the input : '$in'" >&2
 			if echo "$in" | grep -q "^$PWD/$tf/bin/jt/[^/]*/jailtools [^ ]*\( $PWD/$tf/.*\|\)$"; then
 				$in > $tf/result
+				[ "$debugging" = "true" ] && echo [powerbox] sending reply back to sender >&2
 				$bb timeout 2 $bb sh -c "cat $tf/result > $tf/fifo"
 			else
-				echo [root] command denied >&2
+				[ "$debugging" = "true" ] && echo [powerbox] command denied >&2
 			fi
 		done
 	) &
@@ -190,6 +195,7 @@ done
 
 # stop the powerbox
 if [ "$privileged" = "1" ]; then
+	[ "$debugging" = "true" ] && echo "Shutting down the powerbox" >&2
 	sleep 2
 	lift quit
 fi
