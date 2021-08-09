@@ -77,8 +77,8 @@ setCoreVal() {
 
 	newVal="$(printf "%s" "$newVal" | sed -e 's/\//%2f/g' | sed -e ':e ; N ; $ {s/\n/%0a/g} ; be' | sed -e 's/^"\([^"]*\)"$/\1/' | sed -e "s/^'\([^']*\)'$/\1/")"
 
-	if [ "$res1" = "" ]; then
-		sed -e "s/$commandHeader/$confVal=$newVal\n\n$commandHeader/" -e 's/%2f/\//g' -i $jailScript
+	if [ "$res1" = "" ]; then # if the configuration was not already present, we add it
+		sed -e "s/$commandHeader/$confVal=\"$newVal\"\n\n$commandHeader/" -e 's/%2f/\//g' -i $jailScript
 	else
 		if echo $res1 | grep -q "EOF"; then
 			sed -e "/^$confVal/ {s/.*// ; :e ; N; /EOF/ {s/.*/@CONFIG_CHANGE_ME@\\nEOF/ ; {:a ; N ; $ q; ba}}; be}" -i $jailScript
