@@ -181,5 +181,16 @@ echo $err | grep -q '0' || exit 1
 echo "result must contain the value"
 printf "%s" "$result" | grep -q "showIp=\"0\";showProcessStats=\"0\";showTemp=\"0\";outputData=\"\";arg1Data=\"foo\";arg2Data=\"bar 'avec du' beurre\"" || exit 1
 
+echo "test the catch all with quoted string and ';'"
+# the character ';' is special because it's what is necessary to parse the result value.
+# So it is converted to the value %3B and that has to be converted back by the calling
+# process.
+result="$(stdTest foo bar "avec du; cd ..; bah" beurre)"
+err=$?
+echo "return status must be 0"
+echo $err | grep -q '0' || exit 1
+echo "result must contain the value"
+printf "%s" "$result" | grep -q "showIp=\"0\";showProcessStats=\"0\";showTemp=\"0\";outputData=\"\";arg1Data=\"foo\";arg2Data=\"bar 'avec du%3B cd ..%3B bah' beurre\"" || exit 1
+
 
 exit 0
