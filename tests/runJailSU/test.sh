@@ -6,6 +6,8 @@ sh=$1
 testPath=$2
 jtPath=$3
 
+bb=$testPath/../bin/busybox
+
 lift() {
 	echo "$@" > $testPath/../fifo
 	cat $testPath/../fifo
@@ -13,12 +15,13 @@ lift() {
 
 $jtPath new $testPath/basic 2>&1 || exit 1
 cd $testPath/basic
-sed -e 's/jailNet=true/jailNet=false/' -i rootCustomConfig.sh
 
 echo Starting a daemon
-lift $jtPath daemon $testPath/basic 2>&1 || exit 1
-timeout 5 sh -c 'while :; do if [ -e run/jail.pid ]; then break; fi ; done'
+lift $jtPath daemon $testPath/basic 2>/dev/null || exit 1
+echo "Started the jail, now we check if it's actually running"
+$bb timeout 5 sh -c 'while :; do if [ -e run/jail.pid ]; then break; fi ; done'
 
+echo "checking to see if the jail is running"
 if [ ! -e run/jail.pid ]; then
 	echo "The daemonized jail is not running, run/jail.pid is missing"
 	exit 1
