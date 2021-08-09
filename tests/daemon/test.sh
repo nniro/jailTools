@@ -125,6 +125,14 @@ doCheck $jail
 $jtPath stop $jail 2>&1
 resetConfig $jail
 
+echo "Testing daemon with a shell that calls multiple instructions"
+$jtPath config $jail -s jailNet true
+$jtPath config $jail -s disableUnprivilegedNetworkNamespace false
+$jtPath config $jail -s daemonCommand 'sh -c "cd /usr/sbin/; ./httpd -p 8000 -f"'
+timeout 5 $jtPath daemon $jail 2>&1 || exit 1
+doCheck $jail
+$jtPath stop $jail 2>&1
+resetConfig $jail
 
 
 exit 0
