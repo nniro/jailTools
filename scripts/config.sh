@@ -42,10 +42,10 @@ getCoreVal() {
 
 	[ "$res1" = "" ] && return 1
 
-	if echo $res1 | grep -q "EOF"; then
+	if printf "%s" "$res1" | grep -q "EOF"; then
 		cat $jailScript | sed -ne "/^$confVal/ {s/.*//; be ; :e ; N; $ p; /EOF/ {s/EOF// ; p; b}; be}" | sed -e '/^$/ d'
 	else
-		echo $res1 | sed -ne "/^$confVal=[^ ]\+/ {s/^[^=]*=\(.*\)$/\1/ ; p}" | sed -e 's/^"\(.*\)"$/\1/' | sed -e 's/^\x27\(.*\)\x27$/\1/'
+		printf "%s\n" "$res1" | sed -ne "/^$confVal=[^ ]\+/ {s/^[^=]*=\(.*\)$/\1/ ; p}" | sed -e 's/^"\(.*\)"$/\1/' | sed -e 's/^\x27\(.*\)\x27$/\1/'
 	fi
 }
 
@@ -95,7 +95,7 @@ setDefaultVal() { # this sets to default value
 
 	defVal=$(getDefaultVal $jailDir $confVal) || return 1
 
-	setCoreVal $jailDir/rootCustomConfig.sh $confVal $defVal
+	setCoreVal $jailDir/rootCustomConfig.sh $confVal "$defVal"
 }
 
 setCustomVal() {
@@ -103,7 +103,7 @@ setCustomVal() {
 	confVal=$2
 	newVal=$3
 
-	setCoreVal $jailDir/rootCustomConfig.sh $confVal $newVal
+	setCoreVal $jailDir/rootCustomConfig.sh $confVal "$newVal"
 }
 
 result=$(callGetopt "config [OPTIONS]" \
@@ -128,7 +128,7 @@ if [ "$?" = "0" ]; then
 
 	elif getVarVal 'setVal' "$result" >/dev/null ; then
 		curConf=$(getVarVal 'setVal' "$result")
-		confVal=$(getVarVal 'arg1Data' "$result" | sed -e 's/^\x27\(.*\)\x27$/\1/' | sed -e 's/"/\x27/g')
+		confVal=$(getVarVal 'arg1Data' "$result" | sed -e 's/^\x27\(.*\)\x27$/\1/' | sed -e 's/"/\x27/g' | sed -e 's/%3B/;/g')
 
 		if getVarVal 'getDefaultVal' "$result" >/dev/null; then
 			echo "Setting the config $curConf to default value"
@@ -139,7 +139,7 @@ if [ "$?" = "0" ]; then
 				exit 1
 			else
 				echo "Setting the config $curConf with value : $confVal"
-				setCustomVal $jailDir $curConf $confVal
+				setCustomVal $jailDir $curConf "$confVal"
 			fi
 		fi
 	fi
