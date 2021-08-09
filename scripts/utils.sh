@@ -152,7 +152,7 @@ callGetopt() {
 	eval set -- $O
 
 	handleOpts() {
-		local in="$(printf "%s" "$1" | sed -e 's/\//%2f/g')"			# the input argument to parse
+		local in="$(printf "%s" "$1" | sed -e 's/\//%2f/g' | sed -e 's/;/%3B/g')"	# the input argument to parse
 		local arg="$(printf "%s" "$2" | sed -e 's/\x27//g')"			# the second argument if any
 		local caseConditionals="$3"	# we have to check the inputs against these to find the target arguments
 		local helpMessage="$4"		# the help message
@@ -178,15 +178,15 @@ callGetopt() {
 
 			if [ "$in" = "$sC" ] || [ "$in" = "$lC" ]; then
 				if [ "$hasArg" = "true" ]; then
-					echo $(printf "$rs" | $bb sed -e "s/$v=\"\"/$v=\"$arg\"/")
+					echo $(printf "%s" "$rs" | $bb sed -e "s/$v=\"\"/$v=\"$arg\"/")
 					return 3
 				else
-					echo $(printf "$rs" | $bb sed -e "s/$v=\"0\"/$v=\"1\"/")
+					echo $(printf "%s" "$rs" | $bb sed -e "s/$v=\"0\"/$v=\"1\"/")
 					return 0
 				fi
 			elif [ "$sC" = "" ] && [ "$lC" = "" ]; then
 				if [ "$hasArg" = "true" ] && printf "$rs" | grep -q "$v=\"\""; then
-					echo $(printf "$rs" | $bb sed -e "s/$v=\"\"/$v=\"$in\"/" | sed -e 's/%2f/\//g' -e 's/%20/ /g')
+					echo $(printf "%s" "$rs" | $bb sed -e "s/$v=\"\"/$v=\"$in\"/" | sed -e 's/%2f/\//g' -e 's/%20/ /g')
 					return 0
 				fi
 			fi
@@ -194,7 +194,7 @@ callGetopt() {
 		# this is the catchall on the last flagless argument
 		if [ "$sC" = "" ] && [ "$lC" = "" ]; then
 			if [ "$hasArg" = "true" ]; then
-				echo $(printf "$rs" | $bb sed -e "s/$v=\"\(.*\)\"/$v=\"\1 $in\"/" | sed -e 's/%2f/\//g' -e 's/%20/ /g')
+				echo $(printf "%s" "$rs" | $bb sed -e "s/$v=\"\(.*\)\"/$v=\"\1 $in\"/" | sed -e 's/%2f/\//g' -e 's/%20/ /g')
 				return 0
 			fi
 		fi
