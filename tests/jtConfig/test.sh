@@ -74,6 +74,7 @@ $jtPath config --default --get extIp | grep -q '^172.16.0.1$' || exit 1
 echo "setNetAccess"
 $jtPath config --set setNetAccess "true" || exit 1
 $jtPath config --get setNetAccess | grep -q '^true$' || exit 1
+cat rootCustomConfig.sh | grep -q '^setNetAccess="true"$' || exit 1
 $jtPath config --default --get setNetAccess | grep -q '^false$' || exit 1
 echo "mountSys (have to add to the custom config)"
 $jtPath config --set mountSys "false" || exit 1
@@ -82,6 +83,7 @@ $jtPath config --default --get mountSys | grep -q '^true$' || exit 1
 echo "createBridge (have to add to the custom config)"
 $jtPath config --set createBridge "true" || exit 1
 $jtPath config --get createBridge | grep -q '^true$' || exit 1
+cat rootCustomConfig.sh | grep -q '^createBridge="true"$' || exit 1
 $jtPath config --default --get createBridge | grep -q '^false$' || exit 1
 echo "roMountPoints"
 new_roMountPoints=$(cat << EOF
@@ -100,6 +102,7 @@ echo "daemonCommand without quotes"
 $jtPath config --set daemonCommand "nothing here" || exit 1
 $jtPath config --set daemonCommand -- /usr/sbin/httpd -p 8000 || exit 1
 $jtPath config --get daemonCommand | grep -q '^/usr/sbin/httpd -p 8000$' || exit 1
+cat rootCustomConfig.sh | grep -q '^daemonCommand="/usr/sbin/httpd -p 8000"$' || exit 1
 
 echo "Checking various default configurations again"
 echo "default jailNet"
@@ -146,7 +149,6 @@ $jtPath config --get daemonCommand | grep -q '^sh -c id$' || exit 1
 
 echo "without englobing quotes but with inner double quotes"
 $jtPath config --set daemonCommand -- sh -c "/usr/sbin/httpd -p 8000" || exit 1
-$jtPath config --get daemonCommand
 $jtPath config --get daemonCommand | grep -q "^sh -c '/usr/sbin/httpd -p 8000'$" || exit 1
 
 echo "without englobing quotes but with inner single quotes"
