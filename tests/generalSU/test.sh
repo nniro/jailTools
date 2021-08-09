@@ -1,6 +1,6 @@
 #! /bin/sh
 
-# we just test creating a vanilla jail
+# privileged general test
 
 sh=$1
 testPath=$2
@@ -8,12 +8,13 @@ jtPath=$3
 
 jail=$testPath/generalSU
 
+bb=$testPath/../bin/busybox
+
 lift() {
 	echo "$@" > $testPath/../fifo
 	cat $testPath/../fifo
 }
 
-bb=$testPath/../bin/busybox
 
 $jtPath new $jail 2>&1 || exit 1
 
