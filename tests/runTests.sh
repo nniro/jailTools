@@ -41,8 +41,8 @@ else # the user is root
 			fi
 			echo "[root] '$in'" >&2
 			if echo "$in" | grep -q "^$PWD/$tf/bin/jt/[^/]*/jailtools [^ ]*\( $PWD/$tf/.*\|\)$"; then
-				result="$($in)" # 2>&1
-				echo $result > $tf/fifo
+				$in > $tf/result
+				$bb timeout 2 $bb sh -c "cat $tf/result > $tf/fifo"
 			else
 				echo [root] command denied >&2
 			fi
@@ -166,7 +166,7 @@ for shell in $shells; do
 				printf "Test failed with : \n\n%s\n\n" "$result"
 
 				echo "Attempting to automatically cleanse the test"
-				timeout 5 sh -c 'while :; do if [ -e run/jail.pid ]; then break; fi ; done'
+				$bb timeout 5 sh -c 'while :; do if [ -e run/jail.pid ]; then break; fi ; done'
 				$shell $cTest/onFail.sh $shellPath $PWD/$tf/$cTest $jtPath
 
 				if [ "$?" = "1" ]; then
