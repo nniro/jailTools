@@ -1002,12 +1002,23 @@ prepareChroot() {
 }
 
 runShell() {
-       local rootDir=$1
-       local nsPid=$2
-       shift 2
+	local rootDir=$1
+	local nsPid=$2
+	local curArgs=""
+	shift 2
 
-       execRemNS $nsPid $bb unshare -U --map-user=$userUID --map-group=$userGID -R $rootDir/root $baseEnv $@
+	while [ "$1" != "" ]; do
+		arg="$(printf "%s" "$1" | sed -e 's/%20/ /g')"
+		if printf "%s" "$arg" | $bb grep -q ' '; then
+			arg="'$arg'"
+		else
+			arg="$arg"
+		fi
+		[ "$curArgs" = "" ] && curArgs="$arg" || curArgs="$curArgs $arg"
+		shift
+	done
 
+	execRemNS $nsPid $bb sh -c "exec $bb unshare -U --map-user=$userUID --map-group=$userGID -R $rootDir/root $baseEnv $curArgs"
 }
 
 runJail() {
