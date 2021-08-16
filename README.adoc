@@ -2,7 +2,7 @@
 
 Here's the link for the official TODO list. It's using a Wekan board and hosted on the sandstorm platform : https://nuage.xroutine.net/shared/a2O5DxqQ4BMQT9Cm_P_PYSGLHDszUBPknscCIR9KOCh
 
-= JailTools - helper script for creating jails
+= JailTools - create and manage jails (containers)
 
 == What is JailTools?
 
