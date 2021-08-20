@@ -108,12 +108,12 @@ EOF
 prepCustom() {
 	local rootDir=$1
 
-	# Note : We use the path /home/yourUser as a place holder for your home directory.
-	# It is necessary to use a full path rather than the $HOME env. variable because
-	# don't forget that this is being run as root.
+	# Note :	The variable $actualUser contains the username that
+	#		is the owner of the jail specific scripts. It can be
+	#		used to access the home directory like : /home/$actualUser
+	# It is necessary to use a full path rather than the $HOME env.
+	# variable because don't forget that this could be run as root.
 
-	# we assume that the user's home directory is /home/<their username>
-	# change this if it's not the case
 	# we mount the ~/.Xauthority file which is required for X11 support
 	mountSingle /home/$actualUser/.Xauthority /home/.Xauthority
 
@@ -125,7 +125,7 @@ prepCustom() {
 	# as our default internet route and we assign the interface the last IP bit of 3
 	# so for example if tor's bridge's IP is 192.168.11.1 we are automatically assigned
 	# the IP : 192.168.11.3
-	# joinBridgeByJail /home/yourUser/jails/tor "false" "3"
+	# joinBridgeByJail /home/$actualUser/jails/tor "false" "3"
 
 	# To join a bridge not from a jail.
 	# The 1st argument is for if we want to route our internet through that bridge.
