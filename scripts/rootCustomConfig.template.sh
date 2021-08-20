@@ -143,7 +143,8 @@ prepCustom() {
 	# externalFirewall $rootDir [command] <command arguments...>
 	# 	commands :
 	#		dnat - [udp or tcp] [input interface] [output interface] [source port] [destination address] [destination port]
-	#			This makes it possible to forward an external port to one of the port on the jail itself.
+	#			This makes it possible to forward an external port
+	#			to one of the port on the jail itself.
 	#
 	#		dnatTcp - [input interface] [output interface] [source port] [destination address] [destination port]
 	#			Tcp variant of dnat
@@ -152,8 +153,10 @@ prepCustom() {
 	#			Udp variant of dnat
 	#			see 'dnat'
 	#		openPort - [interface from] [interface to] [tcp or udp] [destination port]
-	#			opens a port (and also allow communications through it) from an origin to a destination network interface
-	#				on a specific port or a port range using this format 'min:max'.
+	#			opens a port (and also allow communications through
+	#			it) from an origin to a destination network interface
+	#			on a specific port or a port range using this
+	#			format 'min:max'.
 	#
 	#		openTcpPort - [interface from] [interface to] [destination port]
 	#			Tcp variant of openPort
@@ -162,8 +165,16 @@ prepCustom() {
 	#			Udp variant of openPort
 	#			see 'openPort'
 	#		allowConnection - [tcp or udp] [output interface] [destination address] [destination port]
-	#			In the case that the command blockAll was used, use this command to fine grain
-	#			what is allowed also supports a port range using this format 'min:max'.
+	#			Note :	This is really meant to be used with
+	#				the internal firewall, don't use it
+	#				for the external firewall.
+	#			In the case that the command blockAll was used,
+	#			use this command to fine grain what is allowed.
+	#			The argument 'destination port' also supports a
+	#			port range using this format 'min:max'.
+	#			It is also fully possible to use this multiple times
+	#			with a single destination address to set
+	#			multiple ports.
 	#
 	#		allowTcpConnection - [output interface] [destination address] [destination port]
 	#			Tcp variant of allowConnection
@@ -172,6 +183,9 @@ prepCustom() {
 	#			Udp variant of allowConnection
 	#			see 'allowConnection'
 	#		blockAll
+	#			Note :	This is really meant to be used with
+	#				the internal firewall, don't use it
+	#				for the external firewall.
 	#			block all incoming and outgoing connections to a jail
 	#		snat - [the interface connected to the outbound network] [the interface from which the packets originate]
 	#			This permits internet access to the jail. It is also called Masquerading.
@@ -183,21 +197,33 @@ prepCustom() {
 	# incoming
 
 	# We allow the base system to connect to our jail (all ports) :
+	#
 	# externalFirewall $rootDir openTcpPort $vethExt $vethInt 1:65535
 
-	# We allow the base system to connect to our jail specifically only to the tcp port 8000 :
+	# We allow the base system to connect to our jail specifically
+	# only to the tcp port 8000 :
+	#
 	# externalFirewall $rootDir openTcpPort $vethExt $vethInt 8000
+	#
+	# if the "blockAll" firewall rule was used, we also have to set
+	# that up for the internal firewall :
+	#
+	# internalFirewall $rootDir openTcpPort $vethExt $vethInt 8000
 
-	# We allow the net to connect to our jail specifically to the tcp port 8000 from the port 80 (by dnat) :
+	# We allow the net to connect to our jail specifically to the
+	# tcp port 8000 from the port 80 (by dnat) :
 	# internet -> port 80 -> firewall's dnat -> jail's port 8000
+	#
 	# externalFirewall $rootDir dnatTcp eth0 $vethExt 80 $ipInt 8000
 
 	# outgoing
 
 	# We allow the jail access to the base system's tcp port 25 :
+	#
 	# externalFirewall $rootDir openTcpPort $vethInt $vethExt 25
 
 	# We allow the jail all access to the base system (all tcp ports) :
+	#
 	# externalFirewall $rootDir openTcpPort $vethInt $vethExt 1:65535
 }
 
