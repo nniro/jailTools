@@ -194,6 +194,20 @@ prepCustom() {
 	# examples :
 	#
 
+	# If you want to allow full internet access to the jail but want to limit
+	# to what and where to connect, this is the command to use :
+	#
+	# internalFirewall $rootDir blockAll
+
+	# In case the "blockAll" firewall rule was used, we allow the internal jail
+	# to connect to the Google DNS service.
+	# Do note that although it is possible to use domain names rather than IPs,
+	# it is considered unsafe by the iptables documentation, so use IPs.
+	# (IPv6 is not yet supported)
+	#
+	# internalFirewall $rootDir allowTcpConnection $vethInt 8.8.8.8 53
+	# internalFirewall $rootDir allowUdpConnection $vethInt 8.8.8.8 53
+
 	# incoming
 
 	# We allow the base system to connect to our jail (all ports) :
