@@ -5,12 +5,6 @@
 [submodule "busybox"]
 	path = busybox
 	url = git://busybox.net/busybox.git
-[submodule "zlib"]
-	path = zlib
-	url = https://github.com/madler/zlib.git
-[submodule "openssh"]
-	path = openssh
-	url = https://github.com/openssh/openssh-portable.git
 [submodule "libseccomp"]
 	path = libseccomp
 	url = https://github.com/seccomp/libseccomp
