@@ -1,10 +1,15 @@
 #! /bin/sh
 
-# this has to be called from the super script jailtools
-if [ "$jailToolsPath" = "" ] || [ ! -d $jailToolsPath ]; then
-	echo "This script has to be called from the 'jailtools' super script like so :"
-	echo "jailtools upgrade <path to jail>"
-	exit 1
+if [ "$BB" = "" ]; then
+	# this has to be called from the super script jailtools
+	if [ "$jailToolsPath" = "" ] || [ ! -d $jailToolsPath ]; then
+		echo "This script has to be called from the 'jailtools' super script like so :"
+		echo "jailtools upgrade <path to jail>"
+		exit 1
+	fi
+	bb=$jailToolsPath/busybox/busybox
+else
+	bb=$BB
 fi
 
 configFile=rootCustomConfig.sh
@@ -40,8 +45,6 @@ startUpgrade() {
 	local njD=$jPath/.__jailUpgrade # the temporary new jail path
 	local jailName=$(basename $jPath)
 	local nj=$njD/$jailName # new jail
-
-	bb=$jailToolsPath/busybox/busybox
 
 	case $1 in
 		--continue)

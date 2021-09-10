@@ -2,13 +2,24 @@
 
 jailToolsPath=@SCRIPT_PATH@
 
-. $jailToolsPath/scripts/utils.sh # detectJail
-
 if echo "$jailToolsPath" | grep -q "SCRIPT_PATH" ; then
 	exit 1 # this script has to be installed to be used.
 fi
 
-. $jailToolsPath/scripts/paths.sh # sets the 'bb' variable
+exe=$(readlink /proc/$$/exe)
+
+if [ "$(dirname $0)" = "." ] && [ "$(basename $exe)" = "busybox" ]; then
+	bb=$exe
+	ISINBUSYBOX=1
+
+	eval "$($bb --show jt_utils)"
+
+else
+	bb=""
+	ISINBUSYBOX=0
+	. $jailToolsPath/scripts/paths.sh # sets the 'bb' variable
+	. $jailToolsPath/scripts/utils.sh # detectJail
+fi
 
 if [ ! -e $bb ]; then
 	echo "Please run 'make' in \`$jailToolsPath' to compile the necessary dependencies first" >&2
@@ -67,7 +78,11 @@ case $cmd in
 	;;
 
 	new|create)
-		$bb sh $jailToolsPath/scripts/newJail.sh $@
+		if [ "$ISINBUSYBOX" = "1" ]; then
+			$bb jt_new $@
+		else
+			$bb sh $jailToolsPath/scripts/newJail.sh $@
+		fi
 		exit $?
 	;;
 
@@ -75,7 +90,11 @@ case $cmd in
 		checkJailPath $1 && jPath="$1" && shift
 		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
 
-		$bb sh $jailToolsPath/scripts/cpDep.sh $jPath $@
+		if [ "$ISINBUSYBOX" = "1" ]; then
+			$bb jt_cpDep $jPath $@
+		else
+			$bb sh $jailToolsPath/scripts/cpDep.sh $jPath $@
+		fi
 		exit $?
 	;;
 
@@ -83,6 +102,7 @@ case $cmd in
 		checkJailPath $1 && jPath="$1" && shift
 		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
 
+		export BB=$bb
 		$bb sh $jPath/startRoot.sh $cmd $@
 		exit $?
 	;;
@@ -91,6 +111,7 @@ case $cmd in
 		checkJailPath $1 && jPath="$1" && shift
 		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
 
+		export BB=$bb
 		($bb nohup $bb sh $jPath/startRoot.sh 'daemon' $@ 2>&1 > $jPath/run/daemon.log) &
 		#if [ "$?" != "0" ]; then echo "There was an error starting the daemon, it may already be running."; fi
 
@@ -128,7 +149,7 @@ case $cmd in
 			#eval $result
 
 			runInNS() {
-				$bb sh -c "cd $rPath; source ./jailLib.sh; execRemNS $(cat $jPath/run/ns.pid) $bb chroot $rPath/root $1" 2>/dev/null
+				$bb sh -c "export BB=$bb; cd $rPath; source ./jailLib.sh; execRemNS $(cat $jPath/run/ns.pid) $bb chroot $rPath/root $1" 2>/dev/null
 			}
 
 			if [ "$(jailStatus $rPath)" = "1" ]; then # we check if the jail is running
@@ -160,7 +181,12 @@ case $cmd in
 		checkJailPath $1 && jPath="$1" && shift
 		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
 
-		. $jailToolsPath/scripts/jailUpgrade.sh
+		if [ "$ISINBUSYBOX" = "1" ]; then
+			export BB=$bb
+			eval "$($bb --show jt_upgrade)"
+		else
+			. $jailToolsPath/scripts/jailUpgrade.sh
+		fi
 		startUpgrade $jPath $@
 	;;
 
@@ -169,7 +195,11 @@ case $cmd in
 		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
 		rPath=$($bb realpath $jPath)
 
-		$bb sh $jailToolsPath/scripts/config.sh $jailToolsPath $rPath $@
+		if [ "$ISINBUSYBOX" = "1" ]; then
+			$bb jt_config $jailToolsPath $rPath $@
+		else
+			$bb sh $jailToolsPath/scripts/config.sh $jailToolsPath $rPath $@
+		fi
 
 		exit $?
 	;;

@@ -7,6 +7,18 @@ MUSL=$(PROJECTROOT)/usr/lib/libc.a
 MUSL_BUILD_ROOT=$(PROJECTROOT)/build/musl
 BUSYBOX_BUILD_ROOT=$(PROJECTROOT)/build/busybox
 BUSYBOX=$(BUSYBOX_BUILD_ROOT)/busybox
+EMBEDDED_SCRIPTS=$(addprefix $(PROJECTROOT)/busybox/embed/, jt\
+jt_config\
+jt_cpDep\
+jt_upgrade\
+jt_new\
+jt_utils\
+jt_jailLib_template\
+jt_startRoot_template\
+jt_filesystem_template\
+jt_rootCustomConfig_template\
+jt_rootDefaultConfig_template\
+)
 ZLIB=zlib
 SSHD=sshd
 SECCOMP=seccomp
@@ -43,12 +55,39 @@ busybox/Makefile: $(MUSL)
 	git submodule init busybox
 	git submodule update busybox
 
-$(BUSYBOX_BUILD_ROOT)/.ready: busybox/Makefile $(MUSL)
+busybox/embed: busybox/Makefile $(MUSL)
+	mkdir -p busybox/embed
+
+$(BUSYBOX_BUILD_ROOT)/.ready: busybox/Makefile busybox/embed $(MUSL)
 	mkdir -p $(BUSYBOX_BUILD_ROOT)
 	sh -c 'cd busybox; git apply $(PROJECTROOT)/patches/busybox/*.patch 2>/dev/null; exit 0'
 	touch $(BUSYBOX_BUILD_ROOT)/.ready
 
-$(BUSYBOX): $(BUSYBOX_BUILD_ROOT)/.ready
+$(PROJECTROOT)/busybox/embed/jt: scripts/jailtools.template.sh busybox/embed
+	cat $< | sed -e 's/@SCRIPT_PATH@/./' > $@
+
+$(PROJECTROOT)/busybox/embed/jt_config: scripts/config.sh busybox/embed
+	cp $< $@
+$(PROJECTROOT)/busybox/embed/jt_cpDep: scripts/cpDep.sh busybox/embed
+	cp $< $@
+$(PROJECTROOT)/busybox/embed/jt_upgrade: scripts/jailUpgrade.sh busybox/embed
+	cp $< $@
+$(PROJECTROOT)/busybox/embed/jt_new: scripts/newJail.sh busybox/embed
+	cp $< $@
+$(PROJECTROOT)/busybox/embed/jt_utils: scripts/utils.sh busybox/embed
+	cp $< $@
+$(PROJECTROOT)/busybox/embed/jt_jailLib_template: scripts/jailLib.template.sh busybox/embed
+	cp $< $@
+$(PROJECTROOT)/busybox/embed/jt_startRoot_template: scripts/startRoot.template.sh busybox/embed
+	cp $< $@
+$(PROJECTROOT)/busybox/embed/jt_filesystem_template: scripts/filesystem.template.sh busybox/embed
+	cp $< $@
+$(PROJECTROOT)/busybox/embed/jt_rootCustomConfig_template: scripts/rootCustomConfig.template.sh busybox/embed
+	cp $< $@
+$(PROJECTROOT)/busybox/embed/jt_rootDefaultConfig_template: scripts/rootDefaultConfig.template.sh busybox/embed
+	cp $< $@
+
+$(BUSYBOX): $(EMBEDDED_SCRIPTS) $(BUSYBOX_BUILD_ROOT)/.ready
 	-ln -sf /usr/include/linux $(PROJECTROOT)/usr/include/
 	$(if $(shell sh $(PROJECTROOT)/checkAsm.sh $(MUSLGCC)), ,$(error Could not find the directory 'asm' in either '/usr/include/' or '/usr/include/$(shell $(MUSLGCC) -dumpmachine)/'))
 	-ln -sf /usr/include/asm-generic $(PROJECTROOT)/usr/include/
@@ -106,10 +145,10 @@ $(MUZZLER_CLEAN):
 
 .PHONY: clean
 clean: $(MUZZLER_CLEAN)
-	-sh -c 'cd build; rm -Rf musl'
-	-sh -c 'cd busybox; git reset --hard'
+	-sh -c 'cd build && rm -Rf musl'
+	-sh -c 'cd busybox && git reset --hard'
 	-rm busybox/busybox
-	-sh -c 'cd build; rm -Rf busybox'
+	-sh -c 'cd build && rm -Rf busybox'
 	-$(MAKE) -C zlib clean
 	-$(MAKE) -C openssh clean
 	-$(MAKE) -C libseccomp clean

@@ -4,7 +4,12 @@ jailToolsPath=$1
 jailDir=$2
 shift 2
 
-. $jailToolsPath/scripts/utils.sh
+if [ "$BB" != "" ]; then
+	bb=$BB
+	eval "$($bb --show jt_utils)"
+else
+	. $jailToolsPath/scripts/utils.sh
+fi
 
 
 if cat $jailDir/rootCustomConfig.sh | grep -q '^# Command part$'; then

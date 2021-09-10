@@ -43,26 +43,38 @@ fi
 uid=$(id -u)
 gid=$(id -g)
 
-ownPath=$(dirname $0)
-jtPath=$(dirname $ownPath)
+exe=$(readlink /proc/$$/exe)
 
-# include common functions
-. $ownPath/utils.sh
-
-# convert the path of this script to an absolute path
-if [ "$ownPath" = "." ]; then
-	ownPath=$PWD
+if [ "$(dirname $0)" = "." ] && [ "$(basename $exe)" = "busybox" ]; then
+	bb=$exe
+	echo "Using busybox directly"
+	ISINBUSYBOX=1
+	eval "$($bb --show jt_utils)"
 else
-	if [ "$(substring 0 1 $ownPath)" = "/" ]; then
-		# absolute path, we do nothing
-		:
-	else
-		# relative path
-		ownPath=$PWD/$ownPath
-	fi
-fi
+	bb=""
+	ISINBUSYBOX=0
 
-. $ownPath/paths.sh # this sets the variable 'bb'
+	ownPath=$(dirname $0)
+	jtPath=$(dirname $ownPath)
+
+	# include common functions
+	. $ownPath/utils.sh
+
+	# convert the path of this script to an absolute path
+	if [ "$ownPath" = "." ]; then
+		ownPath=$PWD
+	else
+		if [ "$(substring 0 1 $ownPath)" = "/" ]; then
+			# absolute path, we do nothing
+			:
+		else
+			# relative path
+			ownPath=$PWD/$ownPath
+		fi
+	fi
+
+	. $ownPath/paths.sh # this sets the variable 'bb'
+fi
 
 if [ ! -e $bb ]; then
 	echo "Please run 'make' in \`$ownPath' to compile the necessary dependencies first"
@@ -91,8 +103,11 @@ mkdir $newChrootDir
 touch $newChrootHolder/startRoot.sh # this is to make cpDep detect the new style jail
 touch $newChrootHolder/rootCustomConfig.sh
 
-# we populate all the standard directories into the variable 'filesystem'
-fsData="cat $ownPath/filesystem.template.sh"
+if [ "$ISINBUSYBOX" = "1" ]; then
+	fsData="$bb --show jt_filesystem_template"
+else
+	fsData="cat $ownPath/filesystem.template.sh"
+fi
 
 for fPath in $($fsData); do
 	mkdir $newChrootDir/$fPath
@@ -113,7 +128,11 @@ genPass() {
 
 echo "Populating the /etc configuration files"
 # localtime
-$sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/localtime
+if [ "$ISINBUSYBOX" = "1" ]; then
+	$bb jt_cpDep $newChrootHolder /etc /etc/localtime
+else
+	$sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/localtime
+fi
 echo "Done populating /etc"
 # group
 cat >> $newChrootDir/etc/group << EOF
@@ -146,6 +165,15 @@ defNetInterface=$($bb ip route | grep '^default' | sed -e 's/^.* dev \([^ ]*\) .
 
 echo Internet facing network interface : $defNetInterface
 
+if [ "$ISINBUSYBOX" = "1" ]; then
+	ownPath=$newChrootHolder
+
+	$bb --show jt_jailLib_template > $ownPath/jailLib.template.sh
+	$bb --show jt_startRoot_template > $ownPath/startRoot.template.sh
+	$bb --show jt_rootDefaultConfig_template > $ownPath/rootDefaultConfig.template.sh
+	$bb --show jt_rootCustomConfig_template > $ownPath/rootCustomConfig.template.sh
+fi
+
 populateFile $ownPath/jailLib.template.sh @SHELL@ "$bb sh" @JTPATH@ "$jtPath" @MAINJAILUSERNAME@ "$mainJailUsername" > $newChrootHolder/jailLib.sh
 
 populateFile $ownPath/startRoot.template.sh @SHELL@ "$bb sh" @JTPATH@ "$jtPath" > $newChrootHolder/startRoot.sh
@@ -153,17 +181,32 @@ populateFile $ownPath/startRoot.template.sh @SHELL@ "$bb sh" @JTPATH@ "$jtPath" 
 populateFile $ownPath/rootDefaultConfig.template.sh @SHELL@ "$bb sh" @JAILNAME@ "$jailName" @DEFAULTNETINTERFACE@ "$defNetInterface" > $newChrootHolder/rootDefaultConfig.sh
 populateFile $ownPath/rootCustomConfig.template.sh @SHELL@ "$bb sh" @JAILNAME@ "$jailName" @DEFAULTNETINTERFACE@ "$defNetInterface" > $newChrootHolder/rootCustomConfig.sh
 
+if [ "$ISINBUSYBOX" = "1" ]; then
+	rm $ownPath/jailLib.template.sh
+	rm $ownPath/startRoot.template.sh
+	rm $ownPath/rootDefaultConfig.template.sh
+	rm $ownPath/rootCustomConfig.template.sh
+fi
+
 # we save the default initial rootCustomConfig for update purposes
 cp $newChrootHolder/rootCustomConfig.sh $newChrootHolder/._rootCustomConfig.sh.initial
 
 echo "Copying /etc data"
 etcFiles=""
 for ef in termcap services protocols nsswitch.conf ld.so.cache inputrc hostname resolv.conf host.conf hosts; do etcFiles="$etcFiles /etc/$ef"; done
-$sh $ownPath/cpDep.sh $newChrootHolder /etc/ $etcFiles
+if [ "$ISINBUSYBOX" = "1" ]; then
+	$bb jt_cpDep $newChrootHolder /etc/ $etcFiles
+else
+	$sh $ownPath/cpDep.sh $newChrootHolder /etc/ $etcFiles
+fi
 
-[ -e /etc/terminfo ] && $sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/terminfo
-
-$sh $ownPath/cpDep.sh $newChrootHolder /bin $bb
+if [ "$ISINBUSYBOX" = "1" ]; then
+	[ -e /etc/terminfo ] && $bb jt_cpDep $newChrootHolder /etc/ /etc/terminfo
+	$bb jt_cpDep $newChrootHolder /bin $bb
+else
+	[ -e /etc/terminfo ] && $sh $ownPath/cpDep.sh $newChrootHolder /etc/ /etc/terminfo
+	$sh $ownPath/cpDep.sh $newChrootHolder /bin $bb
+fi
 
 for app in $($bb --list-full); do ln -s /bin/busybox ${newChrootDir}/$app; done
 

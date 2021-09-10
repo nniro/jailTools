@@ -1,7 +1,11 @@
 #! @SHELL@
 # Don't change anything in this script! Use rootCustomConfig.sh for your changes!
 
-. @JTPATH@/scripts/paths.sh # sets the 'bb' variable
+if [ "$BB" != "" ]; then
+	bb=$BB
+else
+	. @JTPATH@/scripts/paths.sh # sets the 'bb' variable
+fi
 
 ownPath=$($bb dirname $0)
 
