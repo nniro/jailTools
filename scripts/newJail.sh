@@ -142,7 +142,7 @@ cat >> $newChrootDir/etc/shells << EOF
 EOF
 
 # get the default internet facing network interface
-defNetInterface=$(ip route | grep '^default' | sed -e 's/^.* dev \([^ ]*\) .*$/\1/')
+defNetInterface=$($bb ip route | grep '^default' | sed -e 's/^.* dev \([^ ]*\) .*$/\1/')
 
 echo Internet facing network interface : $defNetInterface
 
