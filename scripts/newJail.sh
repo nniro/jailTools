@@ -92,9 +92,9 @@ touch $newChrootHolder/startRoot.sh # this is to make cpDep detect the new style
 touch $newChrootHolder/rootCustomConfig.sh
 
 # we populate all the standard directories into the variable 'filesystem'
-. $ownPath/filesystem.template.sh
+fsData="cat $ownPath/filesystem.template.sh"
 
-for fPath in $filesystem; do
+for fPath in $($fsData); do
 	mkdir $newChrootDir/$fPath
 	chmod 705 $newChrootDir/$fPath
 done

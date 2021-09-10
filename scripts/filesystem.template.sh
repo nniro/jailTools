@@ -1,5 +1,3 @@
-# this is imported from newJail.sh
-filesystem=$(cat << EOF
 /bin
 /boot
 /dev
@@ -44,5 +42,3 @@ filesystem=$(cat << EOF
 /var/state
 /var/tmp
 /var/yp
-EOF
-)
