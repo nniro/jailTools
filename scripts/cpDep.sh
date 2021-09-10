@@ -89,7 +89,7 @@ safeCopyFile () {
 		[ $dstPathCmp -ot $src ]; then # this is in case the destination does not exist or it is older than the origin
 		createNewDir "$dstDir/$dstPath"
 		[ "$debugging" = "1" ] && echo "copying $src -> $dstPathCmp"
-		cp -f --no-dereference --preserve="mode,timestamps" $src $dstPathCmp
+		cp -f -p $src $dstPathCmp
 	else # destination file already exists
 		:
 	fi
@@ -117,8 +117,10 @@ compDeps() {
 	rawOutput=$(ldd $file 2> /dev/null)
 	#rawOutput=$(echo -e $example)
 
+	[ "$rawOutput" = "" ] && exit 0
+
 	# handle statically linked files
-	if [ "`echo -e $rawOutput | sed -e "s/.*\(statically\|not a dynamic\).*/static/; {t toDelAll} " -e ":toDelAll {p; b delAll}; :delAll {d; b delAll}"`" = "static" ]; then
+	if [ "$(echo -e $rawOutput | sed -e "s/.*\(statically\|not a dynamic\).*/static/; {t toDelAll} " -e ":toDelAll {p; b delAll}; :delAll {d; b delAll}")" = "static" ]; then
 		# we exit returning nothing for statically linked files
 		exit 0
 	fi
