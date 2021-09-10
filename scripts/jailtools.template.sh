@@ -23,10 +23,14 @@ showHelp() {
 	echo
 	echo "Available commands :"
 	printf "    help, h\t\t\tdisplay this help\n"
-	printf "    new, create\t\t\tcreate a new jailTools directory\n"
-	printf "    cp, cpDep\t\t\tcopy files or directories (with their shared object dependencies) into the jailTools\n"
-	printf "    start, stop, shell\t\tthese are jailTools specific commands to be used inside a jailTools directory only.\n"
+	printf "    new, create\t\t\tcreate a new jail\n"
+	printf "    cp, cpDep\t\t\tcopy files or directories (with their shared object dependencies) into the jail\n"
+	printf "    start\t\t\tStart a jail.\n"
+	printf "    stop\t\t\tStop a jail, however it was started (start or daemon)\n"
+	printf "    daemon\t\t\tStart the jail as a daemon.\n"
+	printf "    shell\t\t\tWhen a jail was previously started, you can get a new shell in it using this command.\n"
 	printf "    status,s\t\t\tShow the status of the jail.\n"
+	printf "    upgrade\t\t\tAttempt to upgrade a jail to the newest version.\n"
 	printf "    firewall,f\t\t\tRe-apply the rules of the firewall if they are no longer present in the system's firewall.\n"
 }
 
