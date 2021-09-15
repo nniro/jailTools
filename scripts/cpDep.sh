@@ -123,8 +123,14 @@ handle_files () {
 	#echo about to recurse those input values : $1
 	for i in $(echo "$2"); do
 		if [ ! -e $i ]; then
-			[ "$debugging" = "1" ] && echo "$i - No Such file or directory"
-			continue
+			installedPath=$($bb which $i) # handle installed binaries
+
+			if [ "$installedPath" = "" ]; then
+				[ "$debugging" = "1" ] && echo "$i - No Such file or directory"
+				continue
+			else
+				i=$installedPath
+			fi
 		fi
 		#echo cycle $i
 		if [ -d $i ]; then
