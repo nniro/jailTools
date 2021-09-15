@@ -63,7 +63,7 @@ baseEnv="env - PATH=/usr/bin:/bin USER=$user HOME=/home HOSTNAME=nowhere.here TE
 
 innerNSpid=""
 
-unshareSupport="-$(for ns in m u i n p U C; do $bb unshare -$ns 'echo "Operation not permitted"; exit' 2>&1 | grep -q "Operation not permitted" && printf $ns; done)"
+unshareSupport="-$(for ns in m u i n p U C; do $bb unshare -r$ns sh -c 'echo "Operation not permitted"; exit' 2>&1 | $bb grep -q "Operation not permitted" && $bb printf $ns; done)"
 
 netNS=false
 if echo $unshareSupport | grep -q 'n'; then # check for network namespace support
