@@ -68,10 +68,12 @@ getVarVal() {
 	local var="$1"
 	shift
 
+	oldIFS=$IFS
 	IFS=";"
 	for i in $@; do
-		oldIFS=$IFS; IFS="="
-		set -- $i; IFS=$oldIFS
+		IFS="="
+		set -- $i
+		IFS=$oldIFS
 		if [ "$1" = "$var" ]; then # booleans are handled differently, they will also return a value to make their use more intuitive
 			#([ "$2" != "\"\"" ] && [ "$2" != "\"0\"" ]) && echo $2 | sed -e 's/"//g' && return 0 || return 1
 			# we remove only the front and last double quotes
@@ -159,10 +161,12 @@ callGetopt() {
 		local rs="$5"			# the result variable
 		# add single quotes to content with spaces
 		echo "$in" | grep -q '\( \|%20\)' && in="$(echo "$in" | $bb sed -e "s/\(.*\)/'\1'/")"
+		oldIFS="$IFS"
 		IFS=":"
 		for rawCond in $caseConditionals; do
 			IFS=","
 			set -- $rawCond # we change the positional parameters to split the content of rawCond
+			IFS="$oldIFS"
 			sC=$1		# short conditional
 			lC=$2		# long conditional
 			v=$3		# output variable name
