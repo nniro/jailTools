@@ -27,20 +27,6 @@ else
 	fi
 fi
 
-. $(dirname $0)/scripts/utils.sh
-
-if [ ! -e $(dirname $0)/scripts/paths.sh ]; then
-	echo "Please compile jailTools first."
-	exit 1
-fi
-
-. $(dirname $0)/scripts/paths.sh # set the bb variable
-
-if [ ! -e $bb ]; then
-	echo "Busybox not available, Please compile jailTools first."
-	exit 1
-fi
-
 toEmbed() {
 	embedTable=$($bb sed -e "s/^/scripts\//" << EOF
 config.sh jt_config
@@ -158,7 +144,24 @@ EOF
 
 }
 
-if [ "$1" != "" ]; then
+if [ "$1" != "" ] && [ "$2" != "" ]; then
+	toEmbed | $bb sed -e "s%@SCRIPT_PATH@%.%" > $1/$2
+	exit 0
+elif [ "$1" != "" ]; then
+	. $(dirname $0)/scripts/utils.sh
+
+	if [ ! -e $(dirname $0)/scripts/paths.sh ]; then
+		echo "Please compile jailTools first."
+		exit 1
+	fi
+
+	. $(dirname $0)/scripts/paths.sh # set the bb variable
+
+	if [ ! -e $bb ]; then
+		echo "Busybox not available, Please compile jailTools first."
+		exit 1
+	fi
+
 	if [ ! -d $1 ]; then
 		echo "Please ensure the path is a directory and is writable"
 		exit 1
@@ -169,14 +172,10 @@ if [ "$1" != "" ]; then
 			scriptsDir=$PWD/$ownPath
 		fi
 
-		if [ "$2" = "" ]; then
-			# we change the internal path to the path where this script is
-			cp $ownPath/build/busybox/busybox $1/jt
-			chmod u+x $1/jt
-			echo "Done. Installed \`jt' in $1"
-		else # this is when jailtools is embedded in busybox
-			toEmbed | $bb sed -e "s%@SCRIPT_PATH@%.%" > $1/$2
-		fi
+		# we change the internal path to the path where this script is
+		cp $ownPath/build/busybox/busybox $1/jt
+		chmod u+x $1/jt
+		echo "Done. Installed \`jt' in $1"
 	fi
 else
 	echo "Please input a directory where you want to install the \`jailtools' master script"
