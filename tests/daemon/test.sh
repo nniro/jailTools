@@ -25,11 +25,11 @@ resetConfig() {
 
 doCheck() {
 	jail=$1
-	echo giving 2 seconds maximum timeout for the jail to start the daemon
-	timeout 2 sh -c 'while :; do if [ -e run/jail.pid ]; then break; fi ; done'
-	echo 2 seconds timeout is done
+	echo giving 6 seconds maximum timeout for the jail to start the daemon
+	timeout 6 sh -c 'while :; do if [ -e run/jail.pid ]; then break; fi ; sleep 0.5 ; done'
+	echo 6 seconds timeout is done
 	if [ ! -e $jail/run/jail.pid ]; then
-		echo "The daemonized jail is not running, run/jail.pid contains : '$(cat $jail/run/jail.pid)'" 2>&1
+		echo "The daemonized jail is not running, missing $jail/run/jail.pid" 2>&1
 		exit 1
 	fi
 	echo "the jail is running"
@@ -133,6 +133,5 @@ timeout 5 $jtPath daemon $jail 2>&1 || exit 1
 doCheck $jail
 $jtPath stop $jail 2>&1
 resetConfig $jail
-
 
 exit 0
