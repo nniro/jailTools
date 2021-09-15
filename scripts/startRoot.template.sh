@@ -63,7 +63,7 @@ cmdParse() {
 			jArgs="-d"
 			[ "$realRootInJail" = "true" ] && jArgs="$jArgs -r"
 			prepareChroot $ownPath || exit 1
-			runJail $jArgs $ownPath $(prepareCmd "$runEnvironment" "$daemonCommand" $@)
+			runJail $jArgs $ownPath $(prepareCmd "$runEnvironment" "$daemonCommand" "$@")
 			err=$?
 			stopChroot $ownPath
 			exit $err
@@ -73,7 +73,7 @@ cmdParse() {
 			jArgs=""
 			[ "$realRootInJail" = "true" ] && jArgs="$jArgs -r"
 			prepareChroot $ownPath || exit 1
-			runJail $jArgs $ownPath $(prepareCmd "$runEnvironment" "$startCommand" $@)
+			runJail $jArgs $ownPath $(prepareCmd "$runEnvironment" "$startCommand" "$@")
 			err=$?
 			stopChroot $ownPath
 			exit $err
@@ -94,7 +94,7 @@ cmdParse() {
 					echo "Entering the already started jail \`$jailName' unprivileged" >&2
 				fi
 				[ "$nsPid" = "" ] && (echo "Unable to get the running namespace, bailing out" && exit 1)
-				runShell $ownPath $nsPid $(prepareCmd "$runEnvironment" "$shellCommand" $@)
+				runShell $ownPath $nsPid $(prepareCmd "$runEnvironment" "$shellCommand" "$@")
 				exit $?
 			else # we start a new jail
 				echo "This jail is not started, please start it with the \"daemon\" command" >&2
@@ -118,6 +118,6 @@ case $1 in
 			shift
 		fi
 
-		cmdParse $s1 $ownPath $@
+		cmdParse $s1 $ownPath "$@"
 	;;
 esac
