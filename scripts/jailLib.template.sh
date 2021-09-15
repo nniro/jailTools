@@ -213,7 +213,7 @@ addDevices() {
 parseArgs() {
 	OPTIND=0
 	local silentMode="false"
-	local oldIFS=''
+	local oldIFS=$IFS
 	while getopts s f 2>/dev/null; do
 		case $f in
 			s) local silentMode="true";;
@@ -224,7 +224,6 @@ parseArgs() {
 	local validArguments="$(printf "%s" "$2" | $bb sed -e "s/\('[^']*'\) /\1\n/g" | $bb sed -e "/^'/ b; s/ /\n/g" | $bb sed -e "s/'//g")"
 	shift 2
 
-	oldIFS="$IFS"
 	IFS="
 	"
 	for elem in $(printf "%s" "$validArguments"); do
@@ -248,6 +247,8 @@ cmdCtl() {
 	local cmd=$2
 	shift 2
 	local result=""
+
+	IFS=" "
 
 	exists() { printf "%s" "$2" | $bb grep "\(^\|;\)$1;" >/dev/null 2>/dev/null;}
 	remove() { exists "$1" "$2" && (printf "%s" "$2" | $bb sed -e "s@\(^\|;\)$1;@\1@") || printf "%s" "$2";}
@@ -1120,16 +1121,11 @@ stopChroot() {
 	"
 	# removing the firewall rules inserted into the instructions file
 	for cmd in $(cmdCtl "$rootDir/$firewallInstr" list); do
+		IFS="$oldIFS" # we set back IFS for remCmd
 		remCmd=$(printf "%s" "$cmd" | $bb sed -e 's@firewall \(.*\) \(in\|ex\)ternal \(.*\)$@firewall \1 \2ternal -d \3@')
 
-		IFS="$oldIFS" # we set back IFS for remCmd
 		eval $remCmd
-
-		oldIFS="$IFS"
-		IFS="
-		"
 	done
-	IFS="$oldIFS"
 
 	if [ "$privileged" = "1" ]; then
 		for i in bin root etc lib usr sbin sys . ; do chown $userCreds $rootDir/root/$i; done
