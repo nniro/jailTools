@@ -1,19 +1,8 @@
 #! /bin/sh
 
-case "$(readlink -f /proc/$$/exe)" in
-	*zsh)
-		setopt shwordsplit
-		sh="$(readlink -f /proc/$$/exe)"
-	;;
-
-	*busybox)
-		sh="$(readlink -f /proc/$$/exe) sh"
-	;;
-
-	*)
-		sh="$(readlink -f /proc/$$/exe)"
-	;;
-esac
+bb="$BB"
+shower="$JT_SHOWER"
+runner="$JT_RUNNER"
 
 if [ $(($# < 3)) = 1 ]; then
 	echo "Synopsis: $0 <chroot directory> <destination directory inside the jail> <file or directory> [files or directories]"
@@ -193,5 +182,5 @@ jailToolsPath=$jtPath
 EOF
 	fi
 
-	echo "$sh \$jailToolsPath/scripts/$scriptName \$ownPath/root $destInJail $files" >> $pDir/update.sh
+	echo "$bb sh \$jailToolsPath/scripts/$scriptName \$ownPath/root $destInJail $files" >> $pDir/update.sh
 fi

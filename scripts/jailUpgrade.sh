@@ -1,16 +1,8 @@
 #! /bin/sh
 
-if [ "$BB" = "" ]; then
-	# this has to be called from the super script jailtools
-	if [ "$jailToolsPath" = "" ] || [ ! -d $jailToolsPath ]; then
-		echo "This script has to be called from the 'jailtools' super script like so :"
-		echo "jailtools upgrade <path to jail>"
-		exit 1
-	fi
-	bb=$jailToolsPath/busybox/busybox
-else
-	bb=$BB
-fi
+bb="$BB"
+shower="$JT_SHOWER"
+runner="$JT_RUNNER"
 
 configFile=rootCustomConfig.sh
 
@@ -21,8 +13,6 @@ jailLib.sh
 startRoot.sh
 EOF
 )
-
-
 
 startUpgrade() {
 	# we are already garanteed that the first argument is the jail path and it is valid

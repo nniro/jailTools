@@ -7,17 +7,18 @@ MUSL=$(PROJECTROOT)/usr/lib/libc.a
 MUSL_BUILD_ROOT=$(PROJECTROOT)/build/musl
 BUSYBOX_BUILD_ROOT=$(PROJECTROOT)/build/busybox
 BUSYBOX=$(BUSYBOX_BUILD_ROOT)/busybox
-EMBEDDED_SCRIPTS=$(addprefix $(PROJECTROOT)/busybox/embed/, jt\
-jt_config\
-jt_cpDep\
-jt_upgrade\
-jt_new\
-jt_utils\
-jt_jailLib_template\
-jt_startRoot_template\
-jt_filesystem_template\
-jt_rootCustomConfig_template\
-jt_rootDefaultConfig_template\
+SUPERSCRIPT=$(addprefix $(PROJECTROOT)/busybox/embed/, jt)
+EMBEDDED_SCRIPTS=$(addprefix $(PROJECTROOT)/scripts/,\
+config.sh\
+cpDep.sh\
+jailUpgrade.sh\
+newJail.sh\
+utils.sh\
+jailLib.template.sh\
+startRoot.template.sh\
+filesystem.template.sh\
+rootCustomConfig.template.sh\
+rootDefaultConfig.template.sh\
 )
 ZLIB=zlib
 SSHD=sshd
@@ -63,31 +64,11 @@ $(BUSYBOX_BUILD_ROOT)/.ready: busybox/Makefile busybox/embed $(MUSL)
 	sh -c 'cd busybox; git apply $(PROJECTROOT)/patches/busybox/*.patch 2>/dev/null; exit 0'
 	touch $(BUSYBOX_BUILD_ROOT)/.ready
 
-$(PROJECTROOT)/busybox/embed/jt: scripts/jailtools.template.sh busybox/embed
-	cat $< | sed -e 's/@SCRIPT_PATH@/./' > $@
+$(PROJECTROOT)/busybox/embed/jt: scripts/jailtools.template.sh busybox/embed $(EMBEDDED_SCRIPTS)
+	rm -f $(PROJECTROOT)/busybox/embed/jt
+	sh $(PROJECTROOT)/install.sh $(PROJECTROOT)/busybox/embed jt
 
-$(PROJECTROOT)/busybox/embed/jt_config: scripts/config.sh busybox/embed
-	cp $< $@
-$(PROJECTROOT)/busybox/embed/jt_cpDep: scripts/cpDep.sh busybox/embed
-	cp $< $@
-$(PROJECTROOT)/busybox/embed/jt_upgrade: scripts/jailUpgrade.sh busybox/embed
-	cp $< $@
-$(PROJECTROOT)/busybox/embed/jt_new: scripts/newJail.sh busybox/embed
-	cp $< $@
-$(PROJECTROOT)/busybox/embed/jt_utils: scripts/utils.sh busybox/embed
-	cp $< $@
-$(PROJECTROOT)/busybox/embed/jt_jailLib_template: scripts/jailLib.template.sh busybox/embed
-	cp $< $@
-$(PROJECTROOT)/busybox/embed/jt_startRoot_template: scripts/startRoot.template.sh busybox/embed
-	cp $< $@
-$(PROJECTROOT)/busybox/embed/jt_filesystem_template: scripts/filesystem.template.sh busybox/embed
-	cp $< $@
-$(PROJECTROOT)/busybox/embed/jt_rootCustomConfig_template: scripts/rootCustomConfig.template.sh busybox/embed
-	cp $< $@
-$(PROJECTROOT)/busybox/embed/jt_rootDefaultConfig_template: scripts/rootDefaultConfig.template.sh busybox/embed
-	cp $< $@
-
-$(BUSYBOX): $(EMBEDDED_SCRIPTS) $(BUSYBOX_BUILD_ROOT)/.ready
+$(BUSYBOX): $(SUPERSCRIPT) $(BUSYBOX_BUILD_ROOT)/.ready
 	-ln -sf /usr/include/linux $(PROJECTROOT)/usr/include/
 	$(if $(shell sh $(PROJECTROOT)/checkAsm.sh $(MUSLGCC)), ,$(error Could not find the directory 'asm' in either '/usr/include/' or '/usr/include/$(shell $(MUSLGCC) -dumpmachine)/'))
 	-ln -sf /usr/include/asm-generic $(PROJECTROOT)/usr/include/

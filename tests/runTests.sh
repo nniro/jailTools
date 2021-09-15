@@ -44,7 +44,7 @@ else # the user is root
 				exit 0
 			fi
 			[ "$debugging" = "true" ] && echo "[powerbox] got the input : '$in'" >&2
-			if echo "$in" | grep -q "^$PWD/$tf/bin/jt/[^/]*/jailtools [^ ]*\( $PWD/$tf/.*\|\)$"; then
+			if echo "$in" | grep -q "^$PWD/$tf/bin/jt/[^/]*/jt [^ ]*\( $PWD/$tf/.*\|\)$"; then
 				$in > $tf/result
 				[ "$debugging" = "true" ] && echo [powerbox] sending reply back to sender >&2
 				$bb timeout 2 $bb sh -c "cat $tf/result > $tf/fifo"
@@ -105,12 +105,12 @@ done
 
 [ ! -d $tf/bin/jt ] && mkdir $tf/bin/jt
 
-# install jailtools in each shell directory in bin/jt/
+# install jt in each shell directory in bin/jt/
 
 for shell in $shells; do
 	#echo "$tf/bin/$shell $([ -e $tf/bin/$shell ] && echo yes || echo no)"
 	[ ! -d $tf/bin/jt/$shell ] && mkdir $tf/bin/jt/$shell
-	[ ! -e $tf/bin/jt/$shell/jailtools ] && $tf/bin/$shell ../install.sh $PWD/$tf/bin/jt/$shell/ >/dev/null 2>/dev/null
+	[ ! -e $tf/bin/jt/$shell/jt ] && $tf/bin/$shell ../install.sh $PWD/$tf/bin/jt/$shell/ >/dev/null 2>/dev/null
 done
 
 availTests=$(cat << EOF
@@ -137,7 +137,7 @@ for shell in $shells; do
 	echo
 	echo "Doing tests with the shell $shell"
 	shellPath=$PWD/$tf/bin/$shell
-	jtPath=$PWD/$tf/bin/jt/$shell/jailtools
+	jtPath=$PWD/$tf/bin/jt/$shell/jt
 	for cTest in $availTests; do
 		if $(echo $cTest | grep -q 'SU$') ; then
 			if [ "$privileged" = "0" ]; then

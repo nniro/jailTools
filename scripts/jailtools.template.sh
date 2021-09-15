@@ -1,31 +1,34 @@
 #! /bin/sh
 
+if [ "$1" = "busybox" ]; then # we act as busybox
+	shift
+	exec -a busybox $0 "$@"
+fi
+
 jailToolsPath=@SCRIPT_PATH@
 
 if echo "$jailToolsPath" | grep -q "SCRIPT_PATH" ; then
 	exit 1 # this script has to be installed to be used.
 fi
 
-exe=$(readlink /proc/$$/exe)
+if echo "$0" | grep -q '\/'; then
+	ownPath=$(dirname $0)
 
-if [ "$(dirname $0)" = "." ] && [ "$(basename $exe)" = "busybox" ]; then
-	bb=$exe
-	ISINBUSYBOX=1
-
-	eval "$($bb --show jt_utils)"
-
-else
-	bb=""
-	ISINBUSYBOX=0
-	. $jailToolsPath/scripts/paths.sh # sets the 'bb' variable
-	. $jailToolsPath/scripts/utils.sh # detectJail
+	# convert the path of this script to an absolute path
+	if [ "$ownPath" = "." ]; then
+		ownPath=$PWD
+	else
+		if echo "$ownPath" | grep -q '^\/'; then
+			# absolute path, we do nothing
+			:
+		else
+			# relative path
+			ownPath=$PWD/$ownPath
+		fi
+	fi
+else # this is an installed command
+	ownPath=""
 fi
-
-if [ ! -e $bb ]; then
-	echo "Please run 'make' in \`$jailToolsPath' to compile the necessary dependencies first" >&2
-	exit 1
-fi
-
 
 showHelp() {
 	echo "Usage:"
@@ -57,6 +60,40 @@ if [ "$cmd" = "" ]; then
 fi
 shift
 
+@EMBEDDEDFILES_LOCATION@
+
+exe=$(readlink /proc/$$/exe)
+
+if [ "$(dirname $0)" = "." ] && [ "$(basename $exe)" = "busybox" ]; then
+	bb=$exe
+
+	runner="$bb jt --run"
+	shower="$bb jt --show"
+
+	export JT_RUNNER=$runner
+	export JT_SHOWER=$shower
+else
+	bb=""
+	# imports
+	#eval "$(sh $ownPath --show jt_paths)" # sets the 'bb' variable
+	runner="runFile"
+	shower="showFile"
+	if [ "$ownPath" = "" ]; then # this is for an installed 'jt'
+		#bb="exec -a busybox $0"
+		export JT_CALLER=$0
+	else # this when 'jt' is called from a specific path
+		#bb="exec -a busybox $ownPath/$(basename $0)"
+		export JT_CALLER=$ownPath/$(basename $0)
+	fi
+	bb="$JT_CALLER busybox"
+
+	export JT_RUNNER="$JT_CALLER --run"
+	export JT_SHOWER="$JT_CALLER --show"
+fi
+eval "$($shower jt_utils)" # detectJail callGetopt
+
+export BB=$bb
+
 jPath="."
 
 checkJailPath() {
@@ -78,11 +115,7 @@ case $cmd in
 	;;
 
 	new|create)
-		if [ "$ISINBUSYBOX" = "1" ]; then
-			$bb jt_new $@
-		else
-			$bb sh $jailToolsPath/scripts/newJail.sh $@
-		fi
+		$runner jt_new $@
 		exit $?
 	;;
 
@@ -90,11 +123,7 @@ case $cmd in
 		checkJailPath $1 && jPath="$1" && shift
 		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
 
-		if [ "$ISINBUSYBOX" = "1" ]; then
-			$bb jt_cpDep $jPath $@
-		else
-			$bb sh $jailToolsPath/scripts/cpDep.sh $jPath $@
-		fi
+		$runner jt_cpDep $jPath $@
 		exit $?
 	;;
 
@@ -102,7 +131,6 @@ case $cmd in
 		checkJailPath $1 && jPath="$1" && shift
 		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
 
-		export BB=$bb
 		$bb sh $jPath/startRoot.sh $cmd $@
 		exit $?
 	;;
@@ -111,7 +139,6 @@ case $cmd in
 		checkJailPath $1 && jPath="$1" && shift
 		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
 
-		export BB=$bb
 		($bb nohup $bb sh $jPath/startRoot.sh 'daemon' $@ 2>&1 > $jPath/run/daemon.log) &
 		#if [ "$?" != "0" ]; then echo "There was an error starting the daemon, it may already be running."; fi
 
@@ -149,7 +176,7 @@ case $cmd in
 			#eval $result
 
 			runInNS() {
-				$bb sh -c "export BB=$bb; cd $rPath; source ./jailLib.sh; execRemNS $(cat $jPath/run/ns.pid) $bb chroot $rPath/root $1" 2>/dev/null
+				$bb sh -c "cd $rPath; source ./jailLib.sh; execRemNS $(cat $jPath/run/ns.pid) $bb chroot $rPath/root $1" 2>/dev/null
 			}
 
 			if [ "$(jailStatus $rPath)" = "1" ]; then # we check if the jail is running
@@ -181,12 +208,7 @@ case $cmd in
 		checkJailPath $1 && jPath="$1" && shift
 		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
 
-		if [ "$ISINBUSYBOX" = "1" ]; then
-			export BB=$bb
-			eval "$($bb --show jt_upgrade)"
-		else
-			. $jailToolsPath/scripts/jailUpgrade.sh
-		fi
+		eval "$($shower jt_upgrade)"
 		startUpgrade $jPath $@
 	;;
 
@@ -195,11 +217,7 @@ case $cmd in
 		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
 		rPath=$($bb realpath $jPath)
 
-		if [ "$ISINBUSYBOX" = "1" ]; then
-			$bb jt_config $jailToolsPath $rPath $@
-		else
-			$bb sh $jailToolsPath/scripts/config.sh $jailToolsPath $rPath $@
-		fi
+		$runner jt_config $jailToolsPath $rPath "$@"
 
 		exit $?
 	;;

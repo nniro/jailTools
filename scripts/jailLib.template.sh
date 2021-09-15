@@ -1,17 +1,14 @@
 #! @SHELL@
 # Don't change anything in this script! Use rootCustomConfig.sh for your changes!
 
-if [ "$BB" != "" ]; then
-	bb=$BB
-else
-	. @JTPATH@/scripts/paths.sh # sets the 'bb' variable
-fi
+bb="$BB"
+shower="$JT_SHOWER"
+runner="$JT_RUNNER"
 
-case "$($bb readlink -f /proc/$$/exe)" in
-	*zsh)
-		setopt shwordsplit
-	;;
-esac
+if [ "$bb" = "" ] || [ "$shower" = "" ] || [ "$runner" = "" ]; then
+	echo "It is no longer possible to run this script directly. The 'jt' command has to be used."
+	exit 1
+fi
 
 _JAILTOOLS_RUNNING=1
 

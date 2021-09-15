@@ -1,10 +1,13 @@
 #! @SHELL@
 # Don't change anything in this script! Use rootCustomConfig.sh for your changes!
 
-if [ "$BB" != "" ]; then
-	bb=$BB
-else
-	. @JTPATH@/scripts/paths.sh # sets the 'bb' variable
+bb="$BB"
+shower="$JT_SHOWER"
+runner="$JT_RUNNER"
+
+if [ "$bb" = "" ] || [ "$shower" = "" ] || [ "$runner" = "" ]; then
+	echo "It is no longer possible to run this script directly. The 'jt' command has to be used."
+	exit 1
 fi
 
 ownPath=$($bb dirname $0)
