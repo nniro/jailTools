@@ -120,11 +120,6 @@ cat >> $newChrootDir/etc/shells << EOF
 /bin/false
 EOF
 
-# get the default internet facing network interface
-defNetInterface=$($bb ip route | grep '^default' | sed -e 's/^.* dev \([^ ]*\) .*$/\1/')
-
-echo Internet facing network interface : $defNetInterface
-
 ownPath=$newChrootHolder
 
 $shower jt_jailLib_template > $ownPath/jailLib.template.sh
@@ -136,8 +131,8 @@ populateFile $ownPath/jailLib.template.sh @SHELL@ "$bb sh" @MAINJAILUSERNAME@ "$
 
 populateFile $ownPath/startRoot.template.sh @SHELL@ "$bb sh" > $newChrootHolder/startRoot.sh
 
-populateFile $ownPath/rootDefaultConfig.template.sh @SHELL@ "$bb sh" @JAILNAME@ "$jailName" @DEFAULTNETINTERFACE@ "$defNetInterface" > $newChrootHolder/rootDefaultConfig.sh
-populateFile $ownPath/rootCustomConfig.template.sh @SHELL@ "$bb sh" @JAILNAME@ "$jailName" @DEFAULTNETINTERFACE@ "$defNetInterface" > $newChrootHolder/rootCustomConfig.sh
+populateFile $ownPath/rootDefaultConfig.template.sh @SHELL@ "$bb sh" @JAILNAME@ "$jailName" > $newChrootHolder/rootDefaultConfig.sh
+populateFile $ownPath/rootCustomConfig.template.sh @SHELL@ "$bb sh" @JAILNAME@ "$jailName" > $newChrootHolder/rootCustomConfig.sh
 
 rm $ownPath/jailLib.template.sh
 rm $ownPath/startRoot.template.sh

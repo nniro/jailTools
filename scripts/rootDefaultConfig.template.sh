@@ -68,8 +68,10 @@ extIpBitmask="24"
 # if you like. You may for example decide to make a jail
 # only pass through a tunnel or a vpn. Otherwise, keep
 # this value to the default value.
+# use the value "auto" so the default (internet facing)
+# network interface is used.
 #netInterface=<network interface>
-netInterface="@DEFAULTNETINTERFACE@"
+netInterface="auto"
 
 # This boolean sets if you want your jail to
 # gain full internet access using a technique called

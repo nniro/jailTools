@@ -25,7 +25,7 @@ networking="true"
 
 extIp="172.16.0.1"
 
-netInterface="@DEFAULTNETINTERFACE@"
+netInterface="auto"
 
 setNetAccess="false"
 
