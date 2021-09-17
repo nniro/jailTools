@@ -5,12 +5,6 @@ if [ "$1" = "busybox" ]; then # we act as busybox
 	exec -a busybox $0 "$@"
 fi
 
-jailToolsPath=@SCRIPT_PATH@
-
-if echo "$jailToolsPath" | grep -q "SCRIPT_PATH" ; then
-	exit 1 # this script has to be installed to be used.
-fi
-
 if echo "$0" | grep -q '\/'; then
 	ownPath=$(dirname $0)
 
@@ -217,7 +211,7 @@ case $cmd in
 		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
 		rPath=$($bb realpath $jPath)
 
-		$runner jt_config $jailToolsPath $rPath "$@"
+		$runner jt_config $rPath "$@"
 
 		exit $?
 	;;

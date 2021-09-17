@@ -1,8 +1,7 @@
 #! /bin/sh
 
-jailToolsPath=$1
-jailDir=$2
-shift 2
+jailDir=$1
+shift
 
 bb="$BB"
 shower="$JT_SHOWER"
