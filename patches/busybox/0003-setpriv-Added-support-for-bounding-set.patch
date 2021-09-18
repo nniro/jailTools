@@ -17,7 +17,7 @@ index 021100db1..de9883685 100644
  const char *get_shell_name(void) FAST_FUNC;
  
  #if ENABLE_FEATURE_SETPRIV_CAPABILITIES || ENABLE_RUN_INIT
-+int get_caps_count(void) FAST_FUNC;
++int get_caps_count(void);
  unsigned cap_name_to_number(const char *cap) FAST_FUNC;
  void printf_cap(const char *pfx, unsigned cap_no) FAST_FUNC;
  void drop_capability(int cap_ordinal) FAST_FUNC;
