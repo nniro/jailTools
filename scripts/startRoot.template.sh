@@ -41,12 +41,12 @@ prepareCmd() {
 	local result=
 
 	if [ "$1" != "" ]; then
-		result="env $env $@"
+		result="busybox env $env $@"
 	else
 		if [ "$cmd" = "" ]; then
-			result="env $env sh"
+			result="busybox env $env sh"
 		else
-			result="env $env $cmd"
+			result="busybox env $env $cmd"
 		fi
 	fi
 

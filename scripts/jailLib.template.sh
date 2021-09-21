@@ -56,7 +56,7 @@ userCreds="$userUID:$userGID"
 
 user=@MAINJAILUSERNAME@
 
-baseEnv="env - PATH=/usr/bin:/bin USER=$user HOME=/home HOSTNAME=nowhere.here TERM=linux"
+baseEnv="busybox env - PATH=/usr/bin:/bin USER=$user HOME=/home HOSTNAME=nowhere.here TERM=linux"
 
 innerNSpid=""
 
