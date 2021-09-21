@@ -273,15 +273,16 @@ cmdCtl() {
 }
 
 mountSingle() {
-	local src="$1"
-	local dst="$2"
-	shift 2
+	local rootDir="$1"
+	local src="$2"
+	local dst="$3"
+	shift 3
 
 	[ ! -e $src ] && echo "mountSingle - Warning - source file or directory '$src' does not exist" >&2 && return
 
 	echo $dst | grep -q "^/" || dst="/$dst" # we expect a starting '/'
 
-	[ ! -d $(dirname $dst) ] && echo "Invalid mounting path chosen" >&2 && return
+	[ ! -d $rootDir/root/$(dirname $dst) ] && echo "Invalid mounting path chosen" >&2 && return
 
 	if [ -f $src ]; then
 		[ ! -e $rootDir/root$dst ] && touch $rootDir/root$dst

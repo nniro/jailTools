@@ -115,10 +115,10 @@ prepCustom() {
 	# variable because don't forget that this could be run as root.
 
 	# we mount the ~/.Xauthority file which is required for X11 support
-	mountSingle /home/$actualUser/.Xauthority /home/.Xauthority
+	mountSingle $rootDir /home/$actualUser/.Xauthority /home/.Xauthority
 
 	# we mount the ~/.asoundrc file which is required to gain alsa sound
-	mountSingle /home/$actualUser/.asoundrc /home/.asoundrc
+	mountSingle $rootDir /home/$actualUser/.asoundrc /home/.asoundrc
 
 	# joinBridgeByJail <jail path> <set as default route> <our last IP bit>
 	# To join an already running jail called tor at the path, we don't set it
