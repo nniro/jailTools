@@ -911,7 +911,7 @@ prepareChroot() {
 		echo "This jail was already started, bailing out." >&2
 		return 1
 	fi
-	if [ "$privileged" = "1" ] && [ "$userNS" = "true" ]; then
+	if [ "$privileged" = "1" ] && [ "$userNS" = "true" ] && [ "$realRootInJail" = "false" ]; then
 		preUnshare="$bb chpst -u $userCreds"
 		unshareArgs="-r"
 	elif [ "$privileged" = "0" ] && [ "$userNS" = "true" ]; then # unprivileged
@@ -1085,8 +1085,7 @@ runJail() {
 		[ "$runAsRoot" = "true" ] && unshareArgs="-r"
 	fi
 
-	#execNS $preUnshare $bb sh -c "exec $bb unshare $unshareArgs -R $rootDir/root $baseEnv $chrootCmd"
-	$bb nsenter $nsenterArgs $nsenterSupport -t $innerNSpid -- $preUnshare $bb sh -c "exec $bb unshare $unshareArgs -R $rootDir/root $baseEnv $chrootCmd"
+	execNS $preUnshare $bb sh -c "exec $bb unshare $unshareArgs -R $rootDir/root $baseEnv $chrootCmd"
 
 	return $?
 }
