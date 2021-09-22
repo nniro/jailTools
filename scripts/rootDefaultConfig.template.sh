@@ -50,7 +50,7 @@ networking="false"
 # the jail is stopped. Also note that this puts exactly the same file permissions
 # as those on the base system.
 #availableDevices=<devices list, separated by a space>
-availableDevices="null urandom zero"
+availableDevices="null random urandom zero"
 
 # for programs, you may want to have the /sys special directory mounted.
 # unfortunately, it won't work adding it into the roMountPoints section anymore
