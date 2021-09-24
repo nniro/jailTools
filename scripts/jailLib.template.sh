@@ -5,7 +5,7 @@ bb="$BB"
 shower="$JT_SHOWER"
 runner="$JT_RUNNER"
 
-nsBB="$bb"
+nsBB="/bin/busybox"
 
 jailVersion="@JAIL_VERSION@"
 
@@ -63,7 +63,7 @@ else
 	uBB="$bb"
 fi
 
-baseEnv="/bin/busybox env - PATH=/usr/bin:/bin USER=$user HOME=/home HOSTNAME=nowhere.here TERM=linux"
+baseEnv="$nsBB env - PATH=/usr/bin:/bin USER=$user HOME=/home HOSTNAME=nowhere.here TERM=linux"
 
 innerNSpid=""
 
@@ -122,9 +122,9 @@ cmkdir() {
 		fi
 		for subdir in $(echo $subdirs); do
 			if [ "$isOutput" = "false" ]; then
-				if execNS $nsBB test ! -d $parentdir$subdir; then
-					execNS $nsBB mkdir $callArgs $parentdir$subdir
-					[ "$privileged" = "1" ] && execNS $nsBB chown $actualUser $parentdir$subdir
+				if test ! -d $parentdir$subdir; then
+					$bb mkdir $callArgs $parentdir$subdir
+					[ "$privileged" = "1" ] && $bb chown $actualUser $parentdir$subdir
 				fi
 			else
 				result="$result $bb mkdir -p $callArgs $parentdir$subdir;"
@@ -158,8 +158,8 @@ addDevices() {
 				cmkdir -e -m 755 $rootDir/root/$($bb dirname $i)
 			fi
 
-			execNS $nsBB touch $rootDir/root$i
-			execNS $nsBB mount --bind $i $rootDir/root$i
+			$bb touch $rootDir/root$i
+			$bb mount --bind $i $rootDir/root$i
 		fi
 		shift
 	done
@@ -193,7 +193,7 @@ mountSingle() {
 		return
 	fi
 
-	execNS $nsBB mount --bind $src $rootDir/root$dst
+	$bb mount --bind $src $rootDir/root$dst
 }
 
 mountMany() {
@@ -214,13 +214,13 @@ mountMany() {
 	for mount in $(echo $@); do
 		if [ -e $mount ]; then
 			if [ "$isOutput" = "false" ]; then
-				if execNS $nsBB test ! -d "$rootDir/$mount"; then
+				if test ! -d "$rootDir/$mount"; then
 					echo $rootDir/$mount does not exist, creating it >&2
 					cmkdir -m 755 $rootDir/$mount
 				fi
-				execNS $nsBB sh -c "$nsBB mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $nsBB mount -o $mountOps --bind $mount $rootDir/$mount"
+				$bb sh -c "$bb mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $bb mount -o $mountOps --bind $mount $rootDir/$mount"
 				# gotta remount for the options to take effect
-				execNS $nsBB sh -c "$nsBB mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $nsBB mount -o $mountOps,remount --bind $rootDir/$mount $rootDir/$mount"
+				$bb sh -c "$bb mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $bb mount -o $mountOps,remount --bind $rootDir/$mount $rootDir/$mount"
 			else # isOutput = true
 				result="$result if [ ! -d \"$rootDir/$mount\" ]; then $(cmkdir -e -m 755 $rootDir/$mount) fi;"
 				result="$result $bb mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $bb mount -o $mountOps --bind $mount $rootDir/$mount;"
@@ -446,10 +446,11 @@ prepareChroot() {
 	elif [ "$privileged" = "0" ] && [ "$userNS" = "true" ]; then # unprivileged
 		unshareArgs="-r"
 		chrootArgs=""
+		unshareSupport=$(echo "$unshareSupport" | $bb sed -e 's/U//g')
 	else
 		unshareArgs=""
 		chrootArgs=""
-		unshareSupport=$(echo "$unshareSupport" | sed -e 's/U//g')
+		unshareSupport=$(echo "$unshareSupport" | $bb sed -e 's/U//g')
 	fi # unprivileged
 
 	if [ "$jailNet" = "true" ]; then
@@ -458,7 +459,30 @@ prepareChroot() {
 		fi
 	fi
 
-	($preUnshare $bb unshare $unshareArgs ${unshareSupport}f -- $bb setpriv --bounding-set $corePrivileges $bb sh -c "exec $bb chpst -/ $rootDir/root /bin/busybox setpriv --bounding-set $chrootPrivileges /bin/busybox chpst $chrootArgs $baseEnv $chrootCmd") &
+	devMounts=$(mountMany $rootDir/root -e "rw,noexec" $devMountPoints)
+	roMounts=$(mountMany $rootDir/root -e "ro,exec" $roMountPoints)
+	rwMounts=$(mountMany $rootDir/root -e "defaults" $rwMountPoints)
+
+tasksBeforePivot=$($bb cat << EOF
+$bb mount -tproc none $rootDir/root/proc
+$bb mount -t tmpfs -o size=256k,mode=775 tmpfs $rootDir/root/dev
+($bb sh -c ". $rootDir/jailLib.sh; addDevices $rootDir $availableDevices")
+$devMounts
+$roMounts
+$rwMounts
+
+if [ "$mountSys" = "true" ]; then
+	if [ "$privileged" = "0" ] && [ "$disableUnprivilegedNetworkNamespace" = "true" ]; then
+		echo "Could not mount the /sys directory. As an unprivileged user, the only way this is possible is by disabling the : UnprivilegedNetworkNamespace. Or you can always run this jail as a privileged user." >&2
+	else
+		$bb mount -tsysfs none $rootDir/root/sys
+	fi
+fi
+
+EOF
+)
+
+	($preUnshare $bb unshare $unshareArgs ${unshareSupport}f -- $bb setpriv --bounding-set $corePrivileges $bb sh -c "$bb mount --make-private --bind $rootDir/root $rootDir/root; $tasksBeforePivot; cd $rootDir/root; $bb pivot_root . $rootDir/root/root; exec $nsBB chroot . sh -c \"$nsBB umount -l /root; $nsBB setpriv --bounding-set $chrootPrivileges $baseEnv $chrootCmd\"") &
 	innerNSpid=$!
 	$bb sleep 1
 	innerNSpid=$($bb pgrep -P $innerNSpid)
@@ -471,18 +495,8 @@ prepareChroot() {
 	echo $innerNSpid > $rootDir/run/ns.pid
 	$bb chmod o+r $rootDir/run/ns.pid
 
-	execNS $nsBB mount --bind $rootDir/root $rootDir/root
-	execNS $nsBB mount -tproc none $rootDir/root/proc
-	execNS $nsBB mount -t tmpfs -o size=256k,mode=775 tmpfs $rootDir/root/dev
-
 	# dev
-	mountMany $rootDir/root "rw,noexec" $devMountPoints
-	mountMany $rootDir/root "ro,exec" $roMountPoints
-	mountMany $rootDir/root "defaults" $rwMountPoints
 
-	if [ "$availableDevices" != "" ]; then
-		addDevices $rootDir $availableDevices
-	fi
 
 	if [ "$jailNet" = "true" ]; then
 		# loopback device is activated
@@ -531,16 +545,6 @@ prepareChroot() {
 		for i in passwd group; do $bb chmod 644 $rootDir/root/etc/$i; done
 	fi
 
-	prepCustom $rootDir || return 1
-
-	if [ "$mountSys" = "true" ]; then
-		if [ "$privileged" = "0" ] && [ "$setNetAccess" = "true" ]; then
-			echo "Could not mount the /sys directory. As an unprivileged user, the only way this is possible is by disabling the : UnprivilegedNetworkNamespace. Or you can always run this jail as a privileged user." >&2
-		else
-			execNS $nsBB mount -tsysfs none $rootDir/root/sys
-		fi
-	fi
-
 	return 0
 }
 
@@ -580,7 +584,7 @@ runShell() {
 		fi
 	fi
 
-	execRemNS $nsPid $nsBB sh -c "exec $nsBB $preUnshare unshare $unshareArgs -R $rootDir/root $baseEnv $curArgs"
+	execRemNS $nsPid $nsBB sh -c "exec $nsBB $preUnshare unshare $unshareArgs $baseEnv $curArgs"
 
 	return $?
 }
@@ -642,7 +646,7 @@ runJail() {
 		[ "$runAsRoot" = "true" ] && unshareArgs="-r"
 	fi
 
-	execNS $preUnshare $nsBB sh -c "exec $nsBB unshare $unshareArgs -R $rootDir/root $baseEnv $chrootCmd"
+	execNS $preUnshare $nsBB sh -c "exec $nsBB unshare $unshareArgs $baseEnv $chrootCmd"
 
 	return $?
 }
