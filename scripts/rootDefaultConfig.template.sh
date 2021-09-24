@@ -93,7 +93,7 @@ disableUnprivilegedNetworkNamespace="true"
 # *This is necessary for running sandstorm*.
 realRootInJail="false"
 
-corePrivileges="-all,+setpcap,+sys_chroot,+dac_override,+setuid,+setgid"
+corePrivileges="-all,+setpcap,+sys_chroot,+dac_override,+setuid,+setgid,+sys_admin"
 chrootPrivileges="-all,+setuid,+setgid,+net_bind_service"
 jailPrivileges="-all,+setpcap,+sys_chroot,+dac_override,+setuid,+setgid,+net_bind_service"
 
