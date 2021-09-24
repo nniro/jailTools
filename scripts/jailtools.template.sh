@@ -64,6 +64,7 @@ if [ "$(dirname $0)" = "." ] && [ "$(basename $exe)" = "busybox" ]; then
 	runner="$bb jt --run"
 	shower="$bb jt --show"
 
+	export JT_CALLER="$bb jt"
 	export JT_RUNNER=$runner
 	export JT_SHOWER=$shower
 else
