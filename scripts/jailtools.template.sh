@@ -5,6 +5,8 @@ if [ "$1" = "busybox" ]; then # we act as busybox
 	exec -a busybox $0 "$@"
 fi
 
+export JT_VERSION=0.1.0
+
 if echo "$0" | grep -q '\/'; then
 	ownPath=$(dirname $0)
 
@@ -40,6 +42,7 @@ showHelp() {
 	printf "    status,s\t\t\tShow the status of the jail.\n"
 	printf "    upgrade\t\t\tAttempt to upgrade a jail to the newest version.\n"
 	printf "    firewall,f\t\t\tRe-apply the rules of the firewall if they are no longer present in the system's firewall.\n"
+	printf "    version,v\t\t\tPrint the version of the jt superscript and if possible the version of the jail. Use '-j' to show only the jail's version.\n"
 }
 
 showJailPathError() {
@@ -215,6 +218,23 @@ case $cmd in
 		$runner jt_config $rPath "$@"
 
 		exit $?
+	;;
+
+	v|version)
+		availJail=0
+		checkJailPath $1 && jPath="$1" && shift
+		[ "$jPath" != "." ] || detectJail $jPath && availJail=1
+
+		if [ "$availJail" = "1" ]; then
+			rPath=$($bb realpath $jPath)
+
+			if [ "$1" != "-j" ]; then
+				echo "jt version $JT_VERSION"
+			fi
+			$bb sh -c "cd $rPath; source ./jailLib.sh 2>/dev/null; echo \"jail jt version \$jailVersion\""
+		else
+			echo "jt version $JT_VERSION"
+		fi
 	;;
 
 	*)

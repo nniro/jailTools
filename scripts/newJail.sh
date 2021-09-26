@@ -127,7 +127,7 @@ $shower jt_startRoot_template > $ownPath/startRoot.template.sh
 $shower jt_rootDefaultConfig_template > $ownPath/rootDefaultConfig.template.sh
 $shower jt_rootCustomConfig_template > $ownPath/rootCustomConfig.template.sh
 
-populateFile $ownPath/jailLib.template.sh @SHELL@ "$bb sh" @MAINJAILUSERNAME@ "$mainJailUsername" > $newChrootHolder/jailLib.sh
+populateFile $ownPath/jailLib.template.sh @SHELL@ "$bb sh" @MAINJAILUSERNAME@ "$mainJailUsername" @JAIL_VERSION@ "$JT_VERSION" > $newChrootHolder/jailLib.sh
 
 populateFile $ownPath/startRoot.template.sh @SHELL@ "$bb sh" > $newChrootHolder/startRoot.sh
 

@@ -5,6 +5,8 @@ bb="$BB"
 shower="$JT_SHOWER"
 runner="$JT_RUNNER"
 
+jailVersion="@JAIL_VERSION@"
+
 if [ "$bb" = "" ] || [ "$shower" = "" ] || [ "$runner" = "" ]; then
 	echo "It is no longer possible to run this script directly. The 'jt' command has to be used."
 	exit 1
