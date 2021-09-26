@@ -266,7 +266,7 @@ joinBridge() {
 	if [ "$externalNetnsId" = "" ]; then
 		local masterBridgeIp=$($bb ip addr show $externalBridgeName | $bb grep 'inet ' | $bb grep "scope link" | $bb sed -e 's/^.*inet \([^/]*\)\/.*$/\1/')
 	else
-		local masterBridgeIp=$(execRemNS $externalNetnsId $bb ip addr show $externalBridgeName | $bb grep 'inet ' | $bb grep "scope link" | $bb sed -e 's/^.*inet \([^/]*\)\/.*$/\1/')
+		local masterBridgeIp=$(execRemNS $externalNetnsId $nsBB ip addr show $externalBridgeName | $nsBB grep 'inet ' | $nsBB grep "scope link" | $nsBB sed -e 's/^.*inet \([^/]*\)\/.*$/\1/')
 	fi
 	local masterBridgeIpCore=$(echo $masterBridgeIp | $bb sed -e 's/\(.*\)\.[0-9]*$/\1/')
 	local newIntIp=${masterBridgeIpCore}.$internalIpNum
@@ -286,7 +286,7 @@ joinBridge() {
 	if [ "$externalNetnsId" = "" ]; then
 		$bb brctl addif $externalBridgeName $vethExternal
 	else
-		execRemNS $externalNetnsId $bb brctl addif $externalBridgeName $vethExternal
+		execRemNS $externalNetnsId $nsBB brctl addif $externalBridgeName $vethExternal
 	fi
 	return 0
 }
@@ -299,7 +299,7 @@ leaveBridge() {
 	if [ "$externalNetnsId" = "" ]; then
 		$bb brctl delif $externalBridgeName $vethExternal
 	else
-		execRemNS $externalNetnsId $bb brctl delif $externalBridgeName $vethExternal
+		execRemNS $externalNetnsId $nsBB brctl delif $externalBridgeName $vethExternal
 	fi
 }
 
@@ -446,11 +446,11 @@ prepareChroot() {
 	elif [ "$privileged" = "0" ] && [ "$userNS" = "true" ]; then # unprivileged
 		unshareArgs="-r"
 		chrootArgs=""
-		unshareSupport=$(echo "$unshareSupport" | $bb sed -e 's/U//g')
+		unshareSupport=$(echo "$unshareSupport" | $nsBB sed -e 's/U//g')
 	else
 		unshareArgs=""
 		chrootArgs=""
-		unshareSupport=$(echo "$unshareSupport" | $bb sed -e 's/U//g')
+		unshareSupport=$(echo "$unshareSupport" | $nsBB sed -e 's/U//g')
 	fi # unprivileged
 
 	if [ "$jailNet" = "true" ]; then
@@ -521,7 +521,6 @@ EOF
 			$bb ip addr add $extIp/$extIpBitmask dev $vethExt scope link
 			$bb ip link set $vethExt up
 			execNS $nsBB ip route add default via $extIp dev $vethInt proto kernel src $ipInt
-
 
 			if [ "$setNetAccess" = "true" ] && [ "$netInterface" != "" ]; then
 				if [ "$netInterface" = "auto" ]; then
@@ -628,7 +627,7 @@ runJail() {
 		if [ "$chrootCmd" = "" ]; then
 			chrootCmd="sh -c 'while :; do sleep 9999; done'"
 		else
-			chrootCmd=$(printf "%s" "$chrootCmd" | $bb sed -e 's/\x27/"/g') # replace all ' with "
+			chrootCmd=$(printf "%s" "$chrootCmd" | $nsBB sed -e 's/\x27/"/g') # replace all ' with "
 			chrootCmd="sh -c '${chrootCmd}; while :; do sleep 9999; done'"
 		fi
 	fi
@@ -640,7 +639,7 @@ runJail() {
 			unshareArgs=""
 			nsenterArgs=""
 		else
-			preUnshare="$bb chpst -u $userCreds"
+			preUnshare="$nsBB chpst -u $userCreds"
 		fi
 	else # unprivileged
 		[ "$runAsRoot" = "true" ] && unshareArgs="-r"
