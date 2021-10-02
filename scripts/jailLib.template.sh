@@ -284,14 +284,14 @@ mountMany() {
 					echo $rootDir/$mount does not exist, creating it >&2
 					cmkdir -m 755 $rootDir/$mount
 				fi
-				$bb sh -c "$bb mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $bb mount -o $mountOps --bind $mount $rootDir/$mount"
+				$bb sh -c "$bb mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $bb mount -o $mountOps,bind $mount $rootDir/$mount"
 				# gotta remount for the options to take effect
-				$bb sh -c "$bb mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $bb mount -o $mountOps,remount --bind $rootDir/$mount $rootDir/$mount"
+				$bb sh -c "$bb mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $bb mount -o $mountOps,remount,bind $rootDir/$mount $rootDir/$mount"
 			else # isOutput = true
 				result="$result if [ ! -d \"$rootDir/$mount\" ]; then $(cmkdir -e -m 755 $rootDir/$mount) fi;"
-				result="$result $bb mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $bb mount -o $mountOps --bind $mount $rootDir/$mount;"
+				result="$result $bb mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $bb mount -o $mountOps,bind $mount $rootDir/$mount;"
 				# gotta remount for the options to take effect
-				result="$result $bb mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $bb mount -o $mountOps,remount --bind $rootDir/$mount $rootDir/$mount;"
+				result="$result $bb mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $bb mount -o $mountOps,remount,bind $rootDir/$mount $rootDir/$mount;"
 			fi
 		else
 			echo "mountMany: Warning - Path \`$mount' doesn't exist on the base system, can't mount it in the jail." >&2
@@ -973,7 +973,7 @@ fi
 EOF
 )
 
-	($preUnshare $bb unshare $unshareArgs ${unshareSupport}f -- $bb setpriv --bounding-set $corePrivileges $bb sh -c "$bb mount --make-private --bind $rootDir/root $rootDir/root; $tasksBeforePivot; cd $rootDir/root; $bb pivot_root . $rootDir/root/root; exec $nsBB chroot . sh -c \"$nsBB umount -l /root; $nsBB setpriv --bounding-set $chrootPrivileges $baseEnv $chrootCmd\"") &
+	($preUnshare $bb unshare $unshareArgs ${unshareSupport}f -- $bb setpriv --bounding-set $corePrivileges $bb sh -c "$bb mount --make-private -o bind $rootDir/root $rootDir/root; $tasksBeforePivot; cd $rootDir/root; $bb pivot_root . $rootDir/root/root; exec $nsBB chroot . sh -c \"$nsBB umount -l /root; $nsBB setpriv --bounding-set $chrootPrivileges $baseEnv $chrootCmd\"") &
 	innerNSpid=$!
 	$bb sleep 1
 	innerNSpid=$($bb pgrep -P $innerNSpid)
