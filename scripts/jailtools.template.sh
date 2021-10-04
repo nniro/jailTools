@@ -190,12 +190,14 @@ case $cmd in
 						echo "The firewall rules are set up correctly"
 					else
 						echo "The firewall rules are not correct"
+						exit 1
 					fi
 				else
 					echo "The jail is running"
 				fi
 			else
 				echo "The jail is not running"
+				exit 1
 			fi
 		fi
 
