@@ -980,11 +980,17 @@ prepareChroot() {
 			$bb ip link set $vethExt up
 			execNS $bb ip route add default via $extIp dev $vethInt proto kernel src $ipInt
 
-			if [ "$netInterface" = "auto" ]; then
-				netInterface=$($bb ip route | grep '^default' | sed -e 's/^.* dev \([^ ]*\) .*$/\1/')
-			fi
 
 			if [ "$setNetAccess" = "true" ] && [ "$netInterface" != "" ]; then
+				if [ "$netInterface" = "auto" ]; then
+					netInterface=$($bb ip route | grep '^default' | sed -e 's/^.* dev \([^ ]*\) .*$/\1/')
+				fi
+
+				if [ "$netInterface" = "" ]; then
+					echo "Could not find a default route network interface, is the network up?" >&2
+					return 1
+				fi
+
 				externalFirewall $rootDir snat $netInterface $vethExt
 			fi
 		fi
