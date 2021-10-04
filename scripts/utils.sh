@@ -21,7 +21,7 @@ jailStatus() {
 
 	local running=0
 
-	if [ -e $jailPath/run/ns.pid ]; then
+	if [ -e $jailPath/run/jail.pid ] && [ -e $jailPath/run/ns.pid ]; then
 		local pPath=$($bb pwdx $(cat $jailPath/run/ns.pid) | $bb sed -e 's/^[0-9]*: *//')
 
 		if [ "$jailPath/root" = "$pPath" ]; then
