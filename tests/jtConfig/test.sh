@@ -160,4 +160,13 @@ $jtPath config --set daemonCommand -- sh -c "cd /usr/sbin; httpd -p 8000" || exi
 $jtPath config --get daemonCommand | grep -q "^sh -c 'cd /usr/sbin; httpd -p 8000'$" || exit 1
 cat rootCustomConfig.sh | grep -q "^daemonCommand=\"sh -c 'cd /usr/sbin; httpd -p 8000'\"$" || exit 1
 
+echo "the '$' character must be escaped when outputted"
+# we basically convert all escaped '$' symbols to '@' and raise an error when '$' is detected after that
+$jtPath config --get runEnvironment | sed -e 's/\\\$/@/g' | grep -q '\$' && exit 1
+
+echo "set multiple arguments separated by spaces"
+expectedResult=$($jtPath config --get runEnvironment)
+$jtPath config --set runEnvironment "$expectedResult"
+$jtPath config --get runEnvironment | grep -q "$expectedResult" || exit 1
+
 exit 0
