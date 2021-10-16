@@ -1,7 +1,7 @@
-From 36ca9599a4b42513a6e4206de6d71eafbc10eac3 Mon Sep 17 00:00:00 2001
+From 5db4e23ff486929febb4aedd26c1139812589b24 Mon Sep 17 00:00:00 2001
 From: Nicholas Niro <blowfist@xroutine.net>
 Date: Wed, 22 Apr 2020 23:36:11 -0400
-Subject: [PATCH 1/2] ip: added support for setting netns on devices.
+Subject: [PATCH 1/4] ip: added support for setting netns on devices.
 
 ---
  networking/ip.c                |  4 ++--
@@ -9,10 +9,10 @@ Subject: [PATCH 1/2] ip: added support for setting netns on devices.
  2 files changed, 35 insertions(+), 4 deletions(-)
 
 diff --git a/networking/ip.c b/networking/ip.c
-index 034ee4fc8..b5638c1d9 100644
+index 85b1ba080..985e30e56 100644
 --- a/networking/ip.c
 +++ b/networking/ip.c
-@@ -155,9 +155,9 @@
+@@ -150,9 +150,9 @@
  //usage:
  //--------------123456789.123456789.123456789.123456789.123456789.123456789.123456789.123....79
  //usage:#define iplink_trivial_usage
@@ -102,5 +102,5 @@ index 1a1064bdc..68d199044 100644
  		do_chflags(dev, flags, mask);
  	return 0;
 -- 
-2.24.1.485.gad05a3d8e5.dirty
+2.20.1
 

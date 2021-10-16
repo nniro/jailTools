@@ -1,7 +1,7 @@
-From fae557a1be01d3e705f5de6bca1421ccd6f5fd6f Mon Sep 17 00:00:00 2001
+From 0be94c02fa9ce1b6f9097a7d5aa034716fa51ee0 Mon Sep 17 00:00:00 2001
 From: Nicholas Niro <blowfist@xroutine.net>
 Date: Wed, 22 Apr 2020 23:38:39 -0400
-Subject: [PATCH 2/2] ip: added arguments support for veth device type.
+Subject: [PATCH 2/4] ip: added arguments support for veth device type.
 
 an exerp of the veth(4) man page :
 
@@ -112,5 +112,5 @@ index 68d199044..4d0a3eaf3 100644
  			data->rta_len = (void *)NLMSG_TAIL(&req.n) - (void *)data;
  		}
 -- 
-2.24.1.485.gad05a3d8e5.dirty
+2.20.1
 

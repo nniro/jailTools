@@ -1,19 +1,19 @@
-From fc3a96c0f73df83eba06f6e22c91985692635593 Mon Sep 17 00:00:00 2001
+From 067d5774bfbf385d08a4655b53290cbd2b583c01 Mon Sep 17 00:00:00 2001
 From: Nicholas Niro <blowfist@xroutine.net>
 Date: Mon, 18 May 2020 02:39:04 -0400
-Subject: [PATCH] setpriv: Added support for --bounding-set.
+Subject: [PATCH 3/4] setpriv: Added support for --bounding-set.
 
 ---
  include/libbb.h      |  1 +
  libbb/capability.c   |  5 +++++
- util-linux/setpriv.c | 47 +++++++++++++++++++++++++++++++++++++++++---
- 3 files changed, 50 insertions(+), 3 deletions(-)
+ util-linux/setpriv.c | 48 +++++++++++++++++++++++++++++++++++++++++---
+ 3 files changed, 51 insertions(+), 3 deletions(-)
 
 diff --git a/include/libbb.h b/include/libbb.h
-index 021100db1..de9883685 100644
+index cae54658b..b747ed143 100644
 --- a/include/libbb.h
 +++ b/include/libbb.h
-@@ -1559,6 +1559,7 @@ extern void run_shell(const char *shell, int loginshell, const char **args) NORE
+@@ -1645,6 +1645,7 @@ void exec_prog_or_SHELL(char **argv) NORETURN FAST_FUNC;
  const char *get_shell_name(void) FAST_FUNC;
  
  #if ENABLE_FEATURE_SETPRIV_CAPABILITIES || ENABLE_RUN_INIT
@@ -22,10 +22,10 @@ index 021100db1..de9883685 100644
  void printf_cap(const char *pfx, unsigned cap_no) FAST_FUNC;
  void drop_capability(int cap_ordinal) FAST_FUNC;
 diff --git a/libbb/capability.c b/libbb/capability.c
-index d0ae78b91..45f5f9d07 100644
+index e3c252a5a..f7e44b181 100644
 --- a/libbb/capability.c
 +++ b/libbb/capability.c
-@@ -58,6 +58,11 @@ static const char *const capabilities[] = {
+@@ -58,6 +58,11 @@ static const char *const capabilities[] ALIGN_PTR = {
  	"audit_read",
  };
  
@@ -38,10 +38,10 @@ index d0ae78b91..45f5f9d07 100644
  {
  	unsigned i, n;
 diff --git a/util-linux/setpriv.c b/util-linux/setpriv.c
-index b69b8cbb6..cc2c43db8 100644
+index 6904cf019..59abc6285 100644
 --- a/util-linux/setpriv.c
 +++ b/util-linux/setpriv.c
-@@ -58,6 +58,7 @@
+@@ -57,6 +57,7 @@
  //usage:	IF_FEATURE_SETPRIV_CAPABILITIES(
  //usage:     "\n--inh-caps CAP,CAP	Set inheritable capabilities"
  //usage:     "\n--ambient-caps CAP,CAP	Set ambient capabilities"
@@ -49,7 +49,7 @@ index b69b8cbb6..cc2c43db8 100644
  //usage:	)
  
  //setpriv from util-linux 2.28:
-@@ -115,11 +116,13 @@ enum {
+@@ -114,11 +115,13 @@ enum {
  	IF_FEATURE_SETPRIV_DUMP(OPTBIT_DUMP,)
  	IF_FEATURE_SETPRIV_CAPABILITIES(OPTBIT_INH,)
  	IF_FEATURE_SETPRIV_CAPABILITIES(OPTBIT_AMB,)
@@ -63,8 +63,8 @@ index b69b8cbb6..cc2c43db8 100644
  	OPT_NNP  = (1 << OPTBIT_NNP),
  };
  
-@@ -186,6 +189,41 @@ static void set_ambient_caps(char *string)
- 		cap = strtok(NULL, ",");
+@@ -186,6 +189,42 @@ static void set_ambient_caps(char *string)
+ 		cap = strtok_r(NULL, ",", &string);
  	}
  }
 +
@@ -102,10 +102,11 @@ index b69b8cbb6..cc2c43db8 100644
 +			prctl(PR_CAPBSET_DROP, i, 0, 0, 0);
 +	}
 +}
++
  #endif /* FEATURE_SETPRIV_CAPABILITIES */
  
  #if ENABLE_FEATURE_SETPRIV_DUMP
-@@ -297,16 +335,17 @@ int setpriv_main(int argc UNUSED_PARAM, char **argv)
+@@ -297,16 +336,17 @@ int setpriv_main(int argc UNUSED_PARAM, char **argv)
  		IF_FEATURE_SETPRIV_CAPABILITIES(
  		"inh-caps\0"     Required_argument	"\xfe"
  		"ambient-caps\0" Required_argument	"\xfd"
@@ -126,7 +127,7 @@ index b69b8cbb6..cc2c43db8 100644
  	);
  	argv += optind;
  
-@@ -327,6 +366,8 @@ int setpriv_main(int argc UNUSED_PARAM, char **argv)
+@@ -327,6 +367,8 @@ int setpriv_main(int argc UNUSED_PARAM, char **argv)
  		set_inh_caps(inh_caps);
  	if (opts & OPT_AMB)
  		set_ambient_caps(ambient_caps);
@@ -136,5 +137,5 @@ index b69b8cbb6..cc2c43db8 100644
  
  	if (!argv[0])
 -- 
-2.26.2
+2.20.1
 
