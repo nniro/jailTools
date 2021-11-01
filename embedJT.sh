@@ -1,5 +1,7 @@
 #! /bin/sh
 
+# this is an internal script, please don't use it
+
 case "$(readlink -f /proc/$$/exe)" in
 	*busybox)
 		sh="$(readlink -f /proc/$$/exe) sh"
@@ -147,38 +149,7 @@ EOF
 if [ "$1" != "" ] && [ "$2" != "" ]; then
 	toEmbed | $bb sed -e "s%@SCRIPT_PATH@%.%" > $1/$2
 	exit 0
-elif [ "$1" != "" ]; then
-	. $(dirname $0)/scripts/utils.sh
-
-	if [ ! -e $(dirname $0)/scripts/paths.sh ]; then
-		echo "Please compile jailTools first."
-		exit 1
-	fi
-
-	. $(dirname $0)/scripts/paths.sh # set the bb variable
-
-	if [ ! -e $bb ]; then
-		echo "Busybox not available, Please compile jailTools first."
-		exit 1
-	fi
-
-	if [ ! -d $1 ]; then
-		echo "Please ensure the path is a directory and is writable"
-		exit 1
-	else
-		scriptsDir=$ownPath
-
-		if [ "$(echo $scriptsDir | $bb sed -e 's/^\(.\).*$/\1/')" != "/" ]; then # if the directory is not an absolute path, we use PWD
-			scriptsDir=$PWD/$ownPath
-		fi
-
-		# we change the internal path to the path where this script is
-		cp $ownPath/build/busybox/busybox $1/jt
-		chmod u+x $1/jt
-		echo "Done. Installed \`jt' in $1"
-	fi
 else
-	echo "Please input a directory where you want to install the \`jailtools' master script"
-	echo "Note that only that script is installed (along with the \`jt' and \`jtools' symlinks). It finds the other scripts by reference."
+	echo "This is an internal only script, please don't use it."
 	exit 1
 fi
