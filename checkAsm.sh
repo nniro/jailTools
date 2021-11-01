@@ -7,12 +7,12 @@ if [ "$gcc" = "" ]; then
 	exit 1
 fi
 
-if [ -d /usr/include/asm ]; then
-	ln -s /usr/include/asm usr/include/asm
+host=$($gcc -dumpmachine)
+if [ -d /usr/include/$host/asm ]; then
+	ln -s /usr/include/$host/asm usr/include/asm
 else
-	host=$($gcc -dumpmachine)
-	if [ -d /usr/include/$host/asm ]; then
-		ln -s /usr/include/$host/asm usr/include/asm
+	if [ -d /usr/include/asm ]; then
+		ln -s /usr/include/asm usr/include/asm
 	else
 		echo no >&2
 		exit 1
