@@ -66,7 +66,7 @@ $(BUSYBOX_BUILD_ROOT)/.ready: busybox/Makefile busybox/embed $(MUSL)
 
 $(PROJECTROOT)/busybox/embed/jt: scripts/jailtools.template.sh busybox/embed $(EMBEDDED_SCRIPTS)
 	rm -f $(PROJECTROOT)/busybox/embed/jt
-	sh $(PROJECTROOT)/install.sh $(PROJECTROOT)/busybox/embed jt
+	sh $(PROJECTROOT)/embedJT.sh $(PROJECTROOT)/busybox/embed jt
 
 $(BUSYBOX): $(SUPERSCRIPT) $(BUSYBOX_BUILD_ROOT)/.ready
 	-ln -sf /usr/include/linux $(PROJECTROOT)/usr/include/
