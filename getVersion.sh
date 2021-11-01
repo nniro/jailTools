@@ -1,13 +1,10 @@
 #! /bin/sh
 
 getVersion() {
-	git log --oneline --format=format:"%h%d" HEAD | busybox awk '
+	git log --oneline --format=format:"%h%d" | busybox awk '
 {
-	if ($2 == "(tag:") {
-		a = $3
-		sub(/^v/, "", a)
-		sub(/)$/g, "", a)
-		print a
+	if ($0 ~ /tag/) {
+		print gensub(/^.*tag: v([^\),]*)(\)|,).*$/, "\\1", 1)
 		exit 0
 	}
 }
@@ -16,7 +13,7 @@ getVersion() {
 
 git show -s --oneline --format=format:"%h%d" HEAD | busybox awk -v version=$(getVersion) '
 {
-	if ($2 == "(tag:") {
+	if ($0 ~ /tag/) {
 		print version
 	} else {
 		print version "-" $1
