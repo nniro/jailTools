@@ -5,7 +5,7 @@ if [ "$1" = "busybox" ]; then # we act as busybox
 	exec -a busybox $0 "$@"
 fi
 
-export JT_VERSION=0.1.1
+export JT_VERSION=
 
 if echo "$0" | grep -q '\/'; then
 	ownPath=$(dirname $0)
