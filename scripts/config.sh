@@ -49,7 +49,7 @@ getCoreVal() {
 	if printf "%s" "$res1" | grep -q "EOF"; then
 		cat $jailScript | sed -ne "/^$confVal/ {s/.*//; be ; :e ; N; $ p; /EOF/ {s/EOF// ; p; b}; be}" | sed -e '/^$/ d'
 	else
-		printf "%s\n" "$res1" | sed -ne "/^$confVal=[^ ]\+/ {s/^[^=]*=\(.*\)$/\1/ ; p}" | sed -e 's/^"\(.*\)"$/\1/' | sed -e 's/^\x27\(.*\)\x27$/\1/'
+		printf "%s\n" "$res1" | sed -ne "/^$confVal=[^ ]\+/ {s/^[^=]*=\(.*\)$/\1/ ; p}" | sed -e 's/^"\(.*\)"$/\1/' | sed -e 's/^\x27\(.*\)\x27$/\1/' | sed -e 's/\$/\\\$/g'
 	fi
 }
 
