@@ -59,11 +59,15 @@ testGet() {
 				confFile="rootCustomConfig.sh"
 			fi
 
-			if cat $confFile | sed -ne "/^$conf=.*$/ {s/^$conf=\"\(.*\)\"$/\1/ ; p}" | grep -q "$expectedVal"; then
+			result2=$(cat $confFile | sed -ne "/^$conf=.*$/ {s/^$conf=\"\(.*\)\"$/\1/ ; p}")
+			# in file, the '$' symbols will not be escaped, so we reflect that in our expectancy.
+			expectedVal=$(printf "%s" "$expectedVal" | sed -e 's/\\\\\$/$/g')
+
+			if printf "%s" "$result2" | grep -q "$expectedVal"; then
 				return 0
 			else
 				echo "Test : $description -- failed"
-				echo "\"$confFile\" does not contain the right configuration entry : \"$conf\" and/or the right value \"$expectedVal\""
+				echo "\"$confFile\" does not contain the right configuration entry : \"$conf\" and/or the right value \"$expectedVal\" which should be \"$result2\""
 				return 1
 			fi
 		fi
@@ -204,7 +208,7 @@ cat rootCustomConfig.sh | grep -q "^daemonCommand=\"sh -c 'cd /usr/sbin; httpd -
 # we basically convert all escaped '$' symbols to '@' and raise an error when '$' is detected after that
 testGet -rf 's/\\\$/@/g' "the '$' character must be escaped when outputted" "runEnvironment" '\$' || exit 1
 
-expectedResult=$($jtPath config --get runEnvironment)
+expectedResult="$($jtPath config --get runEnvironment | sed -e 's/\\/\\\\\\/g')"
 $jtPath config --set runEnvironment "$expectedResult" >/dev/null
 testGet -p "set multiple arguments separated by spaces" "runEnvironment" "$expectedResult" || exit 1
 
