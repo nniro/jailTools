@@ -77,7 +77,7 @@ getVarVal() {
 		if [ "$1" = "$var" ]; then # booleans are handled differently, they will also return a value to make their use more intuitive
 			#([ "$2" != "\"\"" ] && [ "$2" != "\"0\"" ]) && echo $2 | sed -e 's/"//g' && return 0 || return 1
 			# we remove only the front and last double quotes
-			([ "$2" != "\"\"" ] && [ "$2" != "\"0\"" ]) && echo $2 | sed -e 's/^"\(.*\)"$/\1/' && return 0 || return 1
+			([ "$2" != "\"\"" ] && [ "$2" != "\"0\"" ]) && echo $2 | sed -e 's/^"\(.*\)"$/\1/' | sed -e 's/%3D/=/g' && return 0 || return 1
 		fi
 	done
 	return 2 # we found no argument by this name
@@ -154,8 +154,8 @@ callGetopt() {
 	eval set -- $O
 
 	handleOpts() {
-		local in="$(printf "%s" "$1" | sed -e 's/\//%2f/g' | sed -e 's/;/%3B/g')"	# the input argument to parse
-		local arg="$(printf "%s" "$2" | sed -e 's/\x27//g')"			# the second argument if any
+		local in="$(printf "%s" "$1" | sed -e 's/\//%2f/g' | sed -e 's/;/%3B/g' | sed -e 's/\=/%3D/g')"	# the input argument to parse
+		local arg="$(printf "%s" "$2" | sed -e 's/\x27//g' | sed -e 's/\=/%3D/g')"	# the second argument if any
 		local caseConditionals="$3"	# we have to check the inputs against these to find the target arguments
 		local helpMessage="$4"		# the help message
 		local rs="$5"			# the result variable
