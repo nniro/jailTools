@@ -122,7 +122,7 @@ err=$?
 echo "return status must be 0"
 echo $err | grep -q '0' || exit 1
 echo "result must contain the value"
-printf "%s" "$result" | grep -q 'showIp="0";showProcessStats="0";showTemp="0";outputData="=one";arg1Data="";arg2Data=""' || exit 1
+printf "%s" "$result" | grep -q 'showIp="0";showProcessStats="0";showTemp="0";outputData="%3Done";arg1Data="";arg2Data=""' || exit 1
 
 echo "setting multiple arguments to a short option"
 result="$(stdTest -o'foo bar avec du beurre')"
