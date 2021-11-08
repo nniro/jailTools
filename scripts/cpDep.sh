@@ -109,7 +109,7 @@ compDeps() {
 	[ "$rawOutput" = "" ] && exit 0
 
 	# handle statically linked files
-	if [ "$(echo -e $rawOutput | sed -e "s/.*\(statically\|not a dynamic\).*/static/; {t toDelAll} " -e ":toDelAll {p; b delAll}; :delAll {d; b delAll}")" = "static" ]; then
+	if [ "$(echo -e $rawOutput | $bb sed -e "s/.*\(statically\|not a dynamic\).*/static/; {t toDelAll} " -e ":toDelAll {p; b delAll}; :delAll {d; b delAll}")" = "static" ]; then
 		# we exit returning nothing for statically linked files
 		exit 0
 	fi

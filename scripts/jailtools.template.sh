@@ -1,11 +1,24 @@
+# direct call without a path to 'jt'
+if [ "$0" = "jt" ]; then # try to find where 'jt' is located
+	IFS=":"
+	for entry in $PATH; do
+		if [ -e "$entry/jt" ]; then
+			jtPath="$entry/jt"
+			break
+		fi
+	done
+else
+	jtPath=$0
+fi
+
 if [ "$1" = "busybox" ]; then # we act as busybox
 	shift
-	exec -a busybox $0 "$@"
+	exec -a busybox $jtPath "$@"
 fi
 
 export JT_VERSION=
 
-exe=$(exec -a busybox $0 readlink /proc/$$/exe)
+exe=$(exec -a busybox $jtPath readlink /proc/$$/exe)
 
 bb="$exe busybox"
 
