@@ -1,19 +1,23 @@
 #! /bin/sh
 
+bb="$BB"
+shower="$JT_SHOWER"
+runner="$JT_RUNNER"
+
 case "$(readlink -f /proc/$$/exe)" in
 	*zsh)
 		setopt shwordsplit
-		sh="$(readlink -f /proc/$$/exe)"
+		sh="$($bb readlink -f /proc/$$/exe)"
 		echo "using shell : $sh"
 	;;
 
 	*busybox)
-		sh="$(readlink -f /proc/$$/exe) sh"
+		sh="$($bb readlink -f /proc/$$/exe) sh"
 		echo "using shell : $sh"
 	;;
 
 	*)
-		sh="$(readlink -f /proc/$$/exe)"
+		sh="$($bb readlink -f /proc/$$/exe)"
 		echo "using shell : $sh"
 	;;
 esac
@@ -50,44 +54,44 @@ runner="$JT_RUNNER"
 eval "$($shower jt_utils)"
 
 # check the kernel's namespace support
-unshareSupport=$(for ns in m u i n p U C; do $bb unshare -$ns 'echo "Operation not permitted"; exit' 2>&1 | grep -q "Operation not permitted" && printf $ns; done)
+unshareSupport=$(for ns in m u i n p U C; do $bb unshare -$ns 'echo "Operation not permitted"; exit' 2>&1 | $bb grep -q "Operation not permitted" && printf $ns; done)
 
-if ! echo $unshareSupport | grep -q 'm'; then # check for mount namespace support
+if ! echo $unshareSupport | $bb grep -q 'm'; then # check for mount namespace support
 	echo "Linux kernel Mount namespace support was not detected. It is mandatory to use this tool. Bailing out."
 	exit 1
 fi
 
 # optional commands
 
-jailName=$(basename $1)
+jailName=$($bb basename $1)
 newChrootHolder=$1
 newChrootDir=$newChrootHolder/root
 echo "Instantiating directory : " $newChrootDir
 
-mkdir $newChrootHolder
-mkdir $newChrootHolder/run
-mkdir $newChrootDir
+$bb mkdir $newChrootHolder
+$bb mkdir $newChrootHolder/run
+$bb mkdir $newChrootDir
 
-touch $newChrootHolder/startRoot.sh # this is to make cpDep detect the new style jail
-touch $newChrootHolder/rootCustomConfig.sh
+$bb touch $newChrootHolder/startRoot.sh # this is to make cpDep detect the new style jail
+$bb touch $newChrootHolder/rootCustomConfig.sh
 
 fsData="$shower jt_filesystem_template"
 
 for fPath in $($fsData); do
-	mkdir $newChrootDir/$fPath
-	chmod 705 $newChrootDir/$fPath
+	$bb mkdir $newChrootDir/$fPath
+	$bb chmod 705 $newChrootDir/$fPath
 done
 
 if [ -h /lib64 ]; then
 	echo "Linking /lib to /lib64"
-	ln -s lib $newChrootDir/lib64
+	$bb ln -s lib $newChrootDir/lib64
 else
-	mkdir $newChrootDir/lib64
+	$bb mkdir $newChrootDir/lib64
 fi
 
 genPass() {
 	len=$1
-	cat /dev/urandom | head -c $(($len * 2)) | base64 | tr '/' '@' | head -c $len
+	$bb cat /dev/urandom | $bb head -c $(($len * 2)) | $bb base64 | $bb tr '/' '@' | $bb head -c $len
 }
 
 echo "Populating the /etc configuration files"
@@ -95,27 +99,27 @@ echo "Populating the /etc configuration files"
 $runner jt_cpDep $newChrootHolder /etc /etc/localtime
 echo "Done populating /etc"
 # group
-cat >> $newChrootDir/etc/group << EOF
+$bb cat >> $newChrootDir/etc/group << EOF
 root:x:0:
 $mainJailUsergroup:x:$gid:
 EOF
-chmod 644 $newChrootDir/etc/group
+$bb chmod 644 $newChrootDir/etc/group
 # passwd
-cat >> $newChrootDir/etc/passwd << EOF
+$bb cat >> $newChrootDir/etc/passwd << EOF
 root:x:0:0::/root:/bin/false
 nobody:x:99:99::/dev/null:/bin/false
 $mainJailUsername:x:$uid:$gid::/home:/bin/false
 EOF
-chmod 644 $newChrootDir/etc/passwd
+$bb chmod 644 $newChrootDir/etc/passwd
 # shadow
-cat >> $newChrootDir/etc/shadow << EOF
+$bb cat >> $newChrootDir/etc/shadow << EOF
 root:$(echo "$(genPass 200)" | $bb cryptpw -m sha512 -P 0 -S "$(genPass 16)"):0:0:99999:7:::
 nobody:!:0:0:99999:7:::
 $mainJailUsername:!:0:0:99999:7:::
 EOF
-chmod 600 $newChrootDir/etc/shadow
+$bb chmod 600 $newChrootDir/etc/shadow
 # shells
-cat >> $newChrootDir/etc/shells << EOF
+$bb cat >> $newChrootDir/etc/shells << EOF
 /bin/sh
 /bin/false
 EOF
@@ -134,13 +138,13 @@ populateFile $ownPath/startRoot.template.sh @SHELL@ "$bb sh" > $newChrootHolder/
 populateFile $ownPath/rootDefaultConfig.template.sh @SHELL@ "$bb sh" @JAILNAME@ "$jailName" > $newChrootHolder/rootDefaultConfig.sh
 populateFile $ownPath/rootCustomConfig.template.sh @SHELL@ "$bb sh" @JAILNAME@ "$jailName" > $newChrootHolder/rootCustomConfig.sh
 
-rm $ownPath/jailLib.template.sh
-rm $ownPath/startRoot.template.sh
-rm $ownPath/rootDefaultConfig.template.sh
-rm $ownPath/rootCustomConfig.template.sh
+$bb rm $ownPath/jailLib.template.sh
+$bb rm $ownPath/startRoot.template.sh
+$bb rm $ownPath/rootDefaultConfig.template.sh
+$bb rm $ownPath/rootCustomConfig.template.sh
 
 # we save the default initial rootCustomConfig for update purposes
-cp $newChrootHolder/rootCustomConfig.sh $newChrootHolder/._rootCustomConfig.sh.initial
+$bb cp $newChrootHolder/rootCustomConfig.sh $newChrootHolder/._rootCustomConfig.sh.initial
 
 echo "Copying /etc data"
 etcFiles=""
@@ -149,9 +153,9 @@ $runner jt_cpDep $newChrootHolder /etc/ $etcFiles
 
 [ -e /etc/terminfo ] && $runner jt_cpDep $newChrootHolder /etc/ /etc/terminfo
 $runner jt_cpDep $newChrootHolder /bin $JT_CALLER
-mv $newChrootDir/bin/jt $newChrootDir/bin/busybox
+$bb mv $newChrootDir/bin/jt $newChrootDir/bin/busybox
 
-for app in $($bb --list-full); do ln -s /bin/busybox ${newChrootDir}/$app; done
+for app in $($bb --list-full); do $bb ln -s /bin/busybox ${newChrootDir}/$app; done
 
 # we append these to update.sh
 echo "# end basic dependencies" >> $newChrootHolder/update.sh

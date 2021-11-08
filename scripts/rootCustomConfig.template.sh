@@ -2,7 +2,7 @@
 
 # this is the file in which you can put your custom jail's configuration in shell script form
 
-case "$(readlink -f /proc/$$/exe)" in
+case "$($bb readlink -f /proc/$$/exe)" in
 	*zsh)
 		setopt shwordsplit
 	;;
@@ -71,7 +71,7 @@ shellCommand=""
 # manually like the Xauthority example in the function prepCustom.
 
 # dev mount points : read-write, no-exec
-devMountPoints=$(cat << EOF
+devMountPoints=$($bb cat << EOF
 /dev/dri
 /dev/snd
 /dev/input
@@ -80,7 +80,7 @@ EOF
 )
 
 # read-only mount points with exec
-roMountPoints=$(cat << EOF
+roMountPoints=$($bb cat << EOF
 /etc/ssl
 /usr/local
 /usr/lib
@@ -94,7 +94,7 @@ EOF
 )
 
 # read-write mount points with exec
-rwMountPoints=$(cat << EOF
+rwMountPoints=$($bb cat << EOF
 /tmp/.X11-unix
 /run/user/$userUID
 EOF

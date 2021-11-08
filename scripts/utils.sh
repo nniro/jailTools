@@ -22,7 +22,7 @@ jailStatus() {
 	local running=0
 
 	if [ -e $jailPath/run/jail.pid ] && [ -e $jailPath/run/ns.pid ]; then
-		local pPath=$($bb pwdx $(cat $jailPath/run/ns.pid) | $bb sed -e 's/^[0-9]*: *//')
+		local pPath=$($bb pwdx $($bb cat $jailPath/run/ns.pid) | $bb sed -e 's/^[0-9]*: *//')
 
 		if [ "$jailPath/root" = "$pPath" ]; then
 			running=1
@@ -40,7 +40,7 @@ jailStatus() {
 substring() {
         local init=$1; shift
         if [ "$2" != "" ]; then toFetch="\(.\{$1\}\).*"; shift; else local toFetch="\(.*\)"; fi
-        echo "$1" | sed -e "s/^.\{$init\}$toFetch$/\1/"
+        echo "$1" | $bb sed -e "s/^.\{$init\}$toFetch$/\1/"
 }
 
 # arguments : <input file> [<to replace string> <replacement string>, ...]
@@ -54,14 +54,14 @@ populateFile() {
 		shift 2
 	done
 
-	cat $inFile | sed -e "$result"
+	$bb cat $inFile | $bb sed -e "$result"
 }
 
 getConfigValue() {
 	local configPath=$1
 	local configName=$2
 
-	cat $configPath | sed -e "s/^$configName=\(.*\)$/\1/"
+	$bb cat $configPath | $bb sed -e "s/^$configName=\(.*\)$/\1/"
 }
 
 getVarVal() {
@@ -77,7 +77,7 @@ getVarVal() {
 		if [ "$1" = "$var" ]; then # booleans are handled differently, they will also return a value to make their use more intuitive
 			#([ "$2" != "\"\"" ] && [ "$2" != "\"0\"" ]) && echo $2 | sed -e 's/"//g' && return 0 || return 1
 			# we remove only the front and last double quotes
-			([ "$2" != "\"\"" ] && [ "$2" != "\"0\"" ]) && echo $2 | sed -e 's/^"\(.*\)"$/\1/' | sed -e 's/%3D/=/g' && return 0 || return 1
+			([ "$2" != "\"\"" ] && [ "$2" != "\"0\"" ]) && echo $2 | $bb sed -e 's/^"\(.*\)"$/\1/' | $bb sed -e 's/%3D/=/g' && return 0 || return 1
 		fi
 	done
 	return 2 # we found no argument by this name
@@ -154,13 +154,13 @@ callGetopt() {
 	eval set -- $O
 
 	handleOpts() {
-		local in="$(printf "%s" "$1" | sed -e 's/\//%2f/g' | sed -e 's/;/%3B/g' | sed -e 's/\=/%3D/g')"	# the input argument to parse
-		local arg="$(printf "%s" "$2" | sed -e 's/\x27//g' | sed -e 's/\=/%3D/g')"	# the second argument if any
+		local in="$(printf "%s" "$1" | $bb sed -e 's/\//%2f/g' | $bb sed -e 's/;/%3B/g' | $bb sed -e 's/\=/%3D/g')"	# the input argument to parse
+		local arg="$(printf "%s" "$2" | $bb sed -e 's/\x27//g' | $bb sed -e 's/\=/%3D/g')"	# the second argument if any
 		local caseConditionals="$3"	# we have to check the inputs against these to find the target arguments
 		local helpMessage="$4"		# the help message
 		local rs="$5"			# the result variable
 		# add single quotes to content with spaces
-		echo "$in" | grep -q '\( \|%20\)' && in="$(echo "$in" | $bb sed -e "s/\(.*\)/'\1'/")"
+		echo "$in" | $bb grep -q '\( \|%20\)' && in="$(echo "$in" | $bb sed -e "s/\(.*\)/'\1'/")"
 		oldIFS="$IFS"
 		IFS=":"
 		for rawCond in $caseConditionals; do
@@ -189,8 +189,8 @@ callGetopt() {
 					return 0
 				fi
 			elif [ "$sC" = "" ] && [ "$lC" = "" ]; then
-				if [ "$hasArg" = "true" ] && printf "$rs" | grep -q "$v=\"\""; then
-					echo $(printf "%s" "$rs" | $bb sed -e "s/$v=\"\"/$v=\"$in\"/" | sed -e 's/%2f/\//g' -e 's/%20/ /g')
+				if [ "$hasArg" = "true" ] && printf "$rs" | $bb grep -q "$v=\"\""; then
+					echo $(printf "%s" "$rs" | $bb sed -e "s/$v=\"\"/$v=\"$in\"/" | $bb sed -e 's/%2f/\//g' -e 's/%20/ /g')
 					return 0
 				fi
 			fi
@@ -198,7 +198,7 @@ callGetopt() {
 		# this is the catchall on the last flagless argument
 		if [ "$sC" = "" ] && [ "$lC" = "" ]; then
 			if [ "$hasArg" = "true" ]; then
-				echo $(printf "%s" "$rs" | $bb sed -e "s/$v=\"\(.*\)\"/$v=\"\1 $in\"/" | sed -e 's/%2f/\//g' -e 's/%20/ /g')
+				echo $(printf "%s" "$rs" | $bb sed -e "s/$v=\"\(.*\)\"/$v=\"\1 $in\"/" | $bb sed -e 's/%2f/\//g' -e 's/%20/ /g')
 				return 0
 			fi
 		fi

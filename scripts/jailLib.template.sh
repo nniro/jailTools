@@ -21,7 +21,7 @@ else
 	privileged=1
 fi
 
-ownPath=$($bb dirname $0)
+[ "$ownPath" = "" ] && ownPath=$($bb dirname $0)
 firewallInstr="run/firewall.instructions"
 
 # substring offset <optional length> string
@@ -45,7 +45,9 @@ else
 	fi
 fi
 
-actualUser=$($bb stat -c %U $ownPath/jailLib.sh)
+if [ "$actualUser" = "" ]; then
+	actualUser=$($bb stat -c %U $ownPath/jailLib.sh)
+fi
 
 # we get the uid and gid of this script, this way even when ran as root, we still get the right credentials
 userUID=$($bb stat -c %u $ownPath/jailLib.sh)
@@ -65,15 +67,15 @@ innerNSpid=""
 unshareSupport="-$(for ns in m u i n p U C; do $bb unshare -r$ns sh -c 'echo "Operation not permitted"; exit' 2>&1 | $bb grep -q "Operation not permitted" && $bb printf $ns; done)"
 
 netNS=false
-if echo $unshareSupport | grep -q 'n'; then # check for network namespace support
+if echo $unshareSupport | $bb grep -q 'n'; then # check for network namespace support
 	netNS=true
 	# we remove this bit from the variable because we use it differently from the other namespaces.
-	unshareSupport=$(echo $unshareSupport | sed -e 's/n//')
+	unshareSupport=$(echo $unshareSupport | $bb sed -e 's/n//')
 fi
 
-if echo $unshareSupport | grep -q 'U'; then
+if echo $unshareSupport | $bb grep -q 'U'; then
 	if [ -e /proc/sys/kernel/unprivileged_userns_clone ]; then
-		if [ "$(cat /proc/sys/kernel/unprivileged_userns_clone)" = "0" ]; then
+		if [ "$($bb cat /proc/sys/kernel/unprivileged_userns_clone)" = "0" ]; then
 			if [ "$privileged" = "0" ]; then
 				echo "User namespace support is currently disabled. This has to be enabled to support starting a jail unprivileged." >&2
 				echo "Until the change is done, creating a jail requires privileges." >&2
@@ -90,7 +92,7 @@ else
 	userNS=false
 fi
 
-nsenterSupport=$(echo "$unshareSupport" | sed -e 's/^-//' | sed -e 's/\(.\)/-\1 /g')
+nsenterSupport=$(echo "$unshareSupport" | $bb sed -e 's/^-//' | $bb sed -e 's/\(.\)/-\1 /g')
 if [ "$netNS" = "true" ]; then
 	if [ "$jailNet" = "false" ] || ([ "$privileged" = "0" ] && [ "$disableUnprivilegedNetworkNamespace" = "true" ]); then
 		:
@@ -100,7 +102,7 @@ if [ "$netNS" = "true" ]; then
 fi
 
 if [ "$privileged" = "1" ]; then
-	nsenterSupport="$(echo $nsenterSupport | sed -e 's/-U//g')"
+	nsenterSupport="$(echo $nsenterSupport | $bb sed -e 's/-U//g')"
 fi
 
 if [ "$privileged" = "0" ]; then
@@ -130,7 +132,7 @@ if [ "$networking" = "true" ]; then
 	fi
 fi
 
-if [ "$(cat /proc/sys/net/ipv4/ip_forward)" = "0" ]; then
+if [ "$($bb cat /proc/sys/net/ipv4/ip_forward)" = "0" ]; then
 	networking=false
 	echo "The ip_forward bit in /proc/sys/net/ipv4/ip_forward is disabled. This has to be enabled to get handled network support. Setting networking to false." >&2
 	echo "\tPlease do (as root) : echo 1 > /proc/sys/net/ipv4/ip_forward  or find the method suitable for your distribution to activate IP forwarding." >&2
@@ -263,10 +265,10 @@ cmdCtl() {
 	fi
 
 	case $cmd in
-		exists) exists "$1" "$(cat $file)" ;;
-		remove) remove "$1" "$(cat $file)" > $file ;;
-		add) add "$1" "$(cat $file)" > $file ;;
-		list) list "$(cat $file)" ;;
+		exists) exists "$1" "$($bb cat $file)" ;;
+		remove) remove "$1" "$($bb cat $file)" > $file ;;
+		add) add "$1" "$($bb cat $file)" > $file ;;
+		list) list "$($bb cat $file)" ;;
 		*)
 			echo "Invalid command entered" >&2
 			return 1
@@ -282,7 +284,7 @@ mountSingle() {
 
 	[ ! -e $src ] && echo "mountSingle - Warning - source file or directory '$src' does not exist" >&2 && return
 
-	echo $dst | grep -q "^/" || dst="/$dst" # we expect a starting '/'
+	echo $dst | $bb grep -q "^/" || dst="/$dst" # we expect a starting '/'
 
 	[ ! -d $rootDir/root/$(dirname $dst) ] && echo "Invalid mounting path chosen" >&2 && return
 
@@ -418,12 +420,12 @@ joinBridgeByJail() {
 		local defConfPath=$jailLocation/rootDefaultConfig.sh
 		local confPath=$jailLocation/rootCustomConfig.sh
 
-		local neededConfig="$(cat $confPath | $bb sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p;')"
+		local neededConfig="$($bb cat $confPath | $bb sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p;')"
 		for cfg in jailName createBridge bridgeName; do
 			tempVal="$(printf "%s" "$neededConfig" | $bb sed -ne "/^$cfg/ p" | $bb sed -e 's/#.*//' | $bb sed -e 's/^[^=]\+=\(.*\)$/\1/' | $bb sed -e 's/${\([^:]\+\):/${rem\1:/' -e 's/$\([^{(]\+\)/$rem\1/')"
 
 			if [ "$tempVal" = "" ] && [ -e $defConfPath ]; then
-				local neededDefConfig="$(cat $defConfPath | $bb sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p;')"
+				local neededDefConfig="$($bb cat $defConfPath | $bb sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p;')"
 				tempVal="$(printf "%s" "$neededDefConfig" | $bb sed -ne "/^$cfg/ p" | $bb sed -e 's/#.*//' | $bb sed -e 's/^[^=]\+=\(.*\)$/\1/' | $bb sed -e 's/${\([^:]\+\):/${rem\1:/' -e 's/$\([^{(]\+\)/$rem\1/')"
 			fi
 
@@ -444,7 +446,7 @@ joinBridgeByJail() {
 			echo "joinBridgeByJail: This jail at \`$jailLocation' is not currently started, aborting joining." >&2
 			return
 		fi
-		remnetnsId=$(cat $jailLocation/run/ns.pid)
+		remnetnsId=$($bb cat $jailLocation/run/ns.pid)
 
 		# echo "Attempting to join bridge $rembridgeName on jail $remjailName with net ns $remnetnsId"
 		joinBridge "$isDefaultRoute" "$remjailName" "$jailName" "$remnetnsId" "$rembridgeName" "$internalIpNum"
@@ -460,7 +462,7 @@ leaveBridgeByJail() {
 	if [ -d $jailLocation/root ] && [ -d $jailLocation/run ] && [ -f $jailLocation/startRoot.sh ] && [ -f $jailLocation/rootCustomConfig.sh ]; then
 		local confPath=$jailLocation/rootCustomConfig.sh
 
-		local neededConfig=$(cat $confPath | $bb sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p;')
+		local neededConfig=$($bb cat $confPath | $bb sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p;')
 		for cfg in jailName createBridge bridgeName; do
 			eval "local rem$cfg"="$(printf "%s" "$neededConfig" | $bb sed -ne "/^$cfg/ p" | $bb sed -e 's/#.*//' | $bb sed -e 's/^[^=]\+=\(.*\)$/\1/' | $bb sed -e 's/${\([^:]\+\):/${rem\1:/' -e 's/$\([^{(]\+\)/$rem\1/')"
 		done
@@ -474,7 +476,7 @@ leaveBridgeByJail() {
 			# we don't need to do anything since the bridge no longer exists, no cleaning required, bailing out
 			return
 		fi
-		remnetnsId=$(cat $jailLocation/run/ns.pid)
+		remnetnsId=$($bb cat $jailLocation/run/ns.pid)
 
 		leaveBridge "$jailName" "$remnetnsId" "$rembridgeName"
 	fi
@@ -983,7 +985,7 @@ prepareChroot() {
 
 			if [ "$setNetAccess" = "true" ] && [ "$netInterface" != "" ]; then
 				if [ "$netInterface" = "auto" ]; then
-					netInterface=$($bb ip route | grep '^default' | sed -e 's/^.* dev \([^ ]*\) .*$/\1/')
+					netInterface=$($bb ip route | $bb grep '^default' | $bb sed -e 's/^.* dev \([^ ]*\) .*$/\1/')
 				fi
 
 				if [ "$netInterface" = "" ]; then
@@ -1023,7 +1025,7 @@ runShell() {
 	shift 2
 
 	while [ "$1" != "" ]; do
-		arg="$(printf "%s" "$1" | sed -e 's/%20/ /g')"
+		arg="$(printf "%s" "$1" | $bb sed -e 's/%20/ /g')"
 		if printf "%s" "$arg" | $bb grep -q ' '; then
 			arg="'$arg'"
 		else
@@ -1057,7 +1059,7 @@ runJail() {
 	if [ $(($# > 0)) = 1 ]; then
 		while [ "$1" != "" ]; do
 			local curArg=""
-			arg="$(printf "%s" "$1" | sed -e 's/%20/ /g')"
+			arg="$(printf "%s" "$1" | $bb sed -e 's/%20/ /g')"
 			if printf "%s" "$arg" | $bb grep -q ' '; then
 				curArg="'$arg'"
 			else
@@ -1114,7 +1116,7 @@ stopChroot() {
 		echo "This jail is not running, can't stop it. Bailing out." >&2
 		exit 1
 	fi
-	innerNSpid="$(cat $rootDir/run/ns.pid)"
+	innerNSpid="$($bb cat $rootDir/run/ns.pid)"
 
 	if [ "$innerNSpid" = "" ] || [ "$($bb pstree $innerNSpid)" = "" ]; then
 		echo "This jail doesn't seem to be running anymore, please check lsns to confirm" >&2
@@ -1147,8 +1149,8 @@ stopChroot() {
 	if [ -e $rootDir/run/ns.pid ]; then
 		kill -9 $innerNSpid >/dev/null 2>/dev/null
 		if [ "$?" = "0" ]; then
-			rm -f $rootDir/run/ns.pid
-			rm -f $rootDir/run/jail.pid
+			$bb rm -f $rootDir/run/ns.pid
+			$bb rm -f $rootDir/run/jail.pid
 		fi
 	fi
 }
