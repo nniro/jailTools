@@ -50,13 +50,13 @@ EOF
 	sed -e 's/^@EOF$/EOF/' << EOF
 $(cat $ownPath/scripts/jailtools.template.sh | sed -ne "s/\(JT_VERSION=\).*$/\1\"$(sh getVersion.sh)\"/" -e '/^@EMBEDDEDFILES_LOCATION@/ q; /^@EMBEDDEDFILES_LOCATION@/ ! p')
 
-embedTable=\$(cat << EOF
+embedTable=\$(\$bb cat << EOF
 $embedTable
 @EOF
 )
 
-embeddedFiles=\$(cat << EOF
-$(cd $ownPath; $bb tar -jcf - $filesToEmbed | base64)
+embeddedFiles=\$(\$bb cat << EOF
+$(cd $ownPath; $bb tar -jcf - $filesToEmbed | $bb base64)
 @EOF
 )
 

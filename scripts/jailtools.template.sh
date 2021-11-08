@@ -1,5 +1,3 @@
-#! /bin/sh
-
 if [ "$1" = "busybox" ]; then # we act as busybox
 	shift
 	exec -a busybox $0 "$@"
@@ -7,14 +5,18 @@ fi
 
 export JT_VERSION=
 
-if echo "$0" | grep -q '\/'; then
-	ownPath=$(dirname $0)
+exe=$(exec -a busybox $0 readlink /proc/$$/exe)
+
+bb="$exe busybox"
+
+if echo "$0" | $bb grep -q '\/'; then
+	ownPath=$($bb dirname $0)
 
 	# convert the path of this script to an absolute path
 	if [ "$ownPath" = "." ]; then
 		ownPath=$PWD
 	else
-		if echo "$ownPath" | grep -q '^\/'; then
+		if echo "$ownPath" | $bb grep -q '^\/'; then
 			# absolute path, we do nothing
 			:
 		else
@@ -28,7 +30,7 @@ fi
 
 showHelp() {
 	echo "Usage:"
-	echo "  $(basename $0) <command> [jail path] [command options]"
+	echo "  $($bb basename $0) <command> [jail path] [command options]"
 	echo "	(leave the jail path empty for the current directory)"
 	echo
 	echo "Available commands :"
@@ -59,9 +61,7 @@ shift
 
 @EMBEDDEDFILES_LOCATION@
 
-exe=$(readlink /proc/$$/exe)
-
-if [ "$(dirname $0)" = "." ] && [ "$(basename $exe)" = "busybox" ]; then
+if [ "$($bb dirname $0)" = "." ] && [ "$($bb basename $exe)" = "busybox" ]; then
 	bb=$exe
 
 	runner="$bb jt --run"
@@ -71,7 +71,6 @@ if [ "$(dirname $0)" = "." ] && [ "$(basename $exe)" = "busybox" ]; then
 	export JT_RUNNER=$runner
 	export JT_SHOWER=$shower
 else
-	bb=""
 	# imports
 	#eval "$(sh $ownPath --show jt_paths)" # sets the 'bb' variable
 	runner="runFile"
@@ -81,7 +80,7 @@ else
 		export JT_CALLER=$0
 	else # this when 'jt' is called from a specific path
 		#bb="exec -a busybox $ownPath/$(basename $0)"
-		export JT_CALLER=$ownPath/$(basename $0)
+		export JT_CALLER=$ownPath/$($bb basename $0)
 	fi
 	bb="$JT_CALLER busybox"
 
@@ -100,7 +99,7 @@ checkJailPath() {
 
 opts=""
 while [ "$1" != "" ]; do
-	v="$(printf "%s" "$1" | sed -e 's/ /%20/g')"
+	v="$(printf "%s" "$1" | $bb sed -e 's/ /%20/g')"
 	[ "$opts" != "" ] && opts="${opts} $v" || opts="$v"
 	shift
 done
@@ -174,14 +173,14 @@ case $cmd in
 			#eval $result
 
 			runInNS() {
-				$bb sh -c "cd $rPath; source ./jailLib.sh; execRemNS $(cat $jPath/run/ns.pid) $bb chroot $rPath/root $1" 2>/dev/null
+				$bb sh -c "cd $rPath; source ./jailLib.sh; execRemNS $($bb cat $jPath/run/ns.pid) $bb chroot $rPath/root $1" 2>/dev/null
 			}
 
 			if [ "$(jailStatus $rPath)" = "1" ]; then # we check if the jail is running
 				if getVarVal 'showProcessStats' "$result" >/dev/null; then
 					$bb jt shell ps
 				elif getVarVal 'showIp' "$result" >/dev/null; then
-					runInNS "/sbin/ip addr show dev \$vethInt" | sed -ne 's/ *inet \([0-9\.]*\).*/\1/ p'
+					runInNS "/sbin/ip addr show dev \$vethInt" | $bb sed -ne 's/ *inet \([0-9\.]*\).*/\1/ p'
 				elif getVarVal 'showFirewallStatus' "$result" > /dev/null; then
 					$bb sh -c "cd $rPath; source ./jailLib.sh; checkFirewall $rPath" 2>/dev/null
 					result=$?
