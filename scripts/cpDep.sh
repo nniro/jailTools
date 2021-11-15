@@ -1,5 +1,3 @@
-#! /bin/sh
-
 bb="$BB"
 shower="$JT_SHOWER"
 runner="$JT_RUNNER"

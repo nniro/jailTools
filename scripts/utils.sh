@@ -1,5 +1,3 @@
-#! /bin/sh
-
 # we expect the 'bb' variable to be provided by the script that includes this
 
 # detects if the path as argument contains a valid jail
