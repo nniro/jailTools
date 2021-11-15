@@ -11,6 +11,7 @@ SUPERSCRIPT=$(addprefix $(PROJECTROOT)/busybox/embed/, jt)
 EMBEDDED_SCRIPTS=$(addprefix $(PROJECTROOT)/scripts/,\
 config.sh\
 cpDep.sh\
+readElf.sh\
 jailUpgrade.sh\
 newJail.sh\
 utils.sh\
@@ -64,7 +65,7 @@ $(BUSYBOX_BUILD_ROOT)/.ready: busybox/Makefile busybox/embed $(MUSL)
 	sh -c 'cd busybox; git apply $(PROJECTROOT)/patches/busybox/*.patch 2>/dev/null; exit 0'
 	touch $(BUSYBOX_BUILD_ROOT)/.ready
 
-$(PROJECTROOT)/busybox/embed/jt: scripts/jailtools.template.sh busybox/embed $(EMBEDDED_SCRIPTS)
+$(PROJECTROOT)/busybox/embed/jt: scripts/jailtools.template.sh busybox/embed $(PROJECTROOT)/embedJT.sh $(EMBEDDED_SCRIPTS)
 	rm -f $(PROJECTROOT)/busybox/embed/jt
 	sh $(PROJECTROOT)/embedJT.sh $(PROJECTROOT)/busybox/embed jt
 

@@ -101,18 +101,11 @@ compDeps() {
 		exit 1
 	fi
 
-	rawOutput=$(ldd $file 2> /dev/null)
-	#rawOutput=$(echo -e $example)
+	rawOutput=$($runner jt_readElf -d $file) || exit 1
 
-	[ "$rawOutput" = "" ] && exit 0
+	[ "$rawOutput" = "" ] && return
 
-	# handle statically linked files
-	if [ "$(echo -e $rawOutput | $bb sed -e "s/.*\(statically\|not a dynamic\).*/static/; {t toDelAll} " -e ":toDelAll {p; b delAll}; :delAll {d; b delAll}")" = "static" ]; then
-		# we exit returning nothing for statically linked files
-		exit 0
-	fi
-
-	echo -e "$rawOutput" | $bb sed -e "s/^\(\|[ \t]*\)\([^ ]*\) (.*)$/\2/" -e "s/[^ ]* \=> \([^ ]*\) (.*)$/\1/" | $bb sed -e "/.*linux-gate.*/ d"
+	printf "%s" "$rawOutput" | $bb sed -e "s/^\(\|[ \t]*\)\([^ ]*\) (.*)$/\2/" -e "s/[^ ]* \=> \([^ ]*\) (.*)$/\1/" | $bb sed -e "/\(linux-gate\|linux-vdso\)/ d"
 }
 
 handle_files () {

@@ -32,6 +32,7 @@ fi
 toEmbed() {
 	embedTable=$($bb sed -e "s/^/scripts\//" << EOF
 config.sh jt_config
+readElf.sh jt_readElf
 cpDep.sh jt_cpDep
 jailUpgrade.sh jt_upgrade
 newJail.sh jt_new
