@@ -76,7 +76,7 @@ safeCopyFile () {
 		[ $dstPathCmp -ot $src ]; then # this is in case the destination does not exist or it is older than the origin
 		createNewDir "$dstDir/$dstPath"
 		[ "$debugging" = "1" ] && echo "copying $src -> $dstPathCmp"
-		$bb cp -f -p $src $dstPathCmp
+		$bb cp -f -p $src $dstPathCmp 2>/dev/null >/dev/null
 	else # destination file already exists
 		:
 	fi
