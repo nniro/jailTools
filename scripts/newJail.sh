@@ -2,7 +2,7 @@ bb="$BB"
 shower="$JT_SHOWER"
 runner="$JT_RUNNER"
 
-case "$(readlink -f /proc/$$/exe)" in
+case "$($bb readlink -f /proc/$$/exe)" in
 	*zsh)
 		setopt shwordsplit
 		sh="$($bb readlink -f /proc/$$/exe)"

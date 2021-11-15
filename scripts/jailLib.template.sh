@@ -1142,8 +1142,8 @@ stopChroot() {
 	done
 
 	if [ "$privileged" = "1" ]; then
-		for i in bin root etc lib usr sbin sys . ; do chown $userCreds $rootDir/root/$i; done
-		for i in passwd shadow group; do chown $userCreds $rootDir/root/etc/$i; done
+		for i in bin root etc lib usr sbin sys . ; do $bb chown $userCreds $rootDir/root/$i; done
+		for i in passwd shadow group; do $bb chown $userCreds $rootDir/root/etc/$i; done
 	fi
 
 	if [ -e $rootDir/run/ns.pid ]; then
