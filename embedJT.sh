@@ -61,6 +61,23 @@ $(cd $ownPath; $bb tar -jcf - $filesToEmbed | $bb base64)
 @EOF
 )
 
+existsFile() {
+	file=\$1
+
+	IFS="
+"
+	for st in \$embedTable; do
+		IFS=" "
+		set -- \$st
+
+		if [ "\$file" = "\$2" ]; then
+			return 0
+		fi
+	done
+
+	return 1
+}
+
 runFile() {
 	file=\$1
 	path=""
@@ -116,12 +133,12 @@ case \$cmd in
 		file=\$1
 		path=""
 
-		if showFile \$file; then
-			:
-		else
+		if ! existsFile \$file; then
 			echo "No such file." >&2
 			exit 1
 		fi
+
+		showFile \$file
 
 		exit 0
 	;;
@@ -131,14 +148,14 @@ case \$cmd in
 		path=""
 		shift
 
-		if runFile \$file \$@; then
-			:
-		else
+		if ! existsFile \$file; then
 			echo "No such file." >&2
 			exit 1
 		fi
 
-		exit 0
+		runFile "\$file" "\$@"
+
+		exit \$?
 	;;
 esac
 
