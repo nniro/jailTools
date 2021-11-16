@@ -60,11 +60,11 @@ userCreds="$userUID:$userGID"
 
 user=@MAINJAILUSERNAME@
 
-baseEnv="busybox env - PATH=/usr/bin:/bin USER=$user HOME=/home HOSTNAME=nowhere.here TERM=linux"
+baseEnv="/bin/busybox env - PATH=/usr/bin:/bin USER=$user HOME=/home HOSTNAME=nowhere.here TERM=linux"
 
 innerNSpid=""
 
-unshareSupport="-$(for ns in m u i n p U C; do $bb unshare -r$ns sh -c 'echo "Operation not permitted"; exit' 2>&1 | $bb grep -q "Operation not permitted" && $bb printf $ns; done)"
+unshareSupport="-$(for ns in m u i n p U C; do $bb unshare -r$ns $bb sh -c 'echo "Operation not permitted"; exit' 2>&1 | $bb grep -q "Operation not permitted" && $bb printf $ns; done)"
 
 netNS=false
 if echo $unshareSupport | $bb grep -q 'n'; then # check for network namespace support
@@ -154,7 +154,7 @@ cmkdir() {
 			e) isOutput="true";;
 		esac
 	done
-	[ $(($OPTIND > 1)) = 1 ] && shift $(expr $OPTIND - 1)
+	[ $(($OPTIND > 1)) = 1 ] && shift $($bb expr $OPTIND - 1)
 	arguments="$@"
 
 	for dir in $(echo $arguments); do
@@ -171,7 +171,7 @@ cmkdir() {
 					[ "$privileged" = "1" ] && execNS chown $actualUser $parentdir$subdir
 				fi
 			else
-				result="$result mkdir -p $callArgs $parentdir$subdir;"
+				result="$result $bb mkdir -p $callArgs $parentdir$subdir;"
 			fi
 
 			if [ "$parentdir" = "" ]; then
@@ -198,8 +198,8 @@ addDevices() {
 			echo "invalid device \`$i'" >&2
 			return 1
 		else
-			if [ "$(dirname $i)" != "/dev" ]; then
-				cmkdir -e -m 755 $rootDir/root/$(dirname $i)
+			if [ "$($bb dirname $i)" != "/dev" ]; then
+				cmkdir -e -m 755 $rootDir/root/$($bb dirname $i)
 			fi
 
 			execNS touch $rootDir/root$i
@@ -220,7 +220,7 @@ parseArgs() {
 			s) local silentMode="true";;
 		esac
 	done
-	[ $(($OPTIND > 1)) = 1 ] && shift $(expr $OPTIND - 1)
+	[ $(($OPTIND > 1)) = 1 ] && shift $($bb expr $OPTIND - 1)
 	local title="$1"
 	local validArguments="$(printf "%s" "$2" | $bb sed -e "s/\('[^']*'\) /\1\n/g" | $bb sed -e "/^'/ b; s/ /\n/g" | $bb sed -e "s/'//g")"
 	shift 2
@@ -258,10 +258,10 @@ cmdCtl() {
 
 
 	if [ ! -e $file ]; then
-		if [ ! -d $(dirname $file) ]; then
-			mkdir -p $(dirname $file)
+		if [ ! -d $($bb dirname $file) ]; then
+			$bb mkdir -p $($bb dirname $file)
 		fi
-		touch $file
+		$bb touch $file
 	fi
 
 	case $cmd in
@@ -286,12 +286,12 @@ mountSingle() {
 
 	echo $dst | $bb grep -q "^/" || dst="/$dst" # we expect a starting '/'
 
-	[ ! -d $rootDir/root/$(dirname $dst) ] && echo "Invalid mounting path chosen" >&2 && return
+	[ ! -d $rootDir/root/$($bb dirname $dst) ] && echo "Invalid mounting path chosen" >&2 && return
 
 	if [ -f $src ]; then
-		[ ! -e $rootDir/root$dst ] && touch $rootDir/root$dst
+		[ ! -e $rootDir/root$dst ] && $bb touch $rootDir/root$dst
 	elif [ -d $src ]; then
-		[ ! -e $rootDir/root$dst ] && mkdir $rootDir/root$dst
+		[ ! -e $rootDir/root$dst ] && $bb mkdir $rootDir/root$dst
 	else
 		echo "Unhandled ressource type, bailing out" >&2
 		return
@@ -311,7 +311,7 @@ mountMany() {
 			e) isOutput="true";;
 		esac
 	done
-	[ $(($OPTIND > 1)) = 1 ] && shift $(expr $OPTIND - 1)
+	[ $(($OPTIND > 1)) = 1 ] && shift $($bb expr $OPTIND - 1)
 	local mountOps=$1
 	shift
 
@@ -510,7 +510,7 @@ firewall() {
 				c) mode="check";;
 			esac
 		done
-		[ $(($OPTIND > 1)) = 1 ] && shift $(expr $OPTIND - 1)
+		[ $(($OPTIND > 1)) = 1 ] && shift $($bb expr $OPTIND - 1)
 		cmd=$1
 		case "$fwType" in
 			"internal")
@@ -529,7 +529,7 @@ firewall() {
 		shift
 		arguments="$@"
 		fwFile="$rootDir/$firewallInstr"
-		[ ! -e $fwFile ] && (touch $fwFile; chmod o+r $fwFile)
+		[ ! -e $fwFile ] && ($bb touch $fwFile; $bb chmod o+r $fwFile)
 
 		case $mode in
 			create)
@@ -933,9 +933,9 @@ prepareChroot() {
 		fi
 	fi
 
-	($preUnshare $bb unshare $unshareArgs ${unshareSupport}f -- $bb setpriv --bounding-set $corePrivileges $bb sh -c "exec $bb chpst -/ $rootDir/root busybox setpriv --bounding-set $chrootPrivileges busybox chpst $chrootArgs $baseEnv $chrootCmd") &
+	($preUnshare $bb unshare $unshareArgs ${unshareSupport}f -- $bb setpriv --bounding-set $corePrivileges $bb sh -c "exec $bb chpst -/ $rootDir/root /bin/busybox setpriv --bounding-set $chrootPrivileges /bin/busybox chpst $chrootArgs $baseEnv $chrootCmd") &
 	innerNSpid=$!
-	sleep 1
+	$bb sleep 1
 	innerNSpid=$($bb pgrep -P $innerNSpid)
 
 	if [ "$innerNSpid" = "" ]; then
@@ -944,7 +944,7 @@ prepareChroot() {
 	fi
 
 	echo $innerNSpid > $rootDir/run/ns.pid
-	chmod o+r $rootDir/run/ns.pid
+	$bb chmod o+r $rootDir/run/ns.pid
 
 	execNS $bb mount --bind $rootDir/root $rootDir/root
 	execNS $bb mount -tproc none $rootDir/root/proc
@@ -1000,9 +1000,9 @@ prepareChroot() {
 
 	if [ "$privileged" = "1" ]; then
 		# this protects from an adversary to delete and recreate root owned files
-		for i in bin root etc lib usr sbin sys . ; do [ -d $rootDir/root/$i ] && chmod 755 $rootDir/root/$i && chown root:root $rootDir/root/$i; done
-		for i in passwd shadow group; do chmod 600 $rootDir/root/etc/$i && chown root:root $rootDir/root/etc/$i; done
-		for i in passwd group; do chmod 644 $rootDir/root/etc/$i; done
+		for i in bin root etc lib usr sbin sys . ; do [ -d $rootDir/root/$i ] && $bb chmod 755 $rootDir/root/$i && $bb chown root:root $rootDir/root/$i; done
+		for i in passwd shadow group; do $bb chmod 600 $rootDir/root/etc/$i && $bb chown root:root $rootDir/root/etc/$i; done
+		for i in passwd group; do $bb chmod 644 $rootDir/root/etc/$i; done
 	fi
 
 	prepCustom $rootDir || return 1
@@ -1052,7 +1052,7 @@ runJail() {
 			d) local daemonize="true";;
 		esac
 	done
-	[ $(($OPTIND > 1)) = 1 ] && shift $(expr $OPTIND - 1)
+	[ $(($OPTIND > 1)) = 1 ] && shift $($bb expr $OPTIND - 1)
 	local rootDir=$1
 	shift
 	local chrootCmd=""
@@ -1071,7 +1071,7 @@ runJail() {
 	fi
 
 	echo $$ > $rootDir/run/jail.pid
-	chmod o+r $rootDir/run/jail.pid
+	$bb chmod o+r $rootDir/run/jail.pid
 
 	if [ "$daemonize" = "true" ]; then
 		if [ "$chrootCmd" = "" ]; then
