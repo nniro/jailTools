@@ -54,6 +54,13 @@ prepareCmd() {
 	echo $result
 }
 
+stopOnError() {
+	ownPath=$1
+
+	stopChroot $ownPath
+	exit 1
+}
+
 cmdParse() {
 	local args=$1
 	local ownPath=$2
@@ -65,7 +72,7 @@ cmdParse() {
 			echo "This command is not meant to be called directly, use the jailtools super script to start the daemon properly, otherwise it will just stay running with no interactivity possible."
 			jArgs="-d"
 			[ "$realRootInJail" = "true" ] && jArgs="$jArgs -r"
-			prepareChroot $ownPath || (stopChroot $ownPath && exit 1)
+			prepareChroot $ownPath || stopOnError $ownPath
 			runJail $jArgs $ownPath $(prepareCmd "$runEnvironment" "$daemonCommand" "$@")
 			err=$?
 			stopChroot $ownPath
@@ -75,7 +82,7 @@ cmdParse() {
 		start)
 			jArgs=""
 			[ "$realRootInJail" = "true" ] && jArgs="$jArgs -r"
-			prepareChroot $ownPath || (stopChroot $ownPath && exit 1)
+			prepareChroot $ownPath || stopOnError $ownPath
 			runJail $jArgs $ownPath $(prepareCmd "$runEnvironment" "$startCommand" "$@")
 			err=$?
 			stopChroot $ownPath
