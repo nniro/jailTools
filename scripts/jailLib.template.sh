@@ -5,6 +5,8 @@ bb="$BB"
 shower="$JT_SHOWER"
 runner="$JT_RUNNER"
 
+nsBB="$bb"
+
 jailVersion="@JAIL_VERSION@"
 
 if [ "$bb" = "" ] || [ "$shower" = "" ] || [ "$runner" = "" ]; then
@@ -166,9 +168,9 @@ cmkdir() {
 		fi
 		for subdir in $(echo $subdirs); do
 			if [ "$isOutput" = "false" ]; then
-				if execNS test ! -d $parentdir$subdir; then
-					execNS mkdir $callArgs $parentdir$subdir
-					[ "$privileged" = "1" ] && execNS chown $actualUser $parentdir$subdir
+				if execNS $nsBB test ! -d $parentdir$subdir; then
+					execNS $nsBB mkdir $callArgs $parentdir$subdir
+					[ "$privileged" = "1" ] && execNS $nsBB chown $actualUser $parentdir$subdir
 				fi
 			else
 				result="$result $bb mkdir -p $callArgs $parentdir$subdir;"
@@ -202,8 +204,8 @@ addDevices() {
 				cmkdir -e -m 755 $rootDir/root/$($bb dirname $i)
 			fi
 
-			execNS touch $rootDir/root$i
-			execNS mount --bind $i $rootDir/root$i
+			execNS $nsBB touch $rootDir/root$i
+			execNS $nsBB mount --bind $i $rootDir/root$i
 		fi
 		shift
 	done
@@ -297,7 +299,7 @@ mountSingle() {
 		return
 	fi
 
-	execNS mount --bind $src $rootDir/root$dst
+	execNS $nsBB mount --bind $src $rootDir/root$dst
 }
 
 mountMany() {
@@ -318,11 +320,11 @@ mountMany() {
 	for mount in $(echo $@); do
 		if [ -e $mount ]; then
 			if [ "$isOutput" = "false" ]; then
-				if execNS test ! -d "$rootDir/$mount"; then
+				if execNS $nsBB test ! -d "$rootDir/$mount"; then
 					echo $rootDir/$mount does not exist, creating it >&2
 					cmkdir -m 755 $rootDir/$mount
 				fi
-				execNS $bb sh -c "$bb mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $bb mount -o $mountOps --bind $mount $rootDir/$mount"
+				execNS $nsBB sh -c "$nsBB mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $nsBB mount -o $mountOps --bind $mount $rootDir/$mount"
 			else # isOutput = true
 				result="$result if [ ! -d \"$rootDir/$mount\" ]; then $(cmkdir -e -m 755 $rootDir/$mount) fi;"
 				result="$result $bb mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $bb mount -o $mountOps --bind $mount $rootDir/$mount;"
@@ -361,7 +363,7 @@ joinBridge() {
 	$bb ip link add $vethExternal type veth peer name $vethInternal
 	$bb ip link set $vethExternal up
 	$bb ip link set $vethInternal netns $innerNSpid
-	execNS $bb ip link set $vethInternal up
+	execNS $nsBB ip link set $vethInternal up
 
 	if [ "$externalNetnsId" = "" ]; then
 		local masterBridgeIp=$($bb ip addr show $externalBridgeName | $bb grep 'inet ' | $bb grep "scope link" | $bb sed -e 's/^.*inet \([^/]*\)\/.*$/\1/')
@@ -372,15 +374,15 @@ joinBridge() {
 	local newIntIp=${masterBridgeIpCore}.$internalIpNum
 
 	if [ "$externalNetnsId" = "" ]; then
-		execNS $bb ip addr add $newIntIp/$ipIntBitmask dev $vethInternal scope link
+		execNS $nsBB ip addr add $newIntIp/$ipIntBitmask dev $vethInternal scope link
 	else
 		$bb ip link set $vethExternal netns $externalNetnsId
 		execRemNS $externalNetnsId $bb ip link set $vethExternal up
-		execNS $bb ip addr add $newIntIp/$ipIntBitmask dev $vethInternal scope link
+		execNS $nsBB ip addr add $newIntIp/$ipIntBitmask dev $vethInternal scope link
 	fi
 
 	if [ "$isDefaultRoute" = "true" ]; then
-		execNS $bb ip route add default via $masterBridgeIp dev $vethInternal proto kernel src $newIntIp
+		execNS $nsBB ip route add default via $masterBridgeIp dev $vethInternal proto kernel src $newIntIp
 	fi
 
 	if [ "$externalNetnsId" = "" ]; then
@@ -514,7 +516,7 @@ firewall() {
 		cmd=$1
 		case "$fwType" in
 			"internal")
-				fwCmd="execNS $iptablesBin"
+				fwCmd="execNS $nsBB $iptablesBin"
 			;;
 
 			"external")
@@ -946,9 +948,9 @@ prepareChroot() {
 	echo $innerNSpid > $rootDir/run/ns.pid
 	$bb chmod o+r $rootDir/run/ns.pid
 
-	execNS $bb mount --bind $rootDir/root $rootDir/root
-	execNS $bb mount -tproc none $rootDir/root/proc
-	execNS $bb mount -t tmpfs -o size=256k,mode=775 tmpfs $rootDir/root/dev
+	execNS $nsBB mount --bind $rootDir/root $rootDir/root
+	execNS $nsBB mount -tproc none $rootDir/root/proc
+	execNS $nsBB mount -t tmpfs -o size=256k,mode=775 tmpfs $rootDir/root/dev
 
 	# dev
 	mountMany $rootDir/root "rw,noexec" $devMountPoints
@@ -961,26 +963,26 @@ prepareChroot() {
 
 	if [ "$jailNet" = "true" ]; then
 		# loopback device is activated
-		execNS $bb ip link set up lo
+		execNS $nsBB ip link set up lo
 
 		if [ "$createBridge" = "true" ]; then
 			# setting up the bridge
-			execNS $bb brctl addbr $bridgeName
-			execNS $bb ip addr add $bridgeIp/$bridgeIpBitmask dev $bridgeName scope link
-			execNS $bb ip link set up $bridgeName
+			execNS $nsBB brctl addbr $bridgeName
+			execNS $nsBB ip addr add $bridgeIp/$bridgeIpBitmask dev $bridgeName scope link
+			execNS $nsBB ip link set up $bridgeName
 		fi
 
 		if [ "$networking" = "true" ]; then
 			$bb ip link add $vethExt type veth peer name $vethInt
 			$bb ip link set $vethExt up
 			$bb ip link set $vethInt netns $innerNSpid
-			execNS $bb ip link set $vethInt up
+			execNS $nsBB ip link set $vethInt up
 
-			execNS $bb ip addr add $ipInt/$ipIntBitmask dev $vethInt scope link
+			execNS $nsBB ip addr add $ipInt/$ipIntBitmask dev $vethInt scope link
 
 			$bb ip addr add $extIp/$extIpBitmask dev $vethExt scope link
 			$bb ip link set $vethExt up
-			execNS $bb ip route add default via $extIp dev $vethInt proto kernel src $ipInt
+			execNS $nsBB ip route add default via $extIp dev $vethInt proto kernel src $ipInt
 
 
 			if [ "$setNetAccess" = "true" ] && [ "$netInterface" != "" ]; then
@@ -1011,7 +1013,7 @@ prepareChroot() {
 		if [ "$privileged" = "0" ] && [ "$disableUnprivilegedNetworkNamespace" = "true" ]; then
 			echo "Could not mount the /sys directory. As an unprivileged user, the only way this is possible is by disabling the : UnprivilegedNetworkNamespace. Or you can always run this jail as a privileged user." >&2
 		else
-			execNS mount -tsysfs none $rootDir/root/sys
+			execNS $nsBB mount -tsysfs none $rootDir/root/sys
 		fi
 	fi
 
@@ -1095,7 +1097,7 @@ runJail() {
 		[ "$runAsRoot" = "true" ] && unshareArgs="-r"
 	fi
 
-	execNS $preUnshare $bb sh -c "exec $bb unshare $unshareArgs -R $rootDir/root $baseEnv $chrootCmd"
+	execNS $preUnshare $nsBB sh -c "exec $nsBB unshare $unshareArgs -R $rootDir/root $baseEnv $chrootCmd"
 
 	return $?
 }
@@ -1125,8 +1127,8 @@ stopChroot() {
 
 	if [ "$jailNet" = "true" ]; then
 		if [ "$createBridge" = "true" ]; then
-			execNS $bb ip link set down $bridgeName
-			execNS $bb brctl delbr $bridgeName
+			execNS $nsBB ip link set down $bridgeName
+			execNS $nsBB brctl delbr $bridgeName
 		fi
 	fi
 
