@@ -1140,6 +1140,7 @@ stopChroot() {
 
 		eval $remCmd
 	done
+	IFS=$oldIFS
 
 	if [ "$privileged" = "1" ]; then
 		for i in bin root etc lib usr sbin sys . ; do $bb chown $userCreds $rootDir/root/$i; done
