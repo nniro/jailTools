@@ -325,9 +325,13 @@ mountMany() {
 					cmkdir -m 755 $rootDir/$mount
 				fi
 				execNS $nsBB sh -c "$nsBB mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $nsBB mount -o $mountOps --bind $mount $rootDir/$mount"
+				# gotta remount for the options to take effect
+				execNS $nsBB sh -c "$nsBB mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $nsBB mount -o $mountOps,remount --bind $rootDir/$mount $rootDir/$mount"
 			else # isOutput = true
 				result="$result if [ ! -d \"$rootDir/$mount\" ]; then $(cmkdir -e -m 755 $rootDir/$mount) fi;"
 				result="$result $bb mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $bb mount -o $mountOps --bind $mount $rootDir/$mount;"
+				# gotta remount for the options to take effect
+				result="$result $bb mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $bb mount -o $mountOps,remount --bind $rootDir/$mount $rootDir/$mount;"
 			fi
 		else
 			echo "mountMany: Warning - Path \`$mount' doesn't exist on the base system, can't mount it in the jail." >&2
