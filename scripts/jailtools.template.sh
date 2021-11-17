@@ -1,5 +1,12 @@
 # direct call without a path to 'jt'
-if [ "$0" = "jt" ]; then # try to find where 'jt' is located
+exe=$(readlink /proc/$$/exe 2>/dev/null)
+if [ "$?" != "0" ]; then # readlink is unavailable
+	exe=$0
+fi
+
+if [ "$exe" = "jt" ]; then # try to find where 'jt' is located
+	jtPath=""
+	oldIFS=$IFS
 	IFS=":"
 	for entry in $PATH; do
 		if [ -e "$entry/jt" ]; then
@@ -7,9 +14,16 @@ if [ "$0" = "jt" ]; then # try to find where 'jt' is located
 			break
 		fi
 	done
+	IFS=$oldIFS
+
+	if [ "$jtPath" = "" ]; then
+		echo "Could not find 'jt' in PATH, bailing out"
+		exit 1
+	fi
 else
-	jtPath=$0
+	jtPath=$exe
 fi
+exe=""
 
 if [ "$1" = "busybox" ]; then # we act as busybox
 	shift
@@ -18,9 +32,39 @@ fi
 
 export JT_VERSION=
 
-exe=$(exec -a busybox $jtPath readlink /proc/$$/exe)
+bb="$jtPath busybox"
+exe=$($bb readlink /proc/$$/exe)
 
-bb="$exe busybox"
+if echo "$exe" | $bb grep -q "busybox"; then # jt is a link to busybox
+	bb="$exe"
+
+	runner="$bb jt --run"
+	shower="$bb jt --show"
+
+	export JT_CALLER="$bb jt"
+	export JT_RUNNER=$runner
+	export JT_SHOWER=$shower
+else
+	bb="$exe busybox"
+
+	runner="runFile"
+	shower="showFile"
+	if [ "$ownPath" = "" ]; then # this is for an installed 'jt'
+		rPath=$($bb realpath $0 2>/dev/null)
+		if [ "$?" != "0" ]; then
+			export JT_CALLER=$exe
+		else
+			export JT_CALLER=$rPath
+		fi
+	else # this when 'jt' is called from a specific path
+		export JT_CALLER=$ownPath/$($bb basename $0)
+	fi
+	bb="$JT_CALLER busybox"
+
+	export JT_RUNNER="$JT_CALLER --run"
+	export JT_SHOWER="$JT_CALLER --show"
+fi
+export BB=$bb
 
 if echo "$0" | $bb grep -q '\/'; then
 	ownPath=$($bb dirname $0)
@@ -74,35 +118,7 @@ shift
 
 @EMBEDDEDFILES_LOCATION@
 
-if [ "$($bb dirname $0)" = "." ] && [ "$($bb basename $exe)" = "busybox" ]; then
-	bb=$exe
-
-	runner="$bb jt --run"
-	shower="$bb jt --show"
-
-	export JT_CALLER="$bb jt"
-	export JT_RUNNER=$runner
-	export JT_SHOWER=$shower
-else
-	# imports
-	#eval "$(sh $ownPath --show jt_paths)" # sets the 'bb' variable
-	runner="runFile"
-	shower="showFile"
-	if [ "$ownPath" = "" ]; then # this is for an installed 'jt'
-		#bb="exec -a busybox $0"
-		export JT_CALLER=$0
-	else # this when 'jt' is called from a specific path
-		#bb="exec -a busybox $ownPath/$(basename $0)"
-		export JT_CALLER=$ownPath/$($bb basename $0)
-	fi
-	bb="$JT_CALLER busybox"
-
-	export JT_RUNNER="$JT_CALLER --run"
-	export JT_SHOWER="$JT_CALLER --show"
-fi
 eval "$($shower jt_utils)" # detectJail callGetopt
-
-export BB=$bb
 
 jPath="."
 
