@@ -1,8 +1,5 @@
 # direct call without a path to 'jt'
-exe=$(readlink /proc/$$/exe 2>/dev/null)
-if [ "$?" != "0" ]; then # readlink is unavailable
-	exe=$0
-fi
+exe=$0
 
 if [ "$exe" = "jt" ]; then # try to find where 'jt' is located
 	jtPath=""
