@@ -62,11 +62,23 @@ userCreds="$userUID:$userGID"
 
 user=@MAINJAILUSERNAME@
 
+if [ "$privileged" = "1" ]; then
+	# unprivileged user bb
+	uBB="$bb chpst -u $userCreds $bb"
+else
+	uBB="$bb"
+fi
+
 baseEnv="/bin/busybox env - PATH=/usr/bin:/bin USER=$user HOME=/home HOSTNAME=nowhere.here TERM=linux"
 
 innerNSpid=""
 
-unshareSupport="-$(for ns in m u i n p U C; do $bb unshare -r$ns $bb sh -c 'echo "Operation not permitted"; exit' 2>&1 | $bb grep -q "Operation not permitted" && $bb printf $ns; done)"
+unshareSupport="-$(for ns in m u i n p U C; do $uBB unshare -r$ns $bb sh -c 'echo "Operation not permitted"; exit' 2>&1 | $bb grep -q "Operation not permitted" && $bb printf $ns; done)"
+
+if [ "$unshareSupport" = "-" ]; then # FIXME, we need to support this
+	echo "Detected no namespace support at all, this is not tested much so we prefer to bail out." >&2
+	exit 1
+fi
 
 netNS=false
 if echo $unshareSupport | $bb grep -q 'n'; then # check for network namespace support
