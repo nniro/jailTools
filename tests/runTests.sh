@@ -45,7 +45,7 @@ else # the user is root
 			fi
 			[ "$debugging" = "true" ] && echo "[powerbox] got the input : '$in'" >&2
 			if echo "$in" | grep -q "^$PWD/$tf/bin/jt/[^/]*/jt [^ ]*\( $PWD/$tf/.*\|\)$"; then
-				$in > $tf/result
+				$in 2> $tf/debug > $tf/result
 				[ "$debugging" = "true" ] && echo [powerbox] sending reply back to sender >&2
 				$bb timeout 2 $bb sh -c "cat $tf/result > $tf/fifo"
 			else
