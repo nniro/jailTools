@@ -8,28 +8,32 @@ jtPath=$3
 
 jail=$testPath/general
 
-$jtPath new $jail 2>&1 || exit 1
+$jtPath new $jail 2>/dev/null || exit 1
 
 uid=$(id -u)
 
 jUid=$($jtPath start $jail id -u 2>/dev/null)
 
-echo "jail UID must be the user's UID -- user id : $uid ---- jail user id : $jUid"
-[ "$uid" != "$jUid" ] && exit 1
+if [ "$uid" != "$jUid" ]; then
+	echo "jail UID must be the user's UID -- user id : $uid ---- jail user id : $jUid"
+fi
 
-echo "jail UID must not be the root UID"
-[ "$jUid" = "0" ] && exit 1
+if [ "$jUid" = "0" ];
+	echo "jail UID must not be the root UID"
+	exit 1
+fi
 
 # check the realRootInJail config which is supposed to provide in jail root.
 # Of course, for an unprivileged instance we only expect the fake root.
 
-echo "Setting the configuration : realRootInJail"
-
+# Setting the configuration : realRootInJail
 $jtPath config $jail -s realRootInJail true
 
 jUid=$($jtPath start $jail id -u 2>/dev/null)
 
-echo "jail UID must be the root UID"
-[ "$jUid" = "0" ] || exit 1
+if [ "$jUid" != "0" ]; then
+	echo "jail UID must be the root UID"
+	exit 1
+fi
 
 exit 0
