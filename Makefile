@@ -65,6 +65,9 @@ $(BUSYBOX_BUILD_ROOT)/.ready: busybox/Makefile busybox/embed $(MUSL)
 	sh -c 'cd busybox; git apply $(PROJECTROOT)/patches/busybox/*.patch 2>/dev/null; exit 0'
 	touch $(BUSYBOX_BUILD_ROOT)/.ready
 
+# we want this to be ran unconditionnally
+.PHONY: $(PROJECTROOT)/busybox/embed/jt
+
 $(PROJECTROOT)/busybox/embed/jt: scripts/jailtools.template.sh busybox/embed $(PROJECTROOT)/embedJT.sh $(EMBEDDED_SCRIPTS)
 	rm -f $(PROJECTROOT)/busybox/embed/jt
 	sh $(PROJECTROOT)/embedJT.sh $(PROJECTROOT)/busybox/embed jt
