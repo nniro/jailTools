@@ -18,7 +18,7 @@ if [ "$uid" != "$jUid" ]; then
 	echo "jail UID must be the user's UID -- user id : $uid ---- jail user id : $jUid"
 fi
 
-if [ "$jUid" = "0" ];
+if [ "$jUid" = "0" ]; then
 	echo "jail UID must not be the root UID"
 	exit 1
 fi
