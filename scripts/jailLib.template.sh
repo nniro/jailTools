@@ -1121,6 +1121,8 @@ runJail() {
 stopChroot() {
 	local rootDir=$1
 
+	[ -e $rootDir/run/isStopping ] && exit 0
+
 	stopCustom $rootDir
 
 	if [ "$privileged" = "0" ]; then
@@ -1166,12 +1168,14 @@ stopChroot() {
 	fi
 
 	if [ -e $rootDir/run/ns.pid ]; then
+		echo "" > $rootDir/run/isStopping
 		kill -9 $innerNSpid >/dev/null 2>/dev/null
 		if [ "$?" = "0" ]; then
 			$bb rm -f $rootDir/run/ns.pid
 			$bb rm -f $rootDir/run/jail.pid
 		fi
 	fi
+	rm $rootDir/run/isStopping
 }
 
 execNS() { execRemNS $innerNSpid "$@"; }
