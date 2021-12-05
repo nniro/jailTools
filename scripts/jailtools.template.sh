@@ -91,6 +91,7 @@ showHelp() {
 	printf "    help, h\t\t\tdisplay this help\n"
 	printf "    new, create\t\t\tcreate a new jail\n"
 	printf "    cp, cpDep\t\t\tcopy files or directories (with their shared object dependencies) into the jail\n"
+	printf "    ls, list\t\t\tlist currently started jails\n"
 	printf "    start\t\t\tStart a jail.\n"
 	printf "    stop\t\t\tStop a jail, however it was started (start or daemon)\n"
 	printf "    daemon\t\t\tStart the jail as a daemon.\n"
@@ -148,6 +149,10 @@ case $cmd in
 
 		$runner jt_cpDep $jPath $@
 		exit $?
+	;;
+
+	ls|list)
+		listJailsMain "$@"
 	;;
 
 	start|stop|shell)

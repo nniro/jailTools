@@ -55,6 +55,58 @@ populateFile() {
 	$bb cat $inFile | $bb sed -e "$result"
 }
 
+nsPids() {
+	for p in $($bb ps | $bb grep "[0-9]\+ $(id -un)" | $bb sed -e 's/\([0-9]\+\).*/\1/'); do
+		[ "$($bb readlink /proc/$p/ns/pid)" != "$($bb readlink /proc/$$/ns/pid)" ] && echo $p
+	done
+}
+
+processPath() {
+	local p=$1
+	[ ! -d /proc ] || [ ! -d /proc/$p ] || [ ! -e /proc/$p/mountinfo ] && return 1
+	$bb cat /proc/$p/mountinfo | $bb head -n 1 | $bb sed -e 's/^[0-9]\+ [0-9]\+ [0-9:]\+ \([^ ]\+\).*$/\1/' | $bb sed -e 's/\/root$//'
+	return 0
+}
+
+listJails() {
+	local jailName=$1
+
+	if [ "$jailName" != "" ]; then # user asked for a specific jail
+		first=true
+		for p in $(nsPids); do
+			dPath=$(processPath $p) || continue
+			if detectJail $dPath; then
+				if echo $dPath | $bb grep -q "\/$jailName$"; then
+					if [ "$first" = "true" ]; then
+						printf "jail path : $dPath\npids :\n"
+						first=false
+					fi
+					echo $p
+				fi
+			fi
+		done
+	else # output all jails
+		for p in $(nsPids); do
+			dPath=$(processPath $p) || continue
+			detectJail $dPath && echo "$dPath - pid $p"
+		done
+	fi
+}
+
+listJailsMain() {
+	result=$(callGetopt "list [jail name]" \
+		-o '' '' "" "jailName" "true" \
+		-- "$@")
+
+	if [ "$?" = "0" ]; then
+		if jailName=$(getVarVal 'jailName' "$result"); then
+			listJails $jailName
+		else
+			listJails | $bb sort
+		fi
+	fi
+}
+
 getConfigValue() {
 	local configPath=$1
 	local configName=$2
