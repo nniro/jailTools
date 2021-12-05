@@ -20,9 +20,9 @@ jailStatus() {
 	local running=0
 
 	if [ -e $jailPath/run/jail.pid ] && [ -e $jailPath/run/ns.pid ]; then
-		local pPath=$($bb pwdx $($bb cat $jailPath/run/ns.pid) | $bb sed -e 's/^[0-9]*: *//')
+		local pPath=$($bb pwdx $($bb cat $jailPath/run/jail.pid) | $bb sed -e 's/^[0-9]*: *//')
 
-		if [ "$jailPath/root" = "$pPath" ]; then
+		if [ "$jailPath" = "$pPath" ]; then
 			running=1
 		else
 			echo "The jail's pid doesn't seem to be correct, it should be deleted" >&2
