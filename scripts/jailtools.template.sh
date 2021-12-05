@@ -204,7 +204,7 @@ case $cmd in
 
 			if [ "$(jailStatus $rPath)" = "1" ]; then # we check if the jail is running
 				if getVarVal 'showProcessStats' "$result" >/dev/null; then
-					$bb jt shell ps
+					$bb jt shell $rPath ps
 				elif getVarVal 'showIp' "$result" >/dev/null; then
 					runInNS "/sbin/ip addr show dev \$vethInt" | $bb sed -ne 's/ *inet \([0-9\.]*\).*/\1/ p'
 				elif getVarVal 'showFirewallStatus' "$result" > /dev/null; then
