@@ -10,3 +10,4 @@ childJail
 processStatus
 netAccess
 netAccessSU
+listJails
