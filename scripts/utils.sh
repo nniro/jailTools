@@ -11,9 +11,9 @@ detectJail() {
 }
 
 # returns :
+#	2 when the file ns.pid contains a wrong process pid (could be after a reboot)
 #	1 the jail is running
 #	0 it is not running
-#	-1 when the file ns.pid contains a wrong process pid (could be after a reboot)
 jailStatus() {
 	local jailPath=$1 # this has to be an absolute path
 
@@ -26,7 +26,7 @@ jailStatus() {
 			running=1
 		else
 			echo "The jail's pid doesn't seem to be correct, it should be deleted" >&2
-			running=-1
+			running=2
 		fi
 	fi
 
