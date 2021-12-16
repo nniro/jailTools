@@ -169,7 +169,7 @@ case $cmd in
 		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
 
 		cd $jPath
-		($bb nohup $bb sh ./startRoot.sh 'daemon' $@ 2>&1 > ./run/daemon.log) &
+		($bb chpst -0 -1 $bb sh ./startRoot.sh 'daemon' $@ 2>./run/daemon.log) &
 		#if [ "$?" != "0" ]; then echo "There was an error starting the daemon, it may already be running."; fi
 
 		exit $?
