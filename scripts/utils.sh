@@ -77,11 +77,18 @@ listJails() {
 	[ "$prefix" = "/" ] && prefix="" || prefix="$prefix/root"
 
 	if [ "$jailName" != "" ]; then # user asked for a specific jail
+
+		if printf "%s" "$jailName" | grep -q '^\/'; then
+			jailName="^$jailName$"
+		else
+			jailName="\/$jailName$"
+		fi
+
 		first=true
 		for p in $(nsPids); do
 			dPath=$(processPath $p $prefix) || continue
 			if detectJail $dPath; then
-				if echo $dPath | $bb grep -q "\/$jailName$"; then
+				if echo $dPath | $bb grep -q $jailName; then
 					if [ "$first" = "true" ]; then
 						printf "jail path : $dPath\npids :\n"
 						first=false
