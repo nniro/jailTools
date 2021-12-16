@@ -152,7 +152,14 @@ case $cmd in
 	;;
 
 	ls|list)
-		listJailsMain "$@"
+		result=$(listJailsMain "$@")
+
+		if [ "$result" = "" ]; then
+			return 1
+		else
+			printf "%s\n" "$result"
+			return 0
+		fi
 	;;
 
 	start|stop|shell)
