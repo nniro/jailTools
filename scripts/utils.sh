@@ -63,18 +63,23 @@ nsPids() {
 
 processPath() {
 	local p=$1
+	local prefix=$2
 	[ ! -d /proc ] || [ ! -d /proc/$p ] || [ ! -e /proc/$p/mountinfo ] && return 1
-	$bb cat /proc/$p/mountinfo | $bb head -n 1 | $bb sed -e 's/^[0-9]\+ [0-9]\+ [0-9:]\+ \([^ ]\+\).*$/\1/' | $bb sed -e 's/\/root$//'
+	r=$($bb cat /proc/$p/mountinfo | $bb head -n 1 | $bb sed -e 's/^[0-9]\+ [0-9]\+ [0-9:]\+ \([^ ]\+\).*$/\1/' | $bb sed -e 's/\/root$//')
+	echo ${r##$prefix}
 	return 0
 }
 
 listJails() {
 	local jailName=$1
 
+	prefix=$(processPath 1)
+	[ "$prefix" = "/" ] && prefix="" || prefix="$prefix/root"
+
 	if [ "$jailName" != "" ]; then # user asked for a specific jail
 		first=true
 		for p in $(nsPids); do
-			dPath=$(processPath $p) || continue
+			dPath=$(processPath $p $prefix) || continue
 			if detectJail $dPath; then
 				if echo $dPath | $bb grep -q "\/$jailName$"; then
 					if [ "$first" = "true" ]; then
@@ -87,7 +92,7 @@ listJails() {
 		done
 	else # output all jails
 		for p in $(nsPids); do
-			dPath=$(processPath $p) || continue
+			dPath=$(processPath $p $prefix) || continue
 			detectJail $dPath && echo "$dPath - pid $p"
 		done
 	fi
