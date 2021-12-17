@@ -473,8 +473,8 @@ $rwMounts
 $bb sh -c "ownPath=$rootDir; actualUser=$actualUser; . $rootDir/jailLib.sh; prepCustom $rootDir"
 
 if [ "$mountSys" = "true" ]; then
-	if [ "$privileged" = "0" ] && [ "$disableUnprivilegedNetworkNamespace" = "true" ]; then
-		echo "Could not mount the /sys directory. As an unprivileged user, the only way this is possible is by disabling the : UnprivilegedNetworkNamespace. Or you can always run this jail as a privileged user." >&2
+	if [ "$privileged" = "0" ] && [ "$setNetAccess" = "true" ]; then
+		echo "Could not mount the /sys directory. As an unprivileged user, the only way this is possible is by disabling setNetAccess. Or you can always run this jail as a privileged user." >&2
 	else
 		$bb mount -tsysfs none $rootDir/root/sys
 	fi
