@@ -108,7 +108,7 @@ fi
 
 nsenterSupport=$(echo "$unshareSupport" | $bb sed -e 's/^-//' | $bb sed -e 's/\(.\)/-\1 /g')
 if [ "$netNS" = "true" ]; then
-	if [ "$jailNet" = "false" ] || ([ "$privileged" = "0" ] && [ "$disableUnprivilegedNetworkNamespace" = "true" ]); then
+	if [ "$jailNet" = "false" ] || ([ "$privileged" = "0" ] && [ "$setNetAccess" = "true" ]); then
 		:
 	else
 		nsenterSupport="$nsenterSupport -n";
@@ -946,7 +946,7 @@ prepareChroot() {
 	fi # unprivileged
 
 	if [ "$jailNet" = "true" ]; then
-		if [ "$privileged" = "1" ] || ([ "$privileged" = "0" ] && [ "$disableUnprivilegedNetworkNamespace" = "false" ]); then
+		if [ "$privileged" = "1" ] || ([ "$privileged" = "0" ] && [ "$setNetAccess" = "false" ]); then
 			unshareArgs="$unshareArgs -n"
 		fi
 	fi
@@ -1026,7 +1026,7 @@ prepareChroot() {
 	prepCustom $rootDir || return 1
 
 	if [ "$mountSys" = "true" ]; then
-		if [ "$privileged" = "0" ] && [ "$disableUnprivilegedNetworkNamespace" = "true" ]; then
+		if [ "$privileged" = "0" ] && [ "$setNetAccess" = "true" ]; then
 			echo "Could not mount the /sys directory. As an unprivileged user, the only way this is possible is by disabling the : UnprivilegedNetworkNamespace. Or you can always run this jail as a privileged user." >&2
 		else
 			execNS $nsBB mount -tsysfs none $rootDir/root/sys

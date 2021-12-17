@@ -27,9 +27,7 @@ extIp="172.16.0.1"
 
 netInterface="auto"
 
-setNetAccess="false"
-
-disableUnprivilegedNetworkNamespace="true"
+setNetAccess="true"
 
 ################# Command part #################
 

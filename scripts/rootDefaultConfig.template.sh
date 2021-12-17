@@ -78,14 +78,11 @@ netInterface="auto"
 # SNAT or Masquerading. This will make the jail able to
 # access the internet and your LAN as if it was on the
 # host system.
+# in the case of an unprivileged jail, setting this to false will
+# disable the network namespace so the jail get the same network
+# access as the host.
 # Only valid if networking=true
 setNetAccess="false"
-
-# Note that this is valid _only_ for unprivileged jails.
-# 	If you want this for a privileged jail, put false to jailNet
-# This actually disables the network namespace so the jail
-# gets exactly the same network interface as the base system.
-disableUnprivilegedNetworkNamespace="true"
 
 # activate this in case you actually need the real root user in your jail.
 # You should never use this unless you know exactly what you are doing as the
