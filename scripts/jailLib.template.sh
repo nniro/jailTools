@@ -87,25 +87,6 @@ if echo $unshareSupport | $bb grep -q 'n'; then # check for network namespace su
 	unshareSupport=$(echo $unshareSupport | $bb sed -e 's/n//')
 fi
 
-if echo $unshareSupport | $bb grep -q 'U'; then
-	if [ -e /proc/sys/kernel/unprivileged_userns_clone ]; then
-		if [ "$($bb cat /proc/sys/kernel/unprivileged_userns_clone)" = "0" ]; then
-			if [ "$privileged" = "0" ]; then
-				echo "User namespace support is currently disabled. This has to be enabled to support starting a jail unprivileged." >&2
-				echo "Until the change is done, creating a jail requires privileges." >&2
-				echo "\tPlease do (as root) : echo 1 > /proc/sys/kernel/unprivileged_userns_clone   or find the method suitable for your distribution to activate unprivileged user namespace clone" >&2
-			fi
-			userNS=false
-		else
-			userNS=true
-		fi
-	else
-		userNS=true
-	fi
-else
-	userNS=false
-fi
-
 nsenterSupport=$(echo "$unshareSupport" | $bb sed -e 's/^-//' | $bb sed -e 's/\(.\)/-\1 /g')
 if [ "$netNS" = "true" ]; then
 	if [ "$jailNet" = "false" ] || ([ "$privileged" = "0" ] && [ "$setNetAccess" = "true" ]); then
@@ -117,39 +98,6 @@ fi
 
 if [ "$privileged" = "1" ]; then
 	nsenterSupport="$(echo $nsenterSupport | $bb sed -e 's/-U//g')"
-fi
-
-if [ "$privileged" = "0" ]; then
-	[ "$setNetAccess" = "true" ] && echo "Can't have setNetAccess for an unprivileged jail. Setting setNetAccess to false." >&2 && setNetAccess="false"
-
-	if [ "$userNS" != "true" ]; then
-		echo "The user namespace is not supported. Can't start an unprivileged jail without it, bailing out." >&2
-		exit 1
-	fi
-	if [ "$networking" = "true" ]; then
-		networking="false"
-		echo "Unprivileged jails do not support the setting networking, turning it off" >&2
-	fi
-fi
-
-if [ "$netNS" = "false" ] && [ "$jailNet" = "true" ]; then
-	jailNet=false
-	echo "jailNet is set to false automatically as it needs network namespace support which is not available." >&2
-fi
-
-if [ "$networking" = "true" ]; then
-	iptablesBin=$(PATH="$PATH:/sbin:/usr/sbin:/usr/local/sbin" command which iptables 2>/dev/null)
-
-	if [ "$iptablesBin" = "" ]; then
-		echo "The firewall \`iptables' was chosen but it needs the command \`iptables' which is not available or it's not in the available path. Setting networking to false." >&2
-		networking=false
-	fi
-fi
-
-if [ "$($bb cat /proc/sys/net/ipv4/ip_forward)" = "0" ]; then
-	networking=false
-	echo "The ip_forward bit in /proc/sys/net/ipv4/ip_forward is disabled. This has to be enabled to get handled network support. Setting networking to false." >&2
-	echo "\tPlease do (as root) : echo 1 > /proc/sys/net/ipv4/ip_forward  or find the method suitable for your distribution to activate IP forwarding." >&2
 fi
 
 # mkdir -p with a mode only applies the mode to the last child dir... this function applies the mode to all directories
@@ -922,6 +870,56 @@ prepareChroot() {
 	local chrootArgs=""
 	local chrootCmd="sh -c 'while :; do sleep 9999; done'"
 	local preUnshare=""
+
+	if echo $unshareSupport | $bb grep -q 'U'; then
+		if [ -e /proc/sys/kernel/unprivileged_userns_clone ]; then
+			if [ "$($bb cat /proc/sys/kernel/unprivileged_userns_clone)" = "0" ]; then
+				if [ "$privileged" = "0" ]; then
+					echo "User namespace support is currently disabled. This has to be enabled to support starting a jail unprivileged." >&2
+					echo "Until the change is done, creating a jail requires privileges." >&2
+					echo "\tPlease do (as root) : echo 1 > /proc/sys/kernel/unprivileged_userns_clone   or find the method suitable for your distribution to activate unprivileged user namespace clone" >&2
+				fi
+				userNS=false
+			else
+				userNS=true
+			fi
+		else
+			userNS=true
+		fi
+	else
+		userNS=false
+	fi
+
+	if [ "$privileged" = "0" ]; then
+		if [ "$userNS" != "true" ]; then
+			echo "The user namespace is not supported. Can't start an unprivileged jail without it, bailing out." >&2
+			exit 1
+		fi
+		if [ "$networking" = "true" ]; then
+			networking="false"
+			echo "Unprivileged jails do not support the setting networking, turning it off" >&2
+		fi
+	fi
+
+	if [ "$netNS" = "false" ] && [ "$jailNet" = "true" ]; then
+		jailNet=false
+		echo "jailNet is set to false automatically as it needs network namespace support which is not available." >&2
+	fi
+
+	if [ "$networking" = "true" ]; then
+		iptablesBin=$(PATH="$PATH:/sbin:/usr/sbin:/usr/local/sbin" command which iptables 2>/dev/null)
+
+		if [ "$iptablesBin" = "" ]; then
+			echo "The firewall \`iptables' was chosen but it needs the command \`iptables' which is not available or it's not in the available path. Setting networking to false." >&2
+			networking=false
+		fi
+	fi
+
+	if [ "$($bb cat /proc/sys/net/ipv4/ip_forward)" = "0" ] && [ "$privileged" = "1" ] && [ "$setNetAccess" = "true" ]; then
+		networking=false
+		echo "The ip_forward bit in /proc/sys/net/ipv4/ip_forward is disabled. This has to be enabled to get handled network support. Setting networking to false." >&2
+		echo "\tPlease do (as root) : echo 1 > /proc/sys/net/ipv4/ip_forward  or find the method suitable for your distribution to activate IP forwarding." >&2
+	fi
 
 	# we check if $rootDir/root is owned by root, we use this technique for when the base instance was started with a privileged account
 	# 	and when we use an unprivileged account to reenter the jail.
