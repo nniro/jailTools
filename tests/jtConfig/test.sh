@@ -117,7 +117,7 @@ testGet -dp "default setNetAccess" "setNetAccess" "^false$" || exit 1
 
 # Checking various custom configurations
 testGet -p "networking" "networking" '^true$' || exit 1
-testGet -p "setNetAccess" "setNetAccess" '^false$' || exit 1
+testGet -p "setNetAccess" "setNetAccess" '^true$' || exit 1
 
 devMountPoints=$(cat << EOF
 /dev/dri
