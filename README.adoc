@@ -66,11 +66,9 @@ To compile, just run 'make'.
 This will compile musl and then use it to statically link busybox.
 
 ==== Step 3:
-The installation script 'install.sh' will copy the super script 'jailtools' to
+The installation script 'install.sh' will copy the super script 'jt' to
 a location of your choice. It only installs the super script, not the whole jailTools
-directory. It sets up the super script with the path of the project's git repository directory
-so it could stay in any place you want. If you decide to change the location of the jailTools directory
-just redo this step to update the super script with the new location.
+directory.
 
 If you want to use jailTools for your user only, just clone the git repository, compile and
 do this:
@@ -80,8 +78,6 @@ sh ./install.sh ~/bin
 ----
 
 This will install the super script inside your user's bin directory. Make sure that you have ~/bin in your "PATH" environment variable.
-
-IMPORTANT: From now on we will reference the super script jailtools as just *jt* in this text. You can however use jailtools or jtools if you prefer.
 
 === System wide installation:
 
@@ -93,29 +89,15 @@ The only way an unprivileged user could access a started jail is through network
 
 IMPORTANT: It is now possible to run jails as an unprivileged user when the linux user namespace is available. Note however that not all features work in that case. It is also possible to run a new shell from an already running jail even as an unprivileged user. This is actually the recommended way : First start a jail as a daemon or just with start (this will setup superuser only features for the jail) with a privileged user and then you can access the jail with an unprivileged user with the shell command to start your applications.
 
-Move jailTools folder to '/opt':
+just do :
 
 ----
-sudo mv jailTools /opt/jailTools
+sudo sh install.sh /usr/local/bin
 ----
-
-And change ownership to root:
-
-----
-sudo chown root:root -R /opt/jailTools
-----
-
-From inside /opt/jailTools, install the super script to '/opt/bin':
-
-----
-sudo sh ./install.sh /opt/bin
-----
-
-IMPORTANT: This will install the super script to the path /opt/bin. The script 'install.sh' needs to be executed from the location where the jailTools scripts reside so the references are done correctly inside the super script 'jailtools'.
 
 == Usage
 
-Here is a list of available commands when calling jailtools:
+Here is a list of available commands when calling 'jt':
 
     * new
 
@@ -155,7 +137,7 @@ jt new /path/to/example foo bar
 This will create a new directory called example containing the jail and once running, the user's
 UID and GID will be mapped to foo and bar respectively. Inside the jail directory /path/to/example
 there are 3 notable scripts :
-. startRoot.sh (don't run this directly, use the super script jailtools)
+. startRoot.sh (don't run this directly, use the super script 'jt')
 . rootCustomConfig.sh (where you place your configuration and custom scripting)
 . update.sh (this contains the files which are copied by the 'cp/cpDep' command so you can reproduce
 and update your jail)
@@ -196,9 +178,9 @@ TIP: You usually want to make this start your services automatically. This is mo
     running jails without using network tool like ssh or telnet.
 ////
 
-=== *How to install applications in jail*
+=== *How to install applications in a jail*
 
-To add more applications to the jail, use jailtools's cp command.
+To add more applications to the jail, use 'jt cp' command.
 
 Here we show how to copy the application strace to the jail :
 
