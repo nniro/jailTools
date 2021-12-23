@@ -155,7 +155,7 @@ for shell in $shells; do
 			mkdir $PWD/$tf/$cTest
 			result=$($shell $cTest/test.sh $shellPath $PWD/$tf/$cTest $jtPath)
 		       	if [ $? = 0 ]; then
-				echo passed
+				printf "\033[38;5;10mpassed\033[0m\n"
 
 				timeout 5 sh -c 'while :; do if [ -e run/jail.pid ]; then break; fi ; done'
 				if find $tf/$ctest | grep -q jail.pid ; then
@@ -163,7 +163,7 @@ for shell in $shells; do
 					isFailed=1
 				fi
 			else
-				echo failed
+				printf "\033[38;5;1mfailed\033[0m\n"
 				isFailed=1
 			fi
 
