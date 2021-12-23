@@ -1,14 +1,12 @@
 #! /bin/sh
 
-# we just test creating a vanilla jail
-
 sh=$1
 testPath=$2
 jtPath=$3
 
 jail=$testPath/general
 
-$jtPath new $jail 2>/dev/null || exit 1
+$jtPath new $jail >/dev/null 2>/dev/null || exit 1
 
 uid=$(id -u)
 
@@ -27,7 +25,7 @@ fi
 # Of course, for an unprivileged instance we only expect the fake root.
 
 # Setting the configuration : realRootInJail
-$jtPath config $jail -s realRootInJail true
+$jtPath config $jail -s realRootInJail true >/dev/null 2>/dev/null
 
 jUid=$($jtPath start $jail id -u 2>/dev/null)
 
