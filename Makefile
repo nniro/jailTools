@@ -118,15 +118,15 @@ $(SECCOMP): libseccomp/Makefile $(MUSL)
 mesonNative:
 	echo "[binaries]\nc = '$(PROJECTROOT)/usr/bin/musl-gcc'" > mesonNative
 
-buildMuzzler/build.ninja: mesonNative $(SECCOMP) $(MUSL)
-	meson --prefix=$(PROJECTROOT)/usr --native-file mesonNative ./muzzler buildMuzzler
+build/muzzler/build.ninja: mesonNative $(SECCOMP) $(MUSL)
+	meson --prefix=$(PROJECTROOT)/usr --native-file mesonNative ./muzzler build/muzzler
 
-$(MUZZLER): buildMuzzler/build.ninja $(SECCOMP) $(MUSL)
-	ninja -C buildMuzzler install
+$(MUZZLER): build/muzzler/build.ninja $(SECCOMP) $(MUSL)
+	ninja -C build/muzzler install
 
 $(MUZZLER_CLEAN):
-	-ninja -C buildMuzzler clean
-	rm -Rf buildMuzzler
+	-ninja -C build/muzzler clean
+	rm -Rf build/muzzler
 
 .PHONY: clean
 clean: $(MUZZLER_CLEAN)
