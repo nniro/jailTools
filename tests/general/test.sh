@@ -36,4 +36,17 @@ if [ "$jUid" != "0" ]; then
 	exit 1
 fi
 
+# test jt itself, embedded in busybox
+
+# we of course expect this one to work
+s1=$($jtPath v)
+# now this is what we test (we reset PATH just in case it is installed)
+s2=$(PATH= $jtPath busybox jt v)
+
+if [ "$s1" != "$s2" ]; then
+	echo "the embedded jt is not working correctly"
+	PATH= $jtPath busybox jt v
+	exit 1
+fi
+
 exit 0
