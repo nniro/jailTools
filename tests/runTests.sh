@@ -15,7 +15,7 @@ user=
 privileged=0
 
 lift() {
-	[ -e $tf/fifo ] && echo $@ > $tf/fifo
+	[ -e $tf/fifo ] && timeout 2 echo $@ > $tf/fifo
 }
 
 if [ "$(id -u)" != "0" ]; then
@@ -32,22 +32,38 @@ else # the user is root
 
 	[ ! -d $tf ] && $bb chpst -u $uid:$gid mkdir $tf
 
+	for fdFile in $tf/fifo $tf/pbRetval $tf/pbStdout $tf/pbStderr; do
+		[ -e $fdFile ] && rm $fdFile
+	done
+	$bb chpst -u $uid:$gid mkfifo $tf/fifo
+
 	# we set a powerbox to do the commands
-	[ ! -e $tf/fifo ] && $bb chpst -u $uid:$gid mkfifo $tf/fifo
+
+	cmd=$tf/fifo
+	retval=$tf/pbRetval
+	touch $tf/pbRetval
+	stdout=$tf/pbStdout
+	touch $tf/pbStdout
+	stderr=$tf/pbStderr
+	touch $tf/pbStderr
 
 	(
 		while :; do
 			[ "$debugging" = "true" ] && echo "[powerbox] waiting for input" >&2
-			in=$(cat $tf/fifo);
+			in=$(cat $cmd | sed -e 's/%20/ /g')
+			[ "$debugging" = "true" ] && echo "[powerbox] recieved input"
 			if [ "$in" = "quit" ]; then
 				[ "$debugging" = "true" ] && echo "[powerbox] got the quit command, quitting" >&2
 				exit 0
 			fi
 			[ "$debugging" = "true" ] && echo "[powerbox] got the input : '$in'" >&2
 			if echo "$in" | grep -q "^$PWD/$tf/bin/jt/[^/]*/jt [^ ]*\( $PWD/$tf/.*\|\)$"; then
-				$in 2> $tf/debug > $tf/result
+				$in >$stdout 2>$stderr
+				r=$?
 				[ "$debugging" = "true" ] && echo [powerbox] sending reply back to sender >&2
-				$bb timeout 2 $bb sh -c "cat $tf/result > $tf/fifo"
+				echo $r >$retval
+
+				echo 1 >$cmd
 			else
 				[ "$debugging" = "true" ] && echo [powerbox] command denied >&2
 			fi

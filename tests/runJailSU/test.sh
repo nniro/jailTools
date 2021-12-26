@@ -8,10 +8,7 @@ jtPath=$3
 
 bb=$testPath/../bin/busybox
 
-lift() {
-	echo "$@" > $testPath/../fifo
-	cat $testPath/../fifo
-}
+. $testPath/../../utils/utils.sh
 
 $jtPath new $testPath/basic 2>&1 || exit 1
 cd $testPath/basic

@@ -10,10 +10,7 @@ jail=$testPath/generalSU
 
 bb=$testPath/../bin/busybox
 
-lift() {
-	echo "$@" > $testPath/../fifo
-	cat $testPath/../fifo
-}
+. $testPath/../../utils/utils.sh
 
 $jtPath new $jail 2>/dev/null || exit 1
 
