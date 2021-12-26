@@ -1,28 +1,36 @@
 # direct call without a path to 'jt'
 exe=$0
 
-if [ "$exe" = "jt" ]; then # try to find where 'jt' is located
-	jtPath=""
-	oldIFS=$IFS
-	IFS=":"
-	for entry in $PATH; do
-		if [ -e "$entry/jt" ]; then
-			jtPath="$entry/jt"
-			break
-		fi
-	done
-	IFS=$oldIFS
-
-	if [ "$jtPath" = "" ]; then
-		echo "Could not find 'jt' in PATH, bailing out"
-		exit 1
-	fi
+if [ "$JT_CALLER" != "" ]; then
+	jtPath=$JT_CALLER
 else
-	jtPath=$exe
+	if [ "$exe" = "jt" ] && [ "$PATH" != "" ] ; then # try to find where 'jt' is located
+		jtPath=""
+		oldIFS=$IFS
+		IFS=":"
+		for entry in $PATH; do
+			if [ -e "$entry/jt" ]; then
+				jtPath="$entry/jt"
+				break
+			fi
+		done
+		IFS=$oldIFS
+
+		if [ "$jtPath" = "" ]; then
+			echo "Could not find 'jt' in PATH, bailing out"
+			exit 1
+		fi
+	elif [ "$exe" = "jt" ] && [ "$PATH" = "" ]; then
+		echo "PATH is empty so we can't find 'jt'."
+		exit 1
+	else
+		jtPath=$exe
+	fi
 fi
 exe=""
 
 if [ "$1" = "busybox" ]; then # we act as busybox
+	export JT_CALLER=$jtPath
 	shift
 	exec -a busybox $jtPath "$@"
 fi
