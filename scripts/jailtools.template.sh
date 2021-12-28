@@ -30,15 +30,14 @@ fi
 exe=""
 
 if [ "$1" = "busybox" ]; then # we act as busybox
-	export JT_CALLER=$jtPath
 	shift
 	exec -a busybox $jtPath "$@"
 fi
 
 export JT_VERSION=
 
-bb="$jtPath busybox"
-exe=$($bb readlink /proc/$$/exe)
+exe=$(exec -a busybox $jtPath readlink /proc/$$/exe)
+bb="exec -a busybox $exe"
 
 if echo "$exe" | $bb grep -q "busybox"; then # jt is a link to busybox
 	bb="$exe"
@@ -50,7 +49,6 @@ if echo "$exe" | $bb grep -q "busybox"; then # jt is a link to busybox
 	export JT_RUNNER=$runner
 	export JT_SHOWER=$shower
 else
-	bb="$exe busybox"
 
 	runner="runFile"
 	shower="showFile"
@@ -62,7 +60,7 @@ else
 			export JT_CALLER=$rPath
 		fi
 	else # this when 'jt' is called from a specific path
-		export JT_CALLER=$ownPath/$($bb basename $0)
+		export JT_CALLER=$exe
 	fi
 	bb="$JT_CALLER busybox"
 
