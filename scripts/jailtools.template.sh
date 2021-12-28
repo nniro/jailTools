@@ -1,8 +1,8 @@
 # direct call without a path to 'jt'
 exe=$0
 
-if [ "$JT_CALLER" != "" ]; then
-	jtPath=$JT_CALLER
+if [ "$JT_PATH" != "" ]; then
+	jtPath=$JT_PATH
 else
 	if [ "$exe" = "jt" ] && [ "$PATH" != "" ] ; then # try to find where 'jt' is located
 		jtPath=""
@@ -27,8 +27,11 @@ else
 		jtPath=$exe
 	fi
 fi
-exe=""
 
+# we only need to set the env variable hack when
+# the program is called with a relative or absolute path.
+# never from the PATH.
+[ "$JT_PATH" = "" ] && [ "$exe" != "jt" ] && export JT_PATH=$jtPath
 if [ "$1" = "busybox" ]; then # we act as busybox
 	shift
 	exec -a busybox $jtPath "$@"
@@ -68,6 +71,7 @@ else
 	export JT_SHOWER="$JT_CALLER --show"
 fi
 export BB=$bb
+export JT_PATH=$exe
 
 if echo "$0" | $bb grep -q '\/'; then
 	ownPath=$($bb dirname $0)
