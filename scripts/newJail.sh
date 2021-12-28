@@ -2,23 +2,7 @@ bb="$BB"
 shower="$JT_SHOWER"
 runner="$JT_RUNNER"
 
-case "$($bb readlink -f /proc/$$/exe)" in
-	*zsh)
-		setopt shwordsplit
-		sh="$($bb readlink -f /proc/$$/exe)"
-		echo "using shell : $sh"
-	;;
-
-	*busybox)
-		sh="$($bb readlink -f /proc/$$/exe) sh"
-		echo "using shell : $sh"
-	;;
-
-	*)
-		sh="$($bb readlink -f /proc/$$/exe)"
-		echo "using shell : $sh"
-	;;
-esac
+sh="$bb sh"
 
 if [ "$1" = "" ]; then
 	echo "Synopsis : $0 <path and name> [main jail user name] [main jail user group name]"
