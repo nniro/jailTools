@@ -332,7 +332,7 @@ joinBridge() {
 	if [ "$externalNetnsId" = "" ]; then
 		local masterBridgeIp=$($bb ip addr show $externalBridgeName | $bb grep 'inet ' | $bb grep "scope link" | $bb sed -e 's/^.*inet \([^/]*\)\/.*$/\1/')
 	else
-		local masterBridgeIp=$(execRemNS $externalNetnsId $nsBB ip addr show $externalBridgeName | $nsBB grep 'inet ' | $nsBB grep "scope link" | $nsBB sed -e 's/^.*inet \([^/]*\)\/.*$/\1/')
+		local masterBridgeIp=$(execRemNS $externalNetnsId $bb ip addr show $externalBridgeName | $bb grep 'inet ' | $bb grep "scope link" | $bb sed -e 's/^.*inet \([^/]*\)\/.*$/\1/')
 	fi
 	local masterBridgeIpCore=$(echo $masterBridgeIp | $bb sed -e 's/\(.*\)\.[0-9]*$/\1/')
 	local newIntIp=${masterBridgeIpCore}.$internalIpNum
@@ -352,7 +352,7 @@ joinBridge() {
 	if [ "$externalNetnsId" = "" ]; then
 		$bb brctl addif $externalBridgeName $vethExternal
 	else
-		execRemNS $externalNetnsId $nsBB brctl addif $externalBridgeName $vethExternal
+		execRemNS $externalNetnsId $bb brctl addif $externalBridgeName $vethExternal
 	fi
 }
 
@@ -364,7 +364,7 @@ leaveBridge() {
 	if [ "$externalNetnsId" = "" ]; then
 		$bb brctl delif $externalBridgeName $vethExternal
 	else
-		execRemNS $externalNetnsId $nsBB brctl delif $externalBridgeName $vethExternal
+		execRemNS $externalNetnsId $bb brctl delif $externalBridgeName $vethExternal
 	fi
 }
 
@@ -937,11 +937,10 @@ prepareChroot() {
 	elif [ "$privileged" = "0" ] && [ "$userNS" = "true" ]; then # unprivileged
 		unshareArgs="-r"
 		chrootArgs=""
-		unshareSupport=$(echo "$unshareSupport" | $nsBB sed -e 's/U//g')
 	else
 		unshareArgs=""
 		chrootArgs=""
-		unshareSupport=$(echo "$unshareSupport" | $nsBB sed -e 's/U//g')
+		unshareSupport=$(echo "$unshareSupport" | sed -e 's/U//g')
 	fi # unprivileged
 
 	if [ "$jailNet" = "true" ]; then
@@ -999,6 +998,7 @@ prepareChroot() {
 			$bb ip link set $vethExt up
 			execNS $nsBB ip route add default via $extIp dev $vethInt proto kernel src $ipInt
 
+
 			if [ "$setNetAccess" = "true" ] && [ "$netInterface" != "" ]; then
 				if [ "$netInterface" = "auto" ]; then
 					netInterface=$($bb ip route | $bb grep '^default' | $bb sed -e 's/^.* dev \([^ ]*\) .*$/\1/')
@@ -1051,7 +1051,7 @@ runShell() {
 		shift
 	done
 
-	execRemNS $nsPid $nsBB sh -c "exec $nsBB unshare -U --map-user=$userUID --map-group=$userGID $baseEnv $curArgs"
+	execRemNS $nsPid $bb sh -c "exec $bb unshare -U --map-user=$userUID --map-group=$userGID -R $rootDir/root $baseEnv $curArgs"
 }
 
 runJail() {
@@ -1105,7 +1105,7 @@ runJail() {
 			unshareArgs=""
 			nsenterArgs=""
 		else
-			preUnshare="$nsBB chpst -u $userCreds"
+			preUnshare="$bb chpst -u $userCreds"
 		fi
 	else # unprivileged
 		[ "$runAsRoot" = "true" ] && unshareArgs="-r"
