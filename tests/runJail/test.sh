@@ -16,7 +16,7 @@ $jtPath start sh -c exit 2>&1 || exit 1
 
 echo Starting a daemon
 $jtPath daemon 2>&1 || exit 1
-$bb timeout 5 $bb sh -c 'while :; do if [ -e run/jail.pid ]; then break; fi ; done'
+$bb timeout 10 $bb sh -c 'while :; do if [ -e run/jail.pid ]; then break; fi ; done'
 
 if [ ! -e run/jail.pid ]; then
 	echo "The daemonized jail is not running, run/jail.pid is missing"
