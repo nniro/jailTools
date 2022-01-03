@@ -11,7 +11,7 @@ scriptsPath=../scripts
 
 . $scriptsPath/utils.sh
 
-stdTest() {
+standardCLIOptions() {
 	local result=""
 	result=$(callGetopt "status [OPTIONS] <argument 1> <argument 2>" \
 	       -o "i" "" "display ip information" "showIp" "false" \
@@ -27,170 +27,131 @@ stdTest() {
 	return $err
 }
 
-echo "Standard test"
-echo "Testing the help output"
-result="$(stdTest -h)"
-err=$?
-echo "return status must be 2"
-echo $err | grep -q '2' || exit 1
-echo "the help message format must be specific"
-#echo $result >&2
+doTestAttempt() {
+	local sectionName="$1"
+	local testName="$2"
+	local expectedStatusResult="$3"
+	local expectedValueResult="$4"
+	shift 4 # the rest is the command to run and the arguments to it
+
+	# got to use eval for when there are spaces in the arguments, otherwise
+	# it won't work.
+	actualValueResult="$(eval $@)"
+	actualStatusResult=$?
+
+	local isStatusResultError=0
+	local isValueResultError=0
+
+	if [ "$actualStatusResult" != "$expectedStatusResult" ]; then
+		isStatusResultError=1
+	fi
+
+	if echo "$actualValueResult" | grep -q "^$expectedValueResult$"; then
+		:
+	else
+		isValueResultError=1
+	fi
+
+	if [ "$isStatusResultError" = "1" ] || [ "$isValueResultError" = "1" ]; then
+		echo "Section : $sectionName"
+		echo "Test : $testName"
+
+		if [ "$isStatusResultError" = "1" ]; then
+			echo "Status result gave $actualStatusResult instead of the expected $expectedStatusResult"
+		elif [ "$isValueResultError" = "1" ]; then
+			echo "Value result gave : "
+			echo "'$actualValueResult'"
+			echo "instead of the expected "
+			echo "'$expectedValueResult'"
+		fi
+
+		exit 1
+	fi
+}
+
 expectedHelpMsg="status \[OPTIONS\] <argument 1> <argument 2>"
 expectedHelpMsg="$expectedHelpMsg -h, --help display this help"
 expectedHelpMsg="$expectedHelpMsg -i display ip information"
 expectedHelpMsg="$expectedHelpMsg --ps display process information"
 expectedHelpMsg="$expectedHelpMsg -t display temperature"
 expectedHelpMsg="$expectedHelpMsg -o INPUT, --output=INPUT some output needs an input"
-printf "%s" "$result" | grep -q "^$expectedHelpMsg" || exit 1
 
-echo "first short option"
-result="$(stdTest -i)"
-err=$?
-echo "return status must be 0"
-echo $err | grep -q '0' || exit 1
-echo "return value for showIp"
-printf "%s" "$result" | grep -q 'showIp="1";showProcessStats="0";showTemp="0";outputData="";arg1Data="";arg2Data=""' || exit 1
+doTestAttempt "Basic Core tests" "Testing the help output" \
+	2 "$expectedHelpMsg" "standardCLIOptions -h"
 
-echo "second long option"
-result="$(stdTest --ps)"
-err=$?
-echo "return status must be 0"
-echo $err | grep -q '0' || exit 1
-echo "return value for showProcessStats"
-printf "%s" "$result" | grep -q 'showIp="0";showProcessStats="1";showTemp="0";outputData="";arg1Data="";arg2Data=""' || exit 1
+doTestAttempt "Basic Core tests" "Testing the first short option" \
+	0 'showIp="1";showProcessStats="0";showTemp="0";outputData="";arg1Data="";arg2Data=""' \
+	"standardCLIOptions -i"
 
-echo "third short option"
-result="$(stdTest -t)"
-err=$?
-echo "return status must be 0"
-echo $err | grep -q '0' || exit 1
-echo "return value for showTemp"
-printf "%s" "$result" | grep -q 'showIp="0";showProcessStats="0";showTemp="1";outputData="";arg1Data="";arg2Data=""' || exit 1
+doTestAttempt "Basic Core tests" "Testing the second long option" \
+	0 'showIp="0";showProcessStats="1";showTemp="0";outputData="";arg1Data="";arg2Data=""' \
+	"standardCLIOptions --ps"
 
-echo "test two short options at once"
-result="$(stdTest -it)"
-err=$?
-echo "return status must be 0"
-echo $err | grep -q '0' || exit 1
-echo "return value for showIp and showTemp"
-printf "%s" "$result" | grep -q 'showIp="1";showProcessStats="0";showTemp="1";outputData="";arg1Data="";arg2Data=""' || exit 1
+doTestAttempt "Basic Core tests" "Testing the third short option" \
+	0 'showIp="0";showProcessStats="0";showTemp="1";outputData="";arg1Data="";arg2Data=""' \
+	"standardCLIOptions -t"
 
-echo "third option with argument"
-echo "first testing without an argument"
-result="$(stdTest -o)"
-err=$?
-echo "return status must be 1"
-echo $err | grep -q '1' || exit 1
-echo "result must contain the error message"
-printf "%s" "$result" | grep -q "getopt: option requires an argument: o" || exit 1
+doTestAttempt "Basic Core tests" "Testing two short options at once" \
+	0 'showIp="1";showProcessStats="0";showTemp="1";outputData="";arg1Data="";arg2Data=""' \
+	"standardCLIOptions -it"
 
-echo "testing without an argument on long argument"
-result="$(stdTest --output)"
-err=$?
-echo "return status must be 1"
-echo $err | grep -q '1' || exit 1
-echo "result must contain the error message"
-printf "%s" "$result" | grep -q "getopt: option requires an argument: output" || exit 1
+doTestAttempt "Options with arguments" "first testing without an argument" \
+	1 'getopt: option requires an argument: o' \
+	"standardCLIOptions -o"
 
-echo "setting a value to the short option"
-result="$(stdTest -o one)"
-err=$?
-echo "return status must be 0"
-echo $err | grep -q '0' || exit 1
-echo "result must contain the value"
-printf "%s" "$result" | grep -q 'showIp="0";showProcessStats="0";showTemp="0";outputData="one";arg1Data="";arg2Data=""' || exit 1
+doTestAttempt "Options with arguments" "testing without an argument on long argument" \
+	1 'getopt: option requires an argument: output' \
+	"standardCLIOptions --output"
 
-echo "setting a value to the long option"
-result="$(stdTest --output=one)"
-err=$?
-echo "return status must be 0"
-echo $err | grep -q '0' || exit 1
-echo "result must contain the value"
-printf "%s" "$result" | grep -q 'showIp="0";showProcessStats="0";showTemp="0";outputData="one";arg1Data="";arg2Data=""' || exit 1
+doTestAttempt "Options with arguments" "setting a value to the short option" \
+	0 'showIp="0";showProcessStats="0";showTemp="0";outputData="one";arg1Data="";arg2Data=""' \
+	"standardCLIOptions -o one"
 
-echo "setting a value to the short option without a space"
-result="$(stdTest -oone)"
-err=$?
-echo "return status must be 0"
-echo $err | grep -q '0' || exit 1
-echo "result must contain the value"
-printf "%s" "$result" | grep -q 'showIp="0";showProcessStats="0";showTemp="0";outputData="one";arg1Data="";arg2Data=""' || exit 1
+doTestAttempt "Options with arguments" "setting a value to the long option" \
+	0 'showIp="0";showProcessStats="0";showTemp="0";outputData="one";arg1Data="";arg2Data=""' \
+	"standardCLIOptions --output=one"
 
-echo "setting a value to the short option in a quasi invalid way"
-result="$(stdTest -o=one)"
-err=$?
-echo "return status must be 0"
-echo $err | grep -q '0' || exit 1
-echo "result must contain the value"
-printf "%s" "$result" | grep -q 'showIp="0";showProcessStats="0";showTemp="0";outputData="%3Done";arg1Data="";arg2Data=""' || exit 1
+doTestAttempt "Options with arguments" "setting a value to the short option without a space" \
+	0 'showIp="0";showProcessStats="0";showTemp="0";outputData="one";arg1Data="";arg2Data=""' \
+	"standardCLIOptions -oone"
 
-echo "setting multiple arguments to a short option"
-result="$(stdTest -o'foo bar avec du beurre')"
-err=$?
-echo "return status must be 0"
-echo $err | grep -q '0' || exit 1
-echo "result must contain the value"
-printf "%s" "$result" | grep -q 'showIp="0";showProcessStats="0";showTemp="0";outputData="foo bar avec du beurre";arg1Data="";arg2Data=""' || exit 1
+doTestAttempt "Options with arguments" "setting a value to the short option in a quasi invalid way" \
+	0 'showIp="0";showProcessStats="0";showTemp="0";outputData="%3Done";arg1Data="";arg2Data=""' \
+	"standardCLIOptions -o=one"
 
-echo "setting multiple arguments to a short option v2"
-result="$(stdTest -o 'foo bar avec du beurre')"
-err=$?
-echo "return status must be 0"
-echo $err | grep -q '0' || exit 1
-echo "result must contain the value"
-printf "%s" "$result" | grep -q 'showIp="0";showProcessStats="0";showTemp="0";outputData="foo bar avec du beurre";arg1Data="";arg2Data=""' || exit 1
+doTestAttempt "Options with arguments" "setting multiple arguments to a short option" \
+	0 'showIp="0";showProcessStats="0";showTemp="0";outputData="foo bar avec du beurre";arg1Data="";arg2Data=""' \
+	"standardCLIOptions -o'foo bar avec du beurre'"
 
-echo "values without flags"
-echo "test first"
-result="$(stdTest foo)"
-err=$?
-echo "return status must be 0"
-echo $err | grep -q '0' || exit 1
-echo "result must contain the value"
-printf "%s" "$result" | grep -q 'showIp="0";showProcessStats="0";showTemp="0";outputData="";arg1Data="foo";arg2Data=""' || exit 1
+doTestAttempt "Options with arguments" "setting multiple arguments to a short option v2" \
+	0 'showIp="0";showProcessStats="0";showTemp="0";outputData="foo bar avec du beurre";arg1Data="";arg2Data=""' \
+	"standardCLIOptions -o 'foo bar avec du beurre'"
 
-echo "test first and second"
-result="$(stdTest foo bar)"
-err=$?
-echo "return status must be 0"
-echo $err | grep -q '0' || exit 1
-echo "result must contain the value"
-printf "%s" "$result" | grep -q 'showIp="0";showProcessStats="0";showTemp="0";outputData="";arg1Data="foo";arg2Data="bar"' || exit 1
+doTestAttempt "Values without flags" "testing first" \
+	0 'showIp="0";showProcessStats="0";showTemp="0";outputData="";arg1Data="foo";arg2Data=""' \
+	"standardCLIOptions foo"
 
-echo "second should be catch all as it is the last"
-result="$(stdTest foo bar avec du beurre)"
-err=$?
-echo "return status must be 0"
-echo $err | grep -q '0' || exit 1
-echo "result must contain the value"
-printf "%s" "$result" | grep -q 'showIp="0";showProcessStats="0";showTemp="0";outputData="";arg1Data="foo";arg2Data="bar avec du beurre"' || exit 1
+doTestAttempt "Values without flags" "testing first and second" \
+	0 'showIp="0";showProcessStats="0";showTemp="0";outputData="";arg1Data="foo";arg2Data="bar"' \
+	"standardCLIOptions foo bar"
 
-echo "test the catch all with some content in single quotes"
-result="$(stdTest foo bar 'avec du' beurre)"
-err=$?
-echo "return status must be 0"
-echo $err | grep -q '0' || exit 1
-echo "result must contain the value"
-printf "%s" "$result" | grep -q "showIp=\"0\";showProcessStats=\"0\";showTemp=\"0\";outputData=\"\";arg1Data=\"foo\";arg2Data=\"bar 'avec du' beurre\"" || exit 1
+doTestAttempt "Values without flags" "second should be catch all as it is the last" \
+	0 'showIp="0";showProcessStats="0";showTemp="0";outputData="";arg1Data="foo";arg2Data="bar avec du beurre"' \
+	"standardCLIOptions foo bar avec du beurre"
 
-echo "test the catch all with some content in double quotes"
-result="$(stdTest foo bar "avec du" beurre)"
-err=$?
-echo "return status must be 0"
-echo $err | grep -q '0' || exit 1
-echo "result must contain the value"
-printf "%s" "$result" | grep -q "showIp=\"0\";showProcessStats=\"0\";showTemp=\"0\";outputData=\"\";arg1Data=\"foo\";arg2Data=\"bar 'avec du' beurre\"" || exit 1
+doTestAttempt "Values without flags" "test the catch all with some content in single quotes" \
+	0 "showIp=\"0\";showProcessStats=\"0\";showTemp=\"0\";outputData=\"\";arg1Data=\"foo\";arg2Data=\"bar 'avec du' beurre\"" \
+	"standardCLIOptions foo bar 'avec du' beurre"
 
-echo "test the catch all with quoted string and ';'"
+doTestAttempt "Values without flags" "test the catch all with some content in double quotes" \
+	0 "showIp=\"0\";showProcessStats=\"0\";showTemp=\"0\";outputData=\"\";arg1Data=\"foo\";arg2Data=\"bar 'avec du' beurre\"" \
+	"standardCLIOptions foo bar \"avec du\" beurre"
+
 # the character ';' is special because it's what is necessary to parse the result value.
 # So it is converted to the value %3B and that has to be converted back by the calling
 # process.
-result="$(stdTest foo bar "avec du; cd ..; bah" beurre)"
-err=$?
-echo "return status must be 0"
-echo $err | grep -q '0' || exit 1
-echo "result must contain the value"
-printf "%s" "$result" | grep -q "showIp=\"0\";showProcessStats=\"0\";showTemp=\"0\";outputData=\"\";arg1Data=\"foo\";arg2Data=\"bar 'avec du%3B cd ..%3B bah' beurre\"" || exit 1
-
+doTestAttempt "Values without flags" "test the catch all with quoted string and ';'" \
+	0 "showIp=\"0\";showProcessStats=\"0\";showTemp=\"0\";outputData=\"\";arg1Data=\"foo\";arg2Data=\"bar 'avec du%3B cd ..%3B bah' beurre\"" \
+	'standardCLIOptions foo bar "avec du; cd ..; bah" beurre'
 
 exit 0
