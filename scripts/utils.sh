@@ -163,44 +163,44 @@ callGetopt() {
 		case $1 in
 			-o|--option)
 				shift
-				s=$1		# short option
-				l=$2		# long option
-				msg=$3		# help message
-				vval=$4		# variable to save the result value to
-				hasArg=$5	# are we expecting an argument or just a flag
+				availableShortOptions=$1
+				availableLongOptions=$2
+				optionDescription=$3
+				optionResultVariable=$4
+				isExpectingArgument=$5
 				shift 4
 
-				if [ "$vval" != "" ]; then
-					if [ "$hasArg" = "true" ]; then
-						[ "$result" = "" ] && result="$vval=\"\"" || result="${result};$vval=\"\""
+				if [ "$optionResultVariable" != "" ]; then
+					if [ "$isExpectingArgument" = "true" ]; then
+						[ "$result" = "" ] && result="$optionResultVariable=\"\"" || result="${result};$optionResultVariable=\"\""
 					else
-						[ "$result" = "" ] && result="$vval=\"0\"" || result="${result};$vval=\"0\""
+						[ "$result" = "" ] && result="$optionResultVariable=\"0\"" || result="${result};$optionResultVariable=\"0\""
 					fi
 				fi
 
-				sC=""; [ "$s" != "" ] && sC="-$s"
-				lC=""; [ "$l" != "" ] && lC="--$l"
+				sC=""; [ "$availableShortOptions" != "" ] && sC="-$availableShortOptions"
+				lC=""; [ "$availableLongOptions" != "" ] && lC="--$availableLongOptions"
 
-				if [ "$msg" != "" ]; then
-					if [ "$s" != "" ] && [ "$l" != "" ]; then
-						[ "$hasArg" = "true" ] && help="$help\n\t$sC INPUT, $lC=INPUT\t\t\t$msg" || help="$help\n\t$sC, $lC\t\t\t$msg"
-					elif [ "$s" != "" ]; then
-						[ "$hasArg" = "true" ] && help="$help\n\t$sC INPUT\t\t\t$msg" || help="$help\n\t$sC\t\t\t$msg"
+				if [ "$optionDescription" != "" ]; then
+					if [ "$availableShortOptions" != "" ] && [ "$availableLongOptions" != "" ]; then
+						[ "$isExpectingArgument" = "true" ] && help="$help\n\t$sC INPUT, $lC=INPUT\t\t\t$optionDescription" || help="$help\n\t$sC, $lC\t\t\t$optionDescription"
+					elif [ "$availableShortOptions" != "" ]; then
+						[ "$isExpectingArgument" = "true" ] && help="$help\n\t$sC INPUT\t\t\t$optionDescription" || help="$help\n\t$sC\t\t\t$optionDescription"
 					else
-						[ "$hasArg" = "true" ] && help="$help\n\t$lC=INPUT\t\t\t$msg" || help="$help\n\t$lC\t\t\t$msg"
+						[ "$isExpectingArgument" = "true" ] && help="$help\n\t$lC=INPUT\t\t\t$optionDescription" || help="$help\n\t$lC\t\t\t$optionDescription"
 					fi
 				fi
 
-				[ "$caseCond" = "" ] && caseCond="$sC,$lC,$vval,$hasArg" || caseCond="$caseCond:$sC,$lC,$vval,$hasArg"
+				[ "$caseCond" = "" ] && caseCond="$sC,$lC,$optionResultVariable,$isExpectingArgument" || caseCond="$caseCond:$sC,$lC,$optionResultVariable,$isExpectingArgument"
 
-				if [ "$hasArg" = "true" ]; then
-					[ "$s" != "" ] && s="$s:"
-					[ "$l" != "" ] && l="$l:"
+				if [ "$isExpectingArgument" = "true" ]; then
+					[ "$availableShortOptions" != "" ] && availableShortOptions="$availableShortOptions:"
+					[ "$availableLongOptions" != "" ] && availableLongOptions="$availableLongOptions:"
 				fi
 
-				[ "$s" != "" ] && smallOpt="${smallOpt}$s"
-				if [ "$l" != "" ]; then
-					[ "$longOpt" = "" ] && longOpt="$l" || longOpt="$longOpt,$l"
+				[ "$availableShortOptions" != "" ] && smallOpt="${smallOpt}$availableShortOptions"
+				if [ "$availableLongOptions" != "" ]; then
+					[ "$longOpt" = "" ] && longOpt="$availableLongOptions" || longOpt="$longOpt,$availableLongOptions"
 				fi
 			;;
 			--) break;;
