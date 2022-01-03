@@ -210,7 +210,7 @@ callGetopt() {
 		shift
 	done
 
-	shift # we get rid of '--'
+	[ "$#" != "0" ] && [ "$1" = "--" ] && shift # we get rid of '--'
 
 	O=$($bb getopt -l $longOpt $smallOpt "$@") || return 1
 
