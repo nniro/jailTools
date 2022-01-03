@@ -69,6 +69,22 @@ doTestAttempt() {
 	fi
 }
 
+doTestAttempt "Basic Core tests" "Testing a bare help output" \
+	2 "-h, --help display this help" \
+	"result=\$(callGetopt '' -- '-h' 2>&1); err=\$?; echo \$result; return \$err"
+
+doTestAttempt "Basic Core tests" "Without any argument" \
+	1 "" \
+	"result=\$(callGetopt 2>&1); err=\$?; echo \$result; return \$err"
+
+doTestAttempt "Basic Core tests" "Without '--'" \
+	0 "" \
+	"result=\$(callGetopt \"sample options\" foo 2>&1); err=\$?; echo \$result; return \$err"
+
+doTestAttempt "Basic Core tests" "Without '--' v2" \
+	0 'showIp="1"' \
+	"result=\$(callGetopt \"sample options\" -o \"i\" \"\" \"display ip information\" \"showIp\" \"false\" -i 2>&1); err=\$?; echo \$result; return \$err"
+
 expectedHelpMsg="status \[OPTIONS\] <argument 1> <argument 2>"
 expectedHelpMsg="$expectedHelpMsg -h, --help display this help"
 expectedHelpMsg="$expectedHelpMsg -i display ip information"
