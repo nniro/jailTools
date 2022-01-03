@@ -149,6 +149,7 @@ getVarVal() {
 # return 1 on error
 # return 2 on show help message
 callGetopt() {
+	[ "$#" = "0" ] && return 1
 	local headerMessage="$1"
 	shift
 	local smallOpt=""
