@@ -251,7 +251,7 @@ callGetopt() {
 					return 0
 				fi
 			elif [ "$sC" = "" ] && [ "$lC" = "" ]; then
-				if [ "$hasArg" = "true" ] && printf "$rs" | $bb grep -q "$v=\"\""; then
+				if [ "$hasArg" = "true" ] && printf "%s" "$rs" | $bb grep -q "$v=\"\""; then
 					echo $(printf "%s" "$rs" | $bb sed -e "s/$v=\"\"/$v=\"$in\"/" | $bb sed -e 's/%2f/\//g' -e 's/%20/ /g')
 					return 0
 				fi
