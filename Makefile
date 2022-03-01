@@ -116,7 +116,7 @@ $(SECCOMP): libseccomp/Makefile $(MUSL)
 	$(MAKE) -C libseccomp install
 
 mesonNative:
-	echo "[binaries]\nc = '$(PROJECTROOT)/usr/bin/musl-gcc'" > mesonNative
+	echo "[binaries]\nc = ['$(PROJECTROOT)/usr/bin/musl-gcc', '-Wl,--dynamic-linker=$(PROJECTROOT)/usr/lib/libc.so']" > mesonNative
 
 build/muzzler/build.ninja: mesonNative $(SECCOMP) $(MUSL)
 	meson --prefix=$(PROJECTROOT)/usr --native-file mesonNative ./muzzler build/muzzler
