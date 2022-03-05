@@ -41,6 +41,7 @@ paths.sh jt_paths
 jailLib.template.sh jt_jailLib_template
 startRoot.template.sh jt_startRoot_template
 filesystem.template.sh jt_filesystem_template
+firewall.template.sh jt_firewall
 rootCustomConfig.template.sh jt_rootCustomConfig_template
 rootDefaultConfig.template.sh jt_rootDefaultConfig_template
 EOF

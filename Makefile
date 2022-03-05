@@ -18,6 +18,7 @@ utils.sh\
 jailLib.template.sh\
 startRoot.template.sh\
 filesystem.template.sh\
+firewall.template.sh\
 rootCustomConfig.template.sh\
 rootDefaultConfig.template.sh\
 )

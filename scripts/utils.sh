@@ -1,5 +1,9 @@
 # we expect the 'bb' variable to be provided by the script that includes this
 
+isPrivileged() {
+	test $($bb id -u) = "0"
+}
+
 # detects if the path as argument contains a valid jail
 detectJail() {
 	local jPath=$1
