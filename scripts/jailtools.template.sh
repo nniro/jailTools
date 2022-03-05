@@ -127,6 +127,7 @@ shift
 @EMBEDDEDFILES_LOCATION@
 
 eval "$($shower jt_utils)" # detectJail callGetopt
+eval "$($shower jt_firewall)" # firewall functions
 
 jPath="."
 
@@ -204,15 +205,11 @@ case $cmd in
 		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
 		rPath=$($bb realpath $jPath)
 
-		$bb sh -c "cd $rPath; source ./jailLib.sh; checkFirewall $rPath" 2>/dev/null
-		if [ "$?" = "0" ]; then
-			echo "The firewall is working fine already"
-		else
-			echo "The firewall needs to be reapplied. Doing that now."
-			$bb sh -c "cd $rPath; source ./jailLib.sh; resetFirewall $rPath" 2>/dev/null
-		fi
+		firewallCLI $rPath/run/firewall.instructions $@
+		_err=$?
 
-		exit 0
+
+		exit $_err
 	;;
 
 	s|status)
