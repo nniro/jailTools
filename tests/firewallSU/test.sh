@@ -112,6 +112,55 @@ if ! lift $jtPath start $jail sh /home/currentTest.sh 2>/dev/null; then
 	exit 1
 fi
 
+# test if the check functionnality works correctly
+cat - > $jail/root/home/currentTest.sh << EOF
+. /home/testUtils.sh
+
+cd /home
+
+fwInstrPath=/tmp/firewallInstructions.txt
+
+[ -e \$fwInstrPath ] && rm \$fwInstrPath
+
+sh /home/firewallFront.sh \$fwInstrPath firewall -c blockAll fwTestIn fwTestIn && exit 1
+
+
+sh /home/firewallFront.sh \$fwInstrPath firewall blockAll fwTestIn fwTestIn
+
+if [ ! -e \$fwInstrPath ]; then
+	echo "file '\$fwInstrPath' should exist but it doesn't"
+	exit 1
+fi
+
+if ! cat \$fwInstrPath | grep -q "firewall /tmp/firewallInstructions.txt external blockAll fwTestIn fwTestIn;"; then
+	echo "The file firewallInstructions.txt has an unexpected content '\$(cat \$fwInstrPath)'"
+	exit 1
+fi
+
+sh /home/firewallFront.sh \$fwInstrPath firewall -c blockAll fwTestIn fwTestIn || exit 1
+
+expectedResultLines=\$(cat - << HEREDOC
+-A INPUT -i fwTestIn -p tcp -m tcp --dport 1:65535 -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
+-A INPUT -i fwTestIn -p udp -m udp --dport 1:65535 -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
+-A OUTPUT -o fwTestIn -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
+HEREDOC
+)
+
+result=\$(iptables-save)
+IFS="
+"
+if ! checkLines "\$expectedResultLines" "\$result"; then
+	echo "result from iptables-save : '\$result'"
+	exit 1
+fi
+EOF
+
+if ! lift $jtPath start $jail sh /home/currentTest.sh 2>/dev/null; then
+	echo "The check functionnality does not work correctly"
+	exit 1
+fi
+
+
 # check for duplication when running blockAll twice
 
 cat - > $jail/root/home/currentTest2.sh << EOF
@@ -181,15 +230,16 @@ if [ ! -e \$fwInstrPath ]; then
 	exit 1
 fi
 
-if ! cat \$fwInstrPath | grep -q "firewall /tmp/firewallInstructions.txt external blockAll fwTestIn fwTestIn;"; then
+# we expect the file to contain nothing
+if test -s \$fwInstrPath; then
 	echo "The file firewallInstructions.txt has an unexpected content '\$(cat \$fwInstrPath)'"
 	exit 1
 fi
 
 expectedResultLines=\$(cat - << HEREDOC
--A INPUT -p tcp -m tcp --dport 1:65535 -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
--A INPUT -p udp -m udp --dport 1:65535 -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
--A OUTPUT -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
+-A INPUT -i fwTestIn -p tcp -m tcp --dport 1:65535 -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
+-A INPUT -i fwTestIn -p udp -m udp --dport 1:65535 -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
+-A OUTPUT -o fwTestIn -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
 HEREDOC
 )
 
