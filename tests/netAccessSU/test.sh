@@ -27,12 +27,6 @@ echo 'printf "GET / HTTP/1.1\r\nHost: 1.1.1.1\r\n\r\n" | timeout 2 ssl_client 1.
 
 if lift $jtPath start $jail sh /home/test2.sh 2>/dev/null; then
 	echo "With setNetAccess set to 'false' we should not be able to connect to the remote site 1.1.1.1"
-
-	echo "attempting a test connect to kinserve.com"
-	echo "50.116.54.71 kinserve.com" > $jail/root/etc/hosts
-	lift $jtPath start $jail cat /etc/hosts
-	lift $jtPath start $jail wget -O - http://kinserve.com && echo yes || echo no
-
 	exit 1
 fi
 
