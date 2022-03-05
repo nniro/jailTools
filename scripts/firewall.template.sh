@@ -159,14 +159,28 @@ firewall() {
 
 	case $mode in
 		create)
+			# for good measure we check if the rules are already present
+			if firewall $fwInstrFile $fwType -c $cmd $arguments; then
+				echo "Rules are already present in iptables" >&2
+				return 1
+			fi
+
 			if [ "$singleRunMode" = "false" ]; then
-				cmdCtl "$fwInstrFile" exists "firewall $fwInstrFile $fwType $cmd $arguments" && return 0
+				if cmdCtl "$fwInstrFile" exists "firewall $fwInstrFile $fwType $cmd $arguments"; then
+					return 0
+				fi
 			fi # not singleRunMode
 		;;
 
 		delete)
+			# for good measure we check if there are rules to remove
+			if ! firewall $fwInstrFile $fwType -c $cmd $arguments; then
+				return 0
+			fi
 			if [ "$singleRunMode" = "false" ]; then
-				cmdCtl "$fwInstrFile" exists "firewall $fwInstrFile $fwType $cmd $arguments" || return 0
+				if ! cmdCtl "$fwInstrFile" exists "firewall $fwInstrFile $fwType $cmd $arguments"; then
+					return 0
+				fi
 			fi # not singleRunMode
 		;;
 	esac
