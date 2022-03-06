@@ -196,11 +196,21 @@ for shell in $shells; do
 					break
 				else
 					echo "Automatic cleanse complete"
-					rm -Rf $tf/$cTest
+					rm -Rf $tf/$cTest 2>/dev/null
+
+					if [ -e $tf/$cTest ]; then
+						echo "Could not delete the whole directory '$tf/$cTest'"
+						echo "Please delete it manually (may require root to do so)"
+					fi
 					break
 				fi
 			fi
-			rm -Rf $tf/$cTest
+			rm -Rf $tf/$cTest 2>/dev/null
+
+			if [ -e $tf/$cTest ]; then
+				echo "Could not delete the whole directory '$tf/$cTest'"
+				echo "Please delete it manually (may require root to do so)"
+			fi
 		fi
 	done
 
