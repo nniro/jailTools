@@ -258,27 +258,3 @@ if ! lift $jtPath start $jail sh /home/currentTest3.sh 2>/dev/null; then
 fi
 
 exit 0
-
-fwInstrPath=$jail/root/tmp/firewallInstructions.txt
-
-if [ ! -e $fwInstrPath ]; then
-	echo "file \`$fwInstrPath' should exist but it doesn't"
-	exit 1
-fi
-
-if ! cat $fwInstrPath | grep -q "firewall /tmp/firewallInstructions.txt external blockAll fwTestIn fwTestIn ;"; then
-	echo "The file firewallInstructions.txt has an unexpected content '$(cat $fwInstrPath)'"
-	exit 1
-fi
-
-result=$(lift $jtPath shell $jail iptables-save 2>/dev/null)
-if ! echo $result | grep -q bleh ; then
-	echo "We expect to see 'bleh'"
-	echo "instead we got '$result'"
-	exit 1
-fi
-
-lift $jtPath stop $jail
-sleep 1
-
-exit 0
