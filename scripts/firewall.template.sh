@@ -160,7 +160,7 @@ firewall() {
 	case $mode in
 		create)
 			# for good measure we check if the rules are already present
-			if firewall $fwInstrFile $fwType -c $cmd $arguments; then
+			if firewall $fwInstrFile $fwType -c $cmd $arguments >&2; then
 				echo "Rules are already present in iptables" >&2
 				return 1
 			fi
@@ -174,7 +174,7 @@ firewall() {
 
 		delete)
 			# for good measure we check if there are rules to remove
-			if ! firewall $fwInstrFile $fwType -c $cmd $arguments; then
+			if ! firewall $fwInstrFile $fwType -c $cmd $arguments >&2; then
 				return 0
 			fi
 			if [ "$singleRunMode" = "false" ]; then
