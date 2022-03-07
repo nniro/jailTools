@@ -45,7 +45,7 @@ checkLines() {
                         return 1
                 elif [ \$((\$count > 1)) = 1 ]; then
                         echo "\$l - More than one entry detected"
-                        return 1
+                        return 2
                 fi
         done
 }
@@ -53,6 +53,12 @@ EOF
 
 cat - > $jail/root/home/singleTest.sh << EOF
 . /home/testUtils.sh
+
+deleteMode="false"
+if [ "\$1" = "-d" ]; then
+	deleteMode="true"
+	shift
+fi
 
 cmdFile=\$1
 expectedInstrRuleFile=\$2
@@ -78,9 +84,10 @@ cd /home
 
 fwInstrPath=/tmp/firewallInstructions.txt
 
-[ -e \$fwInstrPath ] && rm \$fwInstrPath
+if [ "\$deleteMode" = "false" ]; then
+	[ -e \$fwInstrPath ] && rm \$fwInstrPath
+fi
 
-#sh \$cmdFile
 . \$cmdFile
 
 if [ ! -e \$fwInstrPath ]; then
@@ -104,10 +111,22 @@ fi
 result=\$(iptables-save)
 IFS="
 "
-if ! checkLines "\$(cat \$expectedIptablesRulesFile)" "\$result"; then
-	echo "result from iptables-save : '\$result'"
-	exit 1
+checkLines "\$(cat \$expectedIptablesRulesFile)" "\$result"
+_err=\$?
 
+if [ "\$deleteMode" = "false" ]; then
+	if [ \$((\$_err >= 1)) = 1 ]; then
+		echo "result from iptables-save : '\$result'"
+		exit 1
+	fi
+elif [ "\$deleteMode" = "true" ]; then # check if all the rules are *not* in the iptables rules
+	if [ \$((\$_err == 1)) = 1 ]; then
+		exit 0
+	else
+		echo "Iptables rules are still present but they shouldn't be"
+		echo "the full iptables rules dump : '\$result'"
+		exit 1
+	fi
 fi
 EOF
 
