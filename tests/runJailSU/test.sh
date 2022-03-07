@@ -10,7 +10,7 @@ bb=$testPath/../bin/busybox
 
 . $testPath/../../utils/utils.sh
 
-$jtPath new $testPath/basic 2>&1 || exit 1
+$jtPath new $testPath/basic >/dev/null 2>/dev/null || exit 1
 cd $testPath/basic
 
 #echo Starting a daemon
@@ -24,13 +24,13 @@ if [ ! -e run/jail.pid ]; then
 	exit 1
 fi
 
-if ! echo exit | $jtPath shell 2>&1; then
+if ! echo exit | $jtPath shell 2>/dev/null; then
 	echo "Attempt to re-enter the daemonized jail failed"
 	exit 1
 fi
 
 # attempting to re-enter the daemonized jail as root
-if ! lift $jtPath shell 2>&1; then
+if ! lift $jtPath shell 2>/dev/null; then
 	echo "Unable to rejoin jail as root"
 	exit 1
 fi
