@@ -212,12 +212,12 @@ for shell in $shells; do
 				echo "Please delete it manually (may require root to do so)"
 			fi
 		fi
-	done
+	done # loop on availTests
 
 	if [ "$isFailed" = "1" ]; then
 		break
 	fi
-done
+done # loop on shells
 
 # stop the powerbox
 if [ "$privileged" = "1" ]; then
