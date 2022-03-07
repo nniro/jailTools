@@ -32,27 +32,6 @@ $jtPath config $jail -s runEnvironment "PATH=\"/sbin:/usr/sbin:/bin:/usr/bin\" $
 $jtPath config $jail -s networking true >/dev/null 2>/dev/null
 $jtPath config $jail -s setNetAccess false >/dev/null 2>/dev/null
 
-#lift $jtPath daemon $jail >/dev/null 2>/dev/null || exit 1
-#$bb timeout 30 sh -c 'while :; do if [ -e run/jail.pid ]; then break; fi ; done'
-
-#if [ ! -e $jail/run/jail.pid ]; then
-#	echo "The daemonized jail is not running, run/jail.pid is missing"
-#	exit 1
-#fi
-
-#lift $jtPath stop $jail
-#sleep 1
-#sleep 5
-
-#exit 0
-
-# preparation done
-
-# first test
-
-# we make a simple attempt at blockAll and check if the
-# result is what we expect.
-
 cat - > $jail/root/home/testUtils.sh << EOF
 checkLines() {
         for l in \$1; do
@@ -70,8 +49,28 @@ checkLines() {
 }
 EOF
 
-cat - > $jail/root/home/currentTest.sh << EOF
+cat - > $jail/root/home/singleTest.sh << EOF
 . /home/testUtils.sh
+
+cmdFile=\$1
+expectedInstrRuleFile=\$2
+expectedIptablesRulesFile=\$3
+shift 3
+
+if [ ! -e \$cmdFile ]; then
+	echo cmdFile missing
+	exit 1
+fi
+
+if [ ! -e \$expectedInstrRuleFile ]; then
+	echo expectedInstrRuleFile missing
+	exit 1
+fi
+
+if [ ! -e \$expectedIptablesRuleFile ]; then
+	echo expectedIptablesRulesFile missing
+	exit 1
+fi
 
 cd /home
 
@@ -79,182 +78,125 @@ fwInstrPath=/tmp/firewallInstructions.txt
 
 [ -e \$fwInstrPath ] && rm \$fwInstrPath
 
-sh /home/firewallFront.sh \$fwInstrPath firewall blockAll fwTestIn fwTestIn
+#sh \$cmdFile
+. \$cmdFile
 
 if [ ! -e \$fwInstrPath ]; then
 	echo "file '\$fwInstrPath' should exist but it doesn't"
 	exit 1
 fi
 
-if ! cat \$fwInstrPath | grep -q "firewall /tmp/firewallInstructions.txt external blockAll fwTestIn fwTestIn;"; then
-	echo "The file firewallInstructions.txt has an unexpected content '\$(cat \$fwInstrPath)'"
-	exit 1
+if ! test -s \$expectedInstrRuleFile; then
+	# we expect the instruction file to contain nothing
+	if test -s \$fwInstrPath; then
+		echo "The file firewallInstructions.txt has an unexpected content '\$(cat \$fwInstrPath)'"
+		exit 1
+	fi
+else
+	if ! cat \$fwInstrPath | grep -q "^\$(cat \$expectedInstrRuleFile)$"; then
+		echo "The file firewallInstructions.txt has an unexpected content '\$(cat \$fwInstrPath)'"
+		exit 1
+	fi
 fi
-
-expectedResultLines=\$(cat - << HEREDOC
--A INPUT -i fwTestIn -p tcp -m tcp --dport 1:65535 -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
--A INPUT -i fwTestIn -p udp -m udp --dport 1:65535 -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
--A OUTPUT -o fwTestIn -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
-HEREDOC
-)
 
 result=\$(iptables-save)
 IFS="
 "
-if ! checkLines "\$expectedResultLines" "\$result"; then
+if ! checkLines "\$(cat \$expectedIptablesRulesFile)" "\$result"; then
 	echo "result from iptables-save : '\$result'"
 	exit 1
 fi
 EOF
 
-if ! lift $jtPath start $jail sh /home/currentTest.sh 2>/dev/null; then
-	echo "Simple blockAll check failed"
+# simple blockAll test
+cat - > $jail/root/home/firewallCmd << EOF
+sh /home/firewallFront.sh \$fwInstrPath firewall blockAll fwTestIn fwTestIn
+EOF
+
+cat - > $jail/root/home/firewallExpectedInstr << EOF
+firewall /tmp/firewallInstructions.txt external blockAll fwTestIn fwTestIn;
+EOF
+
+cat - > $jail/root/home/firewallExpectedIptablesRules << EOF
+-A INPUT -i fwTestIn -p tcp -m tcp --dport 1:65535 -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
+-A INPUT -i fwTestIn -p udp -m udp --dport 1:65535 -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
+-A OUTPUT -o fwTestIn -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
+EOF
+
+if ! lift $jtPath start $jail sh /home/singleTest.sh /home/firewallCmd /home/firewallExpectedInstr /home/firewallExpectedIptablesRules 2>/dev/null; then
+	echo "Simple blockAll test failed"
 	exit 1
 fi
+# simple blockAll test end
 
-# test if the check functionnality works correctly
-cat - > $jail/root/home/currentTest.sh << EOF
-. /home/testUtils.sh
-
-cd /home
-
-fwInstrPath=/tmp/firewallInstructions.txt
-
-[ -e \$fwInstrPath ] && rm \$fwInstrPath
-
+# blockAll checks test
+cat - > $jail/root/home/firewallCmd << EOF
 sh /home/firewallFront.sh \$fwInstrPath firewall -c blockAll fwTestIn fwTestIn && exit 1
-
-
 sh /home/firewallFront.sh \$fwInstrPath firewall blockAll fwTestIn fwTestIn
-
-if [ ! -e \$fwInstrPath ]; then
-	echo "file '\$fwInstrPath' should exist but it doesn't"
-	exit 1
-fi
-
-if ! cat \$fwInstrPath | grep -q "firewall /tmp/firewallInstructions.txt external blockAll fwTestIn fwTestIn;"; then
-	echo "The file firewallInstructions.txt has an unexpected content '\$(cat \$fwInstrPath)'"
-	exit 1
-fi
-
 sh /home/firewallFront.sh \$fwInstrPath firewall -c blockAll fwTestIn fwTestIn || exit 1
+EOF
 
-expectedResultLines=\$(cat - << HEREDOC
+cat - > $jail/root/home/firewallExpectedInstr << EOF
+firewall /tmp/firewallInstructions.txt external blockAll fwTestIn fwTestIn;
+EOF
+
+cat - > $jail/root/home/firewallExpectedIptablesRules << EOF
 -A INPUT -i fwTestIn -p tcp -m tcp --dport 1:65535 -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
 -A INPUT -i fwTestIn -p udp -m udp --dport 1:65535 -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
 -A OUTPUT -o fwTestIn -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
-HEREDOC
-)
-
-result=\$(iptables-save)
-IFS="
-"
-if ! checkLines "\$expectedResultLines" "\$result"; then
-	echo "result from iptables-save : '\$result'"
-	exit 1
-fi
 EOF
 
-if ! lift $jtPath start $jail sh /home/currentTest.sh 2>/dev/null; then
-	echo "The check functionnality does not work correctly"
+if ! lift $jtPath start $jail sh /home/singleTest.sh /home/firewallCmd /home/firewallExpectedInstr /home/firewallExpectedIptablesRules 2>/dev/null; then
+	echo "blockAll checks test failed"
 	exit 1
 fi
+# blockAll checks test
 
-
-# check for duplication when running blockAll twice
-
-cat - > $jail/root/home/currentTest2.sh << EOF
-. /home/testUtils.sh
-
-cd /home
-
-fwInstrPath=/tmp/firewallInstructions.txt
-
-[ -e \$fwInstrPath ] && rm \$fwInstrPath
-
+# blockAll duplication test
+cat - > $jail/root/home/firewallCmd << EOF
 sh /home/firewallFront.sh \$fwInstrPath firewall blockAll fwTestIn fwTestIn
 sh /home/firewallFront.sh \$fwInstrPath firewall blockAll fwTestIn fwTestIn
+EOF
 
-if [ ! -e \$fwInstrPath ]; then
-	echo "file '\$fwInstrPath' should exist but it doesn't"
-	exit 1
-fi
+cat - > $jail/root/home/firewallExpectedInstr << EOF
+firewall /tmp/firewallInstructions.txt external blockAll fwTestIn fwTestIn;
+EOF
 
-if ! cat \$fwInstrPath | grep -q "firewall /tmp/firewallInstructions.txt external blockAll fwTestIn fwTestIn;"; then
-	echo "The file firewallInstructions.txt has an unexpected content '\$(cat \$fwInstrPath)'"
-	exit 1
-fi
-
-expectedResultLines=\$(cat - << HEREDOC
+cat - > $jail/root/home/firewallExpectedIptablesRules << EOF
 -A INPUT -i fwTestIn -p tcp -m tcp --dport 1:65535 -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
 -A INPUT -i fwTestIn -p udp -m udp --dport 1:65535 -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
 -A OUTPUT -o fwTestIn -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
-HEREDOC
-)
-
-result=\$(iptables-save)
-IFS="
-"
-if ! checkLines "\$expectedResultLines" "\$result"; then
-	echo "result from iptables-save : '\$result'"
-	exit 1
-fi
 EOF
 
-if ! lift $jtPath start $jail sh /home/currentTest2.sh 2>/dev/null; then
-	echo "Duplicate check blockAll failed"
+if ! lift $jtPath start $jail sh /home/singleTest.sh /home/firewallCmd /home/firewallExpectedInstr /home/firewallExpectedIptablesRules 2>/dev/null; then
+	echo "blockAll duplication test failed"
 	exit 1
 fi
+# blockAll duplication test end
 
-# check for duplication when running blockAll twice
-# we remove the entry from the instruction file.
-
-cat - > $jail/root/home/currentTest3.sh << EOF
-. /home/testUtils.sh
-
-cd /home
-
-fwInstrPath=/tmp/firewallInstructions.txt
-
-[ -e \$fwInstrPath ] && rm \$fwInstrPath
-
+# blockAll duplication with the instruction file removed
+cat - > $jail/root/home/firewallCmd << EOF
 sh /home/firewallFront.sh \$fwInstrPath firewall blockAll fwTestIn fwTestIn
 
 # we remove the entry to see if the function can detect that
 # the entries are already there without using the instructions file.
 [ -e \$fwInstrPath ] && rm \$fwInstrPath
 sh /home/firewallFront.sh \$fwInstrPath firewall blockAll fwTestIn fwTestIn
+EOF
 
-if [ ! -e \$fwInstrPath ]; then
-	echo "file '\$fwInstrPath' should exist but it doesn't"
-	exit 1
-fi
+cat - > $jail/root/home/firewallExpectedInstr << EOF
+EOF
 
-# we expect the file to contain nothing
-if test -s \$fwInstrPath; then
-	echo "The file firewallInstructions.txt has an unexpected content '\$(cat \$fwInstrPath)'"
-	exit 1
-fi
-
-expectedResultLines=\$(cat - << HEREDOC
+cat - > $jail/root/home/firewallExpectedIptablesRules << EOF
 -A INPUT -i fwTestIn -p tcp -m tcp --dport 1:65535 -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
 -A INPUT -i fwTestIn -p udp -m udp --dport 1:65535 -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
 -A OUTPUT -o fwTestIn -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
-HEREDOC
-)
-
-result=\$(iptables-save)
-IFS="
-"
-if ! checkLines "\$expectedResultLines" "\$result"; then
-	echo "result from iptables-save : '\$result'"
-	exit 1
-fi
 EOF
 
-if ! lift $jtPath start $jail sh /home/currentTest3.sh 2>/dev/null; then
-	echo "Duplicate check blockAll failed after entry removed from the instruction file"
+if ! lift $jtPath start $jail sh /home/singleTest.sh /home/firewallCmd /home/firewallExpectedInstr /home/firewallExpectedIptablesRules 2>/dev/null; then
+	echo "blockAll duplication with the instruction file removed test failed"
 	exit 1
 fi
+# blockAll duplication with the instruction file removed end
 
 exit 0
