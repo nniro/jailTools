@@ -4,9 +4,7 @@ sh=$1
 testPath=$2
 jtPath=$3
 
-lift() {
-	echo "$@" > $testPath/../fifo
-}
+. $testPath/../../utils/utils.sh
 
 cd $testPath/basic
 if [ -e run/jail.pid ]; then
