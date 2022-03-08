@@ -32,9 +32,9 @@ fi
 
 # blockAll checks test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall -c blockAll fwTestIn fwTestIn && exit 1
+sh /home/firewallFront.sh \$fwInstrPath firewall -c blockAll fwTestIn fwTestIn >&2 && exit 1
 sh /home/firewallFront.sh \$fwInstrPath firewall blockAll fwTestIn fwTestIn
-sh /home/firewallFront.sh \$fwInstrPath firewall -c blockAll fwTestIn fwTestIn || exit 1
+sh /home/firewallFront.sh \$fwInstrPath firewall -c blockAll fwTestIn fwTestIn >&2 || exit 1
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
