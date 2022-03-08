@@ -136,5 +136,8 @@ EOF
 # test blockAll
 $sh $thisPath/blockAllTest.sh $sh $testPath $jtPath $jail $bb $thisPath || exit 1
 
+# test openPort tcp and udp
+$sh $thisPath/openPortTest.sh tcp $sh $testPath $jtPath $jail $bb $thisPath || exit 1
+$sh $thisPath/openPortTest.sh udp $sh $testPath $jtPath $jail $bb $thisPath || exit 1
 
 exit 0
