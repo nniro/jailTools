@@ -100,12 +100,12 @@ fi
 if ! test -s \$expectedInstrRuleFile; then
 	# we expect the instruction file to contain nothing
 	if test -s \$fwInstrPath; then
-		echo "The file firewallInstructions.txt has an unexpected content '\$(cat \$fwInstrPath)'"
+		echo "The file firewallInstructions.txt should be empty but it has an unexpected content '\$(cat \$fwInstrPath)'"
 		exit 1
 	fi
 else
 	if ! cat \$fwInstrPath | grep -q "^\$(cat \$expectedInstrRuleFile)$"; then
-		echo "The file firewallInstructions.txt has an unexpected content '\$(cat \$fwInstrPath)'"
+		echo "The file firewallInstructions.txt should be '\$(cat \$expectedInstrRuleFile)' has an unexpected content '\$(cat \$fwInstrPath)'"
 		exit 1
 	fi
 fi
@@ -113,11 +113,12 @@ fi
 result=\$(iptables-save)
 IFS="
 "
-checkLines "\$(cat \$expectedIptablesRulesFile)" "\$result"
+output=\$(checkLines "\$(cat \$expectedIptablesRulesFile)" "\$result")
 _err=\$?
 
 if [ "\$deleteMode" = "false" ]; then
 	if [ \$((\$_err >= 1)) = 1 ]; then
+		echo \$output
 		echo "result from iptables-save : '\$result'"
 		exit 1
 	fi
