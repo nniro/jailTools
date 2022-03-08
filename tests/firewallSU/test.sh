@@ -36,18 +36,20 @@ $jtPath config $jail -s setNetAccess false >/dev/null 2>/dev/null
 
 cat - > $jail/root/home/testUtils.sh << EOF
 checkLines() {
+	local _err=0
         for l in \$1; do
                 #echo "entry : '\$l'"
                 count=\$(printf "%s" "\$2" | grep -- "^\$l$" | wc -l)
 
                 if [ "\$count" = "0" ]; then
                         echo "\$l - Not present"
-                        return 1
+			[ "\$_err" = "0" ] && _err=1
                 elif [ \$((\$count > 1)) = 1 ]; then
                         echo "\$l - More than one entry detected"
-                        return 2
+			[ "\$_err" = "0" ] && _err=2
                 fi
         done
+	return \$_err
 }
 EOF
 
