@@ -140,4 +140,8 @@ $sh $thisPath/blockAllTest.sh $sh $testPath $jtPath $jail $bb $thisPath || exit 
 $sh $thisPath/openPortTest.sh tcp $sh $testPath $jtPath $jail $bb $thisPath || exit 1
 $sh $thisPath/openPortTest.sh udp $sh $testPath $jtPath $jail $bb $thisPath || exit 1
 
+# test allowConnection tcp and udp
+$sh $thisPath/allowConnectionTest.sh tcp $sh $testPath $jtPath $jail $bb $thisPath || exit 1
+$sh $thisPath/allowConnectionTest.sh udp $sh $testPath $jtPath $jail $bb $thisPath || exit 1
+
 exit 0
