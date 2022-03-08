@@ -301,6 +301,7 @@ firewall() {
 			esac
 
 			$fwCmd $t OUTPUT -p $1 -o $2 -d $3 --dport $4 -j ACCEPT >/dev/null 2>/dev/null
+			[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
 		;;
 
 		"allowTcpConnection")
