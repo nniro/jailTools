@@ -141,7 +141,7 @@ cat - > $jail/root/home/runTest.sh << EOF
 
 sh /home/singleTest.sh /home/firewallCmd /home/firewallExpectedInstr /home/firewallExpectedIptablesRules
 
-echo Now we delete the inserted rules >&2
+# Now we delete the inserted rules
 
 sh /home/singleTest.sh -d /home/firewallDeleteCmd /home/firewallExpectedDeleteInstr /home/firewallExpectedIptablesRules
 EOF
@@ -278,7 +278,7 @@ cat - > $jail/root/home/runTest.sh << EOF
 
 sh /home/singleTest.sh /home/firewallCmd /home/firewallExpectedInstr /home/firewallExpectedIptablesRules
 
-echo Now we delete the inserted rules >&2
+# Now we delete the inserted rules
 
 sh /home/singleTest.sh -d /home/firewallDeleteCmd /home/firewallExpectedDeleteInstr /home/firewallExpectedIptablesRules
 EOF
