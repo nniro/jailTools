@@ -2,6 +2,9 @@
 #	*jailNet
 #	bb
 #	nsBB
+#
+#	ipInt
+#	ipIntBitmask
 
 bb="$BB"
 shower="$JT_SHOWER"
