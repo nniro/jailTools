@@ -2,9 +2,6 @@
 #	*jailNet
 #	bb
 #	nsBB
-#
-#	ipInt
-#	ipIntBitmask
 
 bb="$BB"
 shower="$JT_SHOWER"
@@ -414,7 +411,13 @@ firewall() {
 		;;
 
 		"snat")
-			parseArgs "snat" "'the interface connected to the outbound network' 'the interface from which the packets originate'" $arguments || return 1
+			if [ "$ipInt" != "" ] && [ "$ipIntBitmask" != "" ]; then
+				parseArgs "snat" "'the interface connected to the outbound network' 'the interface from which the packets originate'" $arguments || return 1
+			else
+				parseArgs "snat" "'the interface connected to the outbound network' 'the interface from which the packets originate' 'the IP of the jail' 'the bitmask of the IP of the jail'" $arguments || return 1
+				ipInt=$3
+				ipIntBitmask=$4
+			fi
 			upstream=$1 # the snat goes through here
 			downstream=$2 # this is the device to snat
 
