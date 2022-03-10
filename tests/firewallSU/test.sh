@@ -148,4 +148,7 @@ $sh $thisPath/allowConnectionTest.sh udp $sh $testPath $jtPath $jail $bb $thisPa
 $sh $thisPath/dnatTest.sh tcp $sh $testPath $jtPath $jail $bb $thisPath || exit 1
 $sh $thisPath/dnatTest.sh udp $sh $testPath $jtPath $jail $bb $thisPath || exit 1
 
+# test snat
+$sh $thisPath/snatTest.sh $sh $testPath $jtPath $jail $bb $thisPath || exit 1
+
 exit 0
