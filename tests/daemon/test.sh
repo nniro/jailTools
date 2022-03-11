@@ -25,16 +25,16 @@ resetConfig() {
 
 doCheck() {
 	jail=$1
-	echo giving 8 seconds maximum timeout for the jail to start the daemon
+	# giving 8 seconds maximum timeout for the jail to start the daemon
 	timeout 8 sh -c 'while :; do if [ -e run/jail.pid ]; then break; fi ; sleep 0.5 ; done'
-	echo 8 seconds timeout is done
+	# 8 seconds timeout is done
 	if [ ! -e $jail/run/jail.pid ]; then
-		echo "The daemonized jail is not running, missing $jail/run/jail.pid" 2>&1
-		exit 1
+		echo "The daemonized jail is not running, missing $jail/run/jail.pid"
+		return 1
 	fi
-	echo "the jail is running"
+	#echo "the jail is running"
 
-	echo "Testing to see if the httpd service is running"
+	#echo "Testing to see if the httpd service is running"
 	pstree $(cat $jail/run/jail.pid) | grep -q httpd
 	err=$?
 
@@ -47,91 +47,118 @@ doCheck() {
 		echo "jail pid : $(cat $jail/run/jail.pid) - ns pid : $(cat $jail/run/ns.pid)"
 		echo "stopping the jail"
 		$jtPath stop $jail 2>&1
-		exit 1
+		return 1
 	fi
-	echo "success"
+	#echo "success"
+	return 0
 }
 
-$jtPath new $jail >/dev/null 2>&1 || exit 1
+$jtPath new $jail >/dev/null 2>/dev/null || exit 1
 
-echo "Starting a daemonized httpd server from the command line"
-$jtPath config $jail -s jailNet true
-$jtPath config $jail -s setNetAccess false
-timeout 5 $jtPath daemon $jail /usr/sbin/httpd -p 8000 2>&1 || exit 1
-doCheck $jail
-$jtPath stop $jail 2>&1
+# directly
+$jtPath config $jail -s jailNet true >/dev/null
+$jtPath config $jail -s setNetAccess false >/dev/null
+if ! $jtPath daemon $jail /usr/sbin/httpd -p 8000 2>&1; then
+	echo "Failed to start a daemonized httpd server from the command line"
+	exit 1
+fi
+doCheck $jail || exit 1
+$jtPath stop $jail 2>/dev/null
 resetConfig $jail
 
-echo "Starting an httpd server under a shell from the command line"
-$jtPath config $jail -s jailNet true
-$jtPath config $jail -s setNetAccess false
-timeout 5 $jtPath daemon $jail sh -c '/usr/sbin/httpd -p 8000' 2>&1 || exit 1
-doCheck $jail
-$jtPath stop $jail 2>&1
+# with a shell
+$jtPath config $jail -s jailNet true >/dev/null
+$jtPath config $jail -s setNetAccess false >/dev/null
+if ! $jtPath daemon $jail sh -c '/usr/sbin/httpd -p 8000' 2>&1; then
+	echo "Failed to start an httpd server under a shell from the command line"
+	exit 1
+fi
+doCheck $jail || exit 1
+$jtPath stop $jail 2>/dev/null
 resetConfig $jail
 
-echo "Testing standard daemon with a direct command put in the background"
-$jtPath config $jail -s jailNet true
-$jtPath config $jail -s setNetAccess false
-$jtPath config $jail -s daemonCommand "/usr/sbin/httpd -p 8000"
-timeout 5 $jtPath daemon $jail 2>&1 || exit 1
-doCheck $jail
-$jtPath stop $jail 2>&1
+# with the daemonCommand config in the background
+$jtPath config $jail -s jailNet true >/dev/null
+$jtPath config $jail -s setNetAccess false >/dev/null
+$jtPath config $jail -s daemonCommand "/usr/sbin/httpd -p 8000" >/dev/null
+if ! $jtPath daemon $jail 2>&1; then
+	echo "Failed to start a daemon in the daemonCommand config put in the background"
+	exit 1
+fi
+doCheck $jail || exit 1
+$jtPath stop $jail 2>/dev/null
 resetConfig $jail
 
-echo "Testing standard daemon with a direct command put in the foreground"
-$jtPath config $jail -s jailNet true
-$jtPath config $jail -s setNetAccess false
-$jtPath config $jail -s daemonCommand "/usr/sbin/httpd -p 8000 -f"
-timeout 5 $jtPath daemon $jail 2>&1 || exit 1
-doCheck $jail
-$jtPath stop $jail 2>&1
+# with the daemonCommand config in the foreground
+$jtPath config $jail -s jailNet true >/dev/null
+$jtPath config $jail -s setNetAccess false >/dev/null
+$jtPath config $jail -s daemonCommand "/usr/sbin/httpd -p 8000 -f" >/dev/null
+if ! $jtPath daemon $jail 2>&1; then
+	echo "Failed to start a daemon in the daemonCommand config put in the foreground"
+	exit 1
+fi
+doCheck $jail || exit 1
+$jtPath stop $jail 2>/dev/null
 resetConfig $jail
 
-echo "Testing daemon with a shell that calls the command single quoted and is put in the background"
-$jtPath config $jail -s jailNet true
-$jtPath config $jail -s setNetAccess false
-$jtPath config $jail -s daemonCommand "sh -c '/usr/sbin/httpd -p 8000'"
-timeout 5 $jtPath daemon $jail 2>&1 || exit 1
-doCheck $jail
-$jtPath stop $jail 2>&1
+# with the daemonCommand config single quoted as a shell in the background
+$jtPath config $jail -s jailNet true >/dev/null
+$jtPath config $jail -s setNetAccess false >/dev/null
+$jtPath config $jail -s daemonCommand "sh -c '/usr/sbin/httpd -p 8000'" >/dev/null
+if ! $jtPath daemon $jail 2>&1; then
+	echo "Failed to start a daemon with a shell that calls the command single quoted and is put in the background"
+	exit 1
+fi
+doCheck $jail || exit 1
+$jtPath stop $jail 2>/dev/null
 resetConfig $jail
 
-echo "Testing daemon with a shell that calls the command single quoted and is put in the foreground"
-$jtPath config $jail -s jailNet true
-$jtPath config $jail -s setNetAccess false
-$jtPath config $jail -s daemonCommand "sh -c '/usr/sbin/httpd -p 8000 -f'"
-timeout 5 $jtPath daemon $jail 2>&1 || exit 1
-doCheck $jail
-$jtPath stop $jail 2>&1
+# with the daemonCommand config single quoted as a shell in the foreground
+$jtPath config $jail -s jailNet true >/dev/null
+$jtPath config $jail -s setNetAccess false >/dev/null
+$jtPath config $jail -s daemonCommand "sh -c '/usr/sbin/httpd -p 8000 -f'" >/dev/null
+if ! $jtPath daemon $jail 2>&1; then
+	echo "Failed to start a daemon with a shell that calls the command single quoted and is put in the foreground"
+	exit 1
+fi
+doCheck $jail || exit 1
+$jtPath stop $jail 2>/dev/null
 resetConfig $jail
 
-echo "Testing daemon with a shell that calls the command double quoted and is put in the background"
-$jtPath config $jail -s jailNet true
-$jtPath config $jail -s setNetAccess false
-$jtPath config $jail -s daemonCommand 'sh -c "/usr/sbin/httpd -p 8000"'
-cat $jail/rootCustomConfig.sh | grep daemonCommand
-timeout 5 $jtPath daemon $jail 2>&1 || exit 1
-doCheck $jail
-$jtPath stop $jail 2>&1
+# with the daemonCommand config double quoted as a shell in the foreground
+$jtPath config $jail -s jailNet true >/dev/null
+$jtPath config $jail -s setNetAccess false >/dev/null
+$jtPath config $jail -s daemonCommand 'sh -c "/usr/sbin/httpd -p 8000"' >/dev/null
+if ! $jtPath daemon $jail 2>&1; then
+	echo "Failed to start a daemon with a shell that calls the command double quoted and is put in the background"
+	exit 1
+fi
+doCheck $jail || exit 1
+$jtPath stop $jail 2>/dev/null
 resetConfig $jail
 
-echo "Testing daemon with a shell that calls the command double quoted and is put in the foreground"
-$jtPath config $jail -s jailNet true
-$jtPath config $jail -s setNetAccess false
-$jtPath config $jail -s daemonCommand 'sh -c "/usr/sbin/httpd -p 8000 -f"'
-timeout 5 $jtPath daemon $jail 2>&1 || exit 1
-doCheck $jail
-$jtPath stop $jail 2>&1
+# with the daemonCommand config double quoted as a shell in the foreground
+$jtPath config $jail -s jailNet true >/dev/null
+$jtPath config $jail -s setNetAccess false >/dev/null
+$jtPath config $jail -s daemonCommand 'sh -c "/usr/sbin/httpd -p 8000 -f"' >/dev/null
+if ! $jtPath daemon $jail 2>&1; then
+	echo "Failed to start a daemon with a shell that calls the command double quoted and is put in the foreground"
+	exit 1
+fi
+doCheck $jail || exit 1
+$jtPath stop $jail 2>/dev/null
 resetConfig $jail
 
-echo "Testing daemon with a shell that calls multiple instructions"
-$jtPath config $jail -s jailNet true
-$jtPath config $jail -s setNetAccess false
-$jtPath config $jail -s daemonCommand 'sh -c "cd /usr/sbin/; ./httpd -p 8000 -f"'
-timeout 5 $jtPath daemon $jail 2>&1 || exit 1
-doCheck $jail
-$jtPath stop $jail 2>&1
+# with the daemonCommand config with multiple instructions
+$jtPath config $jail -s jailNet true >/dev/null
+$jtPath config $jail -s setNetAccess false >/dev/null
+$jtPath config $jail -s daemonCommand 'sh -c "cd /usr/sbin/; ./httpd -p 8000 -f"' >/dev/null
+if ! $jtPath daemon $jail 2>&1; then
+	echo "Failed to start a daemon with a shell that calls multiple instructions"
+	exit 1
+fi
+doCheck $jail || exit 1
+$jtPath stop $jail 2>/dev/null
 resetConfig $jail
 
 exit 0
