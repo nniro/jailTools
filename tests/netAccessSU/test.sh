@@ -36,7 +36,7 @@ echo "nameserver 1.1.1.1" > $jail/root/etc/resolv.conf
 echo 'printf "GET / HTTP/1.1\r\nHost: kernel.org\r\n\r\n" | timeout 2 ssl_client kernel.org | grep -q ".*"' > $jail/root/home/test3.sh
 
 if lift $jtPath start $jail sh /home/test3.sh 2>/dev/null; then
-	echo "With setNetAccess set to 'false' we should not be able to connect to the remote site linux.org"
+	echo "With setNetAccess set to 'false' we should not be able to connect to the remote site kernel.org"
 	exit 1
 fi
 
