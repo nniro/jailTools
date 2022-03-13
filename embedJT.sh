@@ -160,7 +160,7 @@ case \$cmd in
 	;;
 esac
 
-$(cat $ownPath/scripts/jailtools.template.sh | sed -ne '/^@EMBEDDEDFILES_LOCATION@/ {s/.*// ; :e ; $ {p; q}; N; be}')
+$(cat $ownPath/scripts/jailtools.template.sh | sed -ne '/^@EMBEDDEDFILES_LOCATION@/ { s/.*// ; :e ; $ { p; q }; N; be }')
 EOF
 
 }
