@@ -37,7 +37,6 @@ cpDep.sh jt_cpDep
 jailUpgrade.sh jt_upgrade
 newJail.sh jt_new
 utils.sh jt_utils
-paths.sh jt_paths
 jailLib.template.sh jt_jailLib_template
 startRoot.template.sh jt_startRoot_template
 filesystem.template.sh jt_filesystem_template
