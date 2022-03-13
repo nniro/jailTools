@@ -10,7 +10,7 @@ tf=tests
 # POWERBOX
 user=
 
-. ../scripts/paths.sh # this sets the variable 'bb'
+bb="$PWD/../build/busybox/busybox"
 
 privileged=0
 

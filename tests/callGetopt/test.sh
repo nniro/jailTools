@@ -7,7 +7,7 @@ testPath=$2
 jtPath=$3
 scriptsPath=../scripts
 
-. $scriptsPath/paths.sh # set the bb variable
+bb=$testPath/../bin/busybox
 
 . $scriptsPath/utils.sh
 
