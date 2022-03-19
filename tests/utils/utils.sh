@@ -25,3 +25,31 @@ printGreen() {
 printRed() {
 	printf "\033[38;5;1m$@\033[0m\n"
 }
+
+# use this to implement tests within tests.
+subTest() {
+	testDescription=$1
+	shift
+
+	printf "\t$testDescription : " >&2
+
+	if $@; then
+		printGreen "passed" >&2
+		return 0
+	else
+		printRed "failed" >&2
+		return 1
+	fi
+}
+
+# for subtests, this is for the starting test
+subTestStart() {
+	printf "\n" >&2
+	subTest $@
+}
+
+# for subtests, this is for the ending test
+subTestEnd() {
+	subTest $@
+	printf "\tAll subtests : " >&2
+}
