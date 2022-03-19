@@ -13,3 +13,13 @@ lift() {
 	cat $stderr >&2
 	return $(cat $retval)
 }
+
+# print green text
+printGreen() {
+	printf "\033[38;5;10m$@\033[0m\n"
+}
+
+# print red text
+printRed() {
+	printf "\033[38;5;1m$@\033[0m\n"
+}
