@@ -14,6 +14,8 @@ $jtPath new $jail >/dev/null 2>/dev/null || exit 1
 # or at least check that the IP 172.31.254.x is not being used
 $jtPath config $jail --set extIp "172.31.254.1" >/dev/null || exit 1
 
+$jtPath config $jail --set setNetAccess "true" >/dev/null || exit 1
+
 echo 'printf "GET / HTTP/1.1\r\nHost: 1.1.1.1\r\n\r\n" | timeout 2 ssl_client 1.1.1.1 | grep -q ".*"' > $jail/root/home/test1.sh
 
 if ! lift $jtPath start $jail sh /home/test1.sh 2>/dev/null; then
