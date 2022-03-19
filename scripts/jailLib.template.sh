@@ -179,6 +179,11 @@ mountSingle() {
 	local dst="$3"
 	shift 3
 
+	if [ "$rootDir" = "" ] || [ "$src" = "" ] || [ "$dst" = "" ]; then
+		echo "mountSingle - The three arguments to the function : rootDir src dst  are mandatory, they all must be filled."
+		exit 1
+	fi
+
 	[ ! -e $src ] && echo "mountSingle - Warning - source file or directory '$src' does not exist" >&2 && return
 
 	echo $dst | $bb grep -q "^/" || dst="/$dst" # we expect a starting '/'
