@@ -6,6 +6,8 @@ jtPath=$3
 
 jail=$testPath/netAccessSU
 
+bb=$testPath/../bin/busybox
+
 . $testPath/../../utils/utils.sh
 
 $jtPath new $jail >/dev/null 2>/dev/null || exit 1
@@ -50,5 +52,26 @@ if ! lift $jtPath start $jail sh /home/test4.sh 2>/dev/null; then
 	echo "Could not connect to the remote site linux.org"
 	exit 1
 fi
+
+# this may be a test not fitting here
+# this tests if a reentry shell gets exactly the same network namespace
+# as the started jail daemon.
+
+$jtPath config $jail --set setNetAccess "true" >/dev/null || exit 1
+
+lift $jtPath daemon $jail 2>/dev/null || exit 1
+
+hostInterfaces="$($bb ip addr show up | $bb sed -ne '/^[0-9]\+:/ p')"
+
+jailInterfaces="$($jtPath shell $jail sh -c '/sbin/ip addr | sed -ne "/^[0-9]\+:/ p"' 2>/dev/null)"
+
+if [ "$jailInterfaces" = "$hostInterfaces" ] ; then
+	echo "the shell reentry should be part of the network namespace but it is not."
+	echo "jail interfaces\n '$jailInterfaces' \nand the host interfaces\n '$hostInterfaces'"
+	lift $jtPath stop $jail 2>/dev/null
+	exit 1
+fi
+
+lift $jtPath stop $jail 2>/dev/null
 
 exit 0
