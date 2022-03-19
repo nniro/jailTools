@@ -134,21 +134,21 @@ fi
 EOF
 
 # test blockAll
-$sh $thisPath/blockAllTest.sh $sh $testPath $jtPath $jail $bb $thisPath || exit 1
+subTestStart "blockAll" $sh $thisPath/blockAllTest.sh $sh $testPath $jtPath $jail $bb $thisPath || exit 1
 
 # test openPort tcp and udp
-$sh $thisPath/openPortTest.sh tcp $sh $testPath $jtPath $jail $bb $thisPath || exit 1
-$sh $thisPath/openPortTest.sh udp $sh $testPath $jtPath $jail $bb $thisPath || exit 1
+subTest "openPort tcp" $sh $thisPath/openPortTest.sh tcp $sh $testPath $jtPath $jail $bb $thisPath || exit 1
+subTest "openPort udp" $sh $thisPath/openPortTest.sh udp $sh $testPath $jtPath $jail $bb $thisPath || exit 1
 
 # test allowConnection tcp and udp
-$sh $thisPath/allowConnectionTest.sh tcp $sh $testPath $jtPath $jail $bb $thisPath || exit 1
-$sh $thisPath/allowConnectionTest.sh udp $sh $testPath $jtPath $jail $bb $thisPath || exit 1
+subTest "allowConnection tcp" $sh $thisPath/allowConnectionTest.sh tcp $sh $testPath $jtPath $jail $bb $thisPath || exit 1
+subTest "allowConnection udp" $sh $thisPath/allowConnectionTest.sh udp $sh $testPath $jtPath $jail $bb $thisPath || exit 1
 
 # test dnat tcp and udp
-$sh $thisPath/dnatTest.sh tcp $sh $testPath $jtPath $jail $bb $thisPath || exit 1
-$sh $thisPath/dnatTest.sh udp $sh $testPath $jtPath $jail $bb $thisPath || exit 1
+subTest "dnat tcp" $sh $thisPath/dnatTest.sh tcp $sh $testPath $jtPath $jail $bb $thisPath || exit 1
+subTest "dnat udp" $sh $thisPath/dnatTest.sh udp $sh $testPath $jtPath $jail $bb $thisPath || exit 1
 
 # test snat
-$sh $thisPath/snatTest.sh $sh $testPath $jtPath $jail $bb $thisPath || exit 1
+subTestEnd "snat" $sh $thisPath/snatTest.sh $sh $testPath $jtPath $jail $bb $thisPath || exit 1
 
 exit 0
