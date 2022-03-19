@@ -554,7 +554,7 @@ firewallCLI() {
 	fi
 
 	help() {
- 	       echo "Valid commands : firewall | check | reset"
+		echo "Valid commands : <firewall|f|command|cmd> | check | reset"
 	}
 
 	cmd=$1
@@ -564,7 +564,7 @@ firewallCLI() {
 	                help
 	        ;;
 
-	        firewall)
+	        firewall|f|command|cmd)
 	                firewall $instrFile external $@
 	        ;;
 
