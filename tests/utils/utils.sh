@@ -5,6 +5,8 @@ retval=$testPath/../pbRetval
 stdout=$testPath/../pbStdout
 stderr=$testPath/../pbStderr
 
+# send commands to the powerbox.
+# only jt commands are accepted. (for now)
 lift() {
 	echo "$@" | sed -e 's/ /%20/g' >$cmd
 	r=$(timeout 30 cat $cmd)
