@@ -8,6 +8,8 @@ jtPath=$3
 
 jail=$testPath/jtConfig
 
+bb=$testPath/../bin/busybox
+
 $jtPath new $jail 2>&1 >/dev/null || exit 1
 
 testGet() {
@@ -34,7 +36,7 @@ testGet() {
 	err=$?
 
 	if [ "$resultFilter" != "" ]; then
-		result=$(printf "%s" "$result" | sed $resultFilter)
+		result=$(printf "%s" "$result" | $bb sed $resultFilter)
 	fi
 
 
@@ -45,7 +47,7 @@ testGet() {
 		return 1
 	fi
 
-	if printf "%s" "$result" | grep -q "$expectedVal"; then
+	if printf "%s" "$result" | $bb grep -q "$expectedVal"; then
 		if [ "$reversed" = "true" ]; then
 			echo "Test : $description -- failed"
 			echo "We expected to fail but instead succeded"
@@ -59,11 +61,11 @@ testGet() {
 				confFile="rootCustomConfig.sh"
 			fi
 
-			result2=$(cat $confFile | sed -ne "/^$conf=.*$/ {s/^$conf=\"\(.*\)\"$/\1/ ; p}")
+			result2=$($bb cat $confFile | $bb sed -ne "/^$conf=.*$/ {s/^$conf=\"\(.*\)\"$/\1/ ; p}")
 			# in file, the '$' symbols will not be escaped, so we reflect that in our expectancy.
-			expectedVal=$(printf "%s" "$expectedVal" | sed -e 's/\\\\\$/$/g')
+			expectedVal=$(printf "%s" "$expectedVal" | $bb sed -e 's/\\\\\$/$/g')
 
-			if printf "%s" "$result2" | grep -q "$expectedVal"; then
+			if printf "%s" "$result2" | $bb grep -q "$expectedVal"; then
 				return 0
 			else
 				echo "Test : $description -- failed"
@@ -83,18 +85,18 @@ testGet() {
 cd $jail
 
 # Checking if the command 'config' exists
-$jtPath config 2>&1 | grep -q 'Invalid command' && exit 1
+$jtPath config 2>&1 | $bb grep -q 'Invalid command' && exit 1
 
 testGet "Checking if the latest jail config can do config" "networking" "^true$" || exit 1
 
 # done a backup of rootCustomConfig.sh. Will manipulate 'Command part' to be like it was before the upgrade.
 cp rootCustomConfig.sh ._rootCustomConfig.sh.bak
-sed -e 's/^#* Command part #*/# Command part/' -i rootCustomConfig.sh
+$bb sed -e 's/^#* Command part #*/# Command part/' -i rootCustomConfig.sh
 testGet -r "initial test with networking" "networking" "" || exit 1
 cp ._rootCustomConfig.sh.bak rootCustomConfig.sh
 
 # Will now try to remove 'Command part' completely
-sed -e '/^#* Command part #*/ d' -i rootCustomConfig.sh
+$bb sed -e '/^#* Command part #*/ d' -i rootCustomConfig.sh
 testGet -r "second test with networking" "networking" "" || exit 1
 cp ._rootCustomConfig.sh.bak rootCustomConfig.sh
 
@@ -119,7 +121,7 @@ testGet -dp "default setNetAccess" "setNetAccess" "^false$" || exit 1
 testGet -p "networking" "networking" '^true$' || exit 1
 testGet -p "setNetAccess" "setNetAccess" '^true$' || exit 1
 
-devMountPoints=$(cat << EOF
+devMountPoints=$($bb cat << EOF
 /dev/dri
 /dev/snd
 /dev/input
@@ -135,7 +137,7 @@ testGet -dp "default extIp" "extIp" '^172.16.0.1$' || exit 1
 
 $jtPath config --set setNetAccess "true" >/dev/null || exit 1
 testGet -p "setNetAccess" "setNetAccess" '^true$' || exit 1
-cat rootCustomConfig.sh | grep -q '^setNetAccess="true"$' || exit 1
+$bb cat rootCustomConfig.sh | $bb grep -q '^setNetAccess="true"$' || exit 1
 testGet -dp "default setNetAccess" "setNetAccess" '^false$' || exit 1
 
 # mountSys (have to add to the custom config)
@@ -146,10 +148,10 @@ testGet -dp "mountSys" "mountSys" "^true$" || exit 1
 # createBridge (have to add to the custom config)
 $jtPath config --set createBridge "true" >/dev/null || exit 1
 testGet -p "createBridge (have to add to the custom config)" "createBridge" "^true$" || exit 1
-cat rootCustomConfig.sh | grep -q '^createBridge="true"$' || exit 1
+$bb cat rootCustomConfig.sh | $bb grep -q '^createBridge="true"$' || exit 1
 testGet -dp "createBridge (have to add to the custom config)" "createBridge" "^false$" || exit 1
 
-new_roMountPoints=$(cat << EOF
+new_roMountPoints=$($bb cat << EOF
 /ahah/bleh
 /dev
 /root
@@ -177,7 +179,7 @@ testGet -dp "default setNetAccess" "setNetAccess" "^false$" || exit 1
 testGet -p "networking" "networking" "^true$" || exit 1
 $jtPath config -d --set setNetAccess >/dev/null || exit 1
 testGet -dp "setNetAccess to default" "setNetAccess" "^false$" || exit 1
-devMountPoints=$(cat << EOF
+devMountPoints=$($bb cat << EOF
 /dev/dri
 /dev/snd
 /dev/input
@@ -203,12 +205,12 @@ testGet -p "without englobing quotes but with inner single quotes" "daemonComman
 
 $jtPath config --set daemonCommand -- sh -c "cd /usr/sbin; httpd -p 8000" >/dev/null || exit 1
 testGet -p "without englobing quotes, with inner double quotes and multiple instructions" "daemonCommand" "^sh -c 'cd /usr/sbin; httpd -p 8000'$" || exit 1
-cat rootCustomConfig.sh | grep -q "^daemonCommand=\"sh -c 'cd /usr/sbin; httpd -p 8000'\"$" || exit 1
+$bb cat rootCustomConfig.sh | $bb grep -q "^daemonCommand=\"sh -c 'cd /usr/sbin; httpd -p 8000'\"$" || exit 1
 
 # we basically convert all escaped '$' symbols to '@' and raise an error when '$' is detected after that
 testGet -rf 's/\\\$/@/g' "the '$' character must be escaped when outputted" "runEnvironment" '\$' || exit 1
 
-expectedResult="$($jtPath config --get runEnvironment | sed -e 's/\\/\\\\\\/g')"
+expectedResult="$($jtPath config --get runEnvironment | $bb sed -e 's/\\/\\\\\\/g')"
 $jtPath config --set runEnvironment "$expectedResult" >/dev/null
 testGet -p "set multiple arguments separated by spaces" "runEnvironment" "$expectedResult" || exit 1
 
