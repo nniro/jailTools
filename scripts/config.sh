@@ -42,7 +42,7 @@ getCoreVal() {
 	jailScript=$1
 	confVal=$2
 
-	res1=$(cat $jailScript | $bb grep "^$confVal")
+	res1=$($bb grep "^$confVal" $jailScript)
 
 	[ "$res1" = "" ] && return 1
 
@@ -77,7 +77,7 @@ setCoreVal() {
 
 	listConfigs $jailDir | $bb grep -q "$confVal" || return 1
 
-	res1=$(cat $jailScript | $bb grep "^$confVal")
+	res1=$($bb grep "^$confVal" $jailScript)
 
 	newVal="$($bb printf "%s" "$newVal" | $bb sed -e 's/\//%2f/g' | $bb sed -e ':e ; N ; $ { s/\n/%0a/g ; } ; be' | $bb sed -e 's/^"\([^"]*\)"$/\1/' | $bb sed -e "s/^'\([^']*\)'$/\1/")"
 
