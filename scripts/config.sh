@@ -11,13 +11,13 @@ runner="$JT_RUNNER"
 eval "$($shower jt_utils)"
 
 
-if cat $jailDir/rootCustomConfig.sh | grep -q '^# Command part$'; then
+if $bb cat $jailDir/rootCustomConfig.sh | $bb grep -q '^# Command part$'; then
 	echo Please update your jail before you can use this command.
 	exit 1
 fi
 
 commandHeader='################# Command part #################'
-if cat $jailDir/rootCustomConfig.sh | grep -q "^$commandHeader$"; then
+if $bb cat $jailDir/rootCustomConfig.sh | $bb grep -q "^$commandHeader$"; then
 	:
 else
 	echo "There has been a modification to your rootCustomConfig.sh file that makes this functionality unable to do it's job"
@@ -28,7 +28,7 @@ fi
 listCore() {
 	jailScript=$1
 
-	cat $jailScript | sed -ne 's/^\([^# =]\+\)=.*$/\1/ p'
+	$bb cat $jailScript | $bb sed -ne 's/^\([^# =]\+\)=.*$/\1/ p'
 }
 
 listConfigs() {
@@ -42,14 +42,14 @@ getCoreVal() {
 	jailScript=$1
 	confVal=$2
 
-	res1=$(cat $jailScript | grep "^$confVal")
+	res1=$(cat $jailScript | $bb grep "^$confVal")
 
 	[ "$res1" = "" ] && return 1
 
-	if printf "%s" "$res1" | grep -q "EOF"; then
-		cat $jailScript | sed -ne "/^$confVal/ {s/.*//; be ; :e ; N; $ p; /EOF/ {s/EOF// ; p; b}; be}" | sed -e '/^$/ d'
+	if $bb printf "%s" "$res1" | $bb grep -q "EOF"; then
+		$bb cat $jailScript | $bb sed -ne "/^$confVal/ { s/.*// ; be ; :e ; N; $ p; /EOF/ { s/EOF// ; p; b; } ; be; }" | $bb sed -e '/^$/ d'
 	else
-		printf "%s\n" "$res1" | sed -ne "/^$confVal=[^ ]\+/ {s/^[^=]*=\(.*\)$/\1/ ; p}" | sed -e 's/^"\(.*\)"$/\1/' | sed -e 's/^\x27\(.*\)\x27$/\1/' | sed -e 's/\$/\\\$/g'
+		$bb printf "%s\n" "$res1" | $bb sed -ne "/^$confVal=[^ ]\+/ { s/^[^=]*=\(.*\)$/\1/ ; p; }" | $bb sed -e 's/^"\(.*\)"$/\1/' | $bb sed -e 's/^\x27\(.*\)\x27$/\1/' | $bb sed -e 's/\$/\\\$/g'
 	fi
 }
 
@@ -64,7 +64,7 @@ getCurVal() {
 	jailDir=$1
 	confVal=$2
 
-	listConfigs $jailDir | grep -q "$confVal" || return 1
+	listConfigs $jailDir | $bb grep -q "$confVal" || return 1
 
 	getCoreVal $jailDir/rootCustomConfig.sh $confVal && return 0
 	getCoreVal $jailDir/rootDefaultConfig.sh $confVal
@@ -73,22 +73,22 @@ getCurVal() {
 setCoreVal() {
 	jailScript=$1
 	confVal=$2
-	newVal=$(printf "%s" "$3" | sed -e 's/%20/ /g')
+	newVal=$($bb printf "%s" "$3" | $bb sed -e 's/%20/ /g')
 
-	listConfigs $jailDir | grep -q "$confVal" || return 1
+	listConfigs $jailDir | $bb grep -q "$confVal" || return 1
 
-	res1=$(cat $jailScript | grep "^$confVal")
+	res1=$(cat $jailScript | $bb grep "^$confVal")
 
-	newVal="$(printf "%s" "$newVal" | sed -e 's/\//%2f/g' | sed -e ':e ; N ; $ {s/\n/%0a/g} ; be' | sed -e 's/^"\([^"]*\)"$/\1/' | sed -e "s/^'\([^']*\)'$/\1/")"
+	newVal="$($bb printf "%s" "$newVal" | $bb sed -e 's/\//%2f/g' | $bb sed -e ':e ; N ; $ { s/\n/%0a/g ; } ; be' | $bb sed -e 's/^"\([^"]*\)"$/\1/' | $bb sed -e "s/^'\([^']*\)'$/\1/")"
 
 	if [ "$res1" = "" ]; then # if the configuration was not already present, we add it
-		sed -e "s/$commandHeader/$confVal=\"$newVal\"\n\n$commandHeader/" -e 's/%2f/\//g' -i $jailScript
+		$bb sed -e "s/$commandHeader/$confVal=\"$newVal\"\n\n$commandHeader/" -e 's/%2f/\//g' -i $jailScript
 	else
-		if echo $res1 | grep -q "EOF"; then
-			sed -e "/^$confVal/ {s/.*// ; :e ; N; /EOF/ {s/.*/@CONFIG_CHANGE_ME@\\nEOF/ ; {:a ; N ; $ q; ba}}; be}" -i $jailScript
-			sed -e "s/@CONFIG_CHANGE_ME@/$confVal=$\(cat << EOF\\n$newVal/" -e 's/%2f/\//g' -e 's/%0a/\n/g' -i $jailScript
+		if echo $res1 | $bb grep -q "EOF"; then
+			$bb sed -e "/^$confVal/ { s/.*// ; :e ; N; /EOF/ { s/.*/@CONFIG_CHANGE_ME@\\nEOF/ ; { :a ; N ; $ q; ba; }}; be; }" -i $jailScript
+			$bb sed -e "s/@CONFIG_CHANGE_ME@/$confVal=$\(cat << EOF\\n$newVal/" -e 's/%2f/\//g' -e 's/%0a/\n/g' -i $jailScript
 		else
-			sed -e "s/^\($confVal\)=.*$/\1=\"$newVal\"/" -e 's/%2f/\//g' -i $jailScript
+			$bb sed -e "s/^\($confVal\)=.*$/\1=\"$newVal\"/" -e 's/%2f/\//g' -i $jailScript
 		fi
 	fi
 }
@@ -132,7 +132,8 @@ if [ "$?" = "0" ]; then
 
 	elif getVarVal 'setVal' "$result" >/dev/null ; then
 		curConf=$(getVarVal 'setVal' "$result")
-		confVal=$(getVarVal 'arg1Data' "$result" | sed -e 's/^\x27\(.*\)\x27$/\1/' | sed -e 's/"/\x27/g' | sed -e 's/%3B/;/g')
+		sQuote=$($bb printf "\x27")
+		confVal=$(getVarVal 'arg1Data' "$result" | $bb sed -e "s/^$sQuote\(.*\)$sQuote$/\1/" | $bb sed -e "s/\"/$sQuote/g" | $bb sed -e 's/%3B/;/g')
 
 		if getVarVal 'getDefaultVal' "$result" >/dev/null; then
 			echo "Setting the config $curConf to default value"
