@@ -582,7 +582,18 @@ runShell() {
 		shift
 	done
 
-	execRemNS $nsPid $bb sh -c "exec $bb unshare -U --map-user=$userUID --map-group=$userGID -R $rootDir/root $baseEnv $curArgs"
+	preUnshare=""
+	unshareArgs="-U --map-user=$userUID --map-group=$userGID"
+
+	if [ "$privileged" = "1" ]; then
+		if [ "$realRootInJail" = "true" ]; then
+			unshareArgs=""
+		else
+			preUnshare="$bb chpst -u $userCreds"
+		fi
+	fi
+
+	execRemNS $nsPid $bb sh -c "exec $bb $preUnshare unshare $unshareArgs -R $rootDir/root $baseEnv $curArgs"
 
 	return $?
 }
