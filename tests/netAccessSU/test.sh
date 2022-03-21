@@ -58,6 +58,7 @@ fi
 # as the started jail daemon.
 
 $jtPath config $jail --set setNetAccess "true" >/dev/null || exit 1
+$jtPath config $jail --set jailNet "true" >/dev/null || exit 1
 
 lift $jtPath daemon $jail 2>/dev/null || exit 1
 
