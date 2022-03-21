@@ -12,7 +12,7 @@ bb=$testPath/../bin/busybox
 
 . $testPath/../../utils/utils.sh
 
-$jtPath new $jail 2>/dev/null 2>/dev/null || exit 1
+$jtPath new $jail >/dev/null 2>/dev/null || exit 1
 
 uid=$(id -u)
 
@@ -33,7 +33,7 @@ fi
 
 # Setting the configuration : realRootInJail
 
-$jtPath config $jail -s realRootInJail true 2>/dev/null
+$jtPath config $jail -s realRootInJail true >/dev/null 2>/dev/null
 
 jUid=$(lift $jtPath start $jail id -u 2>/dev/null)
 
