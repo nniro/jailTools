@@ -51,6 +51,48 @@ if ! $bb stat -c %U $jail/root/home/testDir | grep -q root; then
 	exit 1
 fi
 
+# we test realRootInJail with a shell reentry in a daemon
+
+$jtPath config $jail -s realRootInJail true >/dev/null 2>/dev/null
+
+lift $jtPath daemon $jail 2>/dev/null || exit 1
+
+jUid=$(lift $jtPath shell $jail id -u 2>/dev/null)
+
+if [ ! "$jUid" = "0" ]; then
+	echo "daemon - jail UID must be the root UID - got $jUid and should be 0"
+	lift $jtPath stop $jail 2>/dev/null || exit 1
+	sleep 1
+	exit 1
+fi
+
+if $jtPath shell $jail mkdir /home/testDirBogus 2>/dev/null; then
+	echo "daemon - We are not supposed to be able to reenter this jail unprivileged"
+	lift $jtPath stop $jail 2>/dev/null || exit 1
+	exit 1
+fi
+
+if ! lift $jtPath shell $jail mkdir /home/testDir2 2>/dev/null; then
+	echo "daemon - Could not create a directory"
+	lift $jtPath stop $jail 2>/dev/null || exit 1
+	exit 1
+fi
+if ! lift $jtPath shell $jail chown root /home/testDir2 2>/dev/null; then
+	echo "daemon - Could not chown as root a directory"
+	lift $jtPath stop $jail 2>/dev/null || exit 1
+	exit 1
+fi
+
+if ! $bb stat -c %U $jail/root/home/testDir2 | grep -q root; then
+	echo "daemon - user owning the directory : '$($bb stat -c %U $jail/root/home/testDir2)' (expecting 'root')"
+	lift $jtPath stop $jail 2>/dev/null || exit 1
+	sleep 1
+	exit 1
+fi
+
+lift $jtPath stop $jail 2>/dev/null || exit 1
+sleep 1
+
 # test jt itself, embedded in busybox
 
 # we of course expect this one to work
