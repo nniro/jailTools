@@ -8,6 +8,7 @@ daemon
 runJailSU
 childJail
 processStatus
+processStatusSU
 firewallSU
 netAccess
 netAccessSU
