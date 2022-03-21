@@ -17,19 +17,12 @@ $jtPath new $jail >/dev/null 2>/dev/null || exit 1
 
 cd $jail
 
-timeout 5 $jtPath daemon >/dev/null 2>/dev/null || exit 1
-
-timeout 6 sh -c 'while :; do if [ -e run/jail.pid ]; then break; fi ; sleep 0.5 ; done'
-
-if [ ! -e run/jail.pid ]; then
-	echo "The daemonized jail is not running, missing $jail/run/jail.pid" 2>&1
-	exit 1
-fi
+$jtPath daemon >/dev/null 2>/dev/null || exit 1
 
 s1=$($jtPath status -p 2>/dev/null | sed -e '$ d')
 s2=$($jtPath shell ps 2>/dev/null | sed -e '$ d')
 
-$jtPath stop 2>/dev/null
+$jtPath stop 2>/dev/null || exit 1
 
 if [ "$s1" != "$s2" ]; then
 	echo "Incorrect status in 'jt status -p'"
