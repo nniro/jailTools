@@ -29,6 +29,11 @@ EOF
 
 $jtPath cp $jail /usr/sbin /usr/sbin/iptables /usr/sbin/iptables-save
 
+if [ ! -e $jail/root/usr/sbin/iptables ] || [ ! -e $jail/root/usr/sbin/iptables-save ]; then
+	echo "Mandatory applications iptables and/or iptables-save are missing."
+	exit 1
+fi
+
 $jtPath config $jail -s runEnvironment "PATH=\"/sbin:/usr/sbin:/bin:/usr/bin\" $($jtPath config $jail -g runEnvironment)" >/dev/null 2>/dev/null
 
 $jtPath config $jail -s networking true >/dev/null 2>/dev/null
