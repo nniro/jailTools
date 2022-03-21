@@ -583,6 +583,8 @@ runShell() {
 	done
 
 	execRemNS $nsPid $bb sh -c "exec $bb unshare -U --map-user=$userUID --map-group=$userGID -R $rootDir/root $baseEnv $curArgs"
+
+	return $?
 }
 
 runJail() {
@@ -714,4 +716,5 @@ execRemNS() {
 	shift
 	#echo "NS [$nsPid] -- args : $nsenterSupport exec : \"$@\"" >&2
 	$bb nsenter --preserve-credentials $nsenterSupport -t $nsPid -- "$@"
+	return $?
 }
