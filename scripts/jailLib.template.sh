@@ -89,7 +89,7 @@ fi
 
 nsenterSupport=$(echo "$unshareSupport" | $bb sed -e 's/^-//' | $bb sed -e 's/\(.\)/-\1 /g')
 if [ "$netNS" = "true" ]; then
-	if [ "$jailNet" = "false" ] || ([ "$privileged" = "0" ] && [ "$jailNet" = "false" ] && [ "$setNetAccess" = "true" ]); then
+	if [ "$jailNet" = "false" ] || ([ "$privileged" = "0" ] && [ "$setNetAccess" = "true" ]); then
 		:
 	else
 		nsenterSupport="$nsenterSupport -n";
@@ -590,6 +590,14 @@ runShell() {
 			unshareArgs=""
 		else
 			preUnshare="$bb chpst -u $userCreds"
+		fi
+	else
+		if [ "$($bb stat -c %U $rootDir/root)" = "root" ]; then
+			if [ "$netNS" = "true" ]; then
+				if [ "$jailNet" = "true" ]; then
+					nsenterSupport="$nsenterSupport -n";
+				fi
+			fi
 		fi
 	fi
 
