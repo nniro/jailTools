@@ -27,14 +27,17 @@ exit \$?
 
 EOF
 
-iptablesPath=$(if ! $bb which iptables 2>/dev/null; then
+iptablesPath=$($bb which iptables 2>/dev/null)
+if [ "$?" != "0" ]; then
 	echo "Mandatory program 'iptables' could not be found."
 	exit 1
-fi)
-iptablesSavePath=$(if ! $bb which iptables-save 2>/dev/null; then
+fi
+
+iptablesSavePath=$($bb which iptables-save 2>/dev/null)
+if [ "$?" != "0" ]; then
 	echo "Mandatory program 'iptables-save' could not be found."
 	exit 1
-fi)
+fi
 
 $jtPath cp $jail /usr/sbin $iptablesPath $iptablesSavePath
 
