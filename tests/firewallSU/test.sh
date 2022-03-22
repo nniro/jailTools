@@ -27,7 +27,10 @@ exit \$?
 
 EOF
 
-$jtPath cp $jail /usr/sbin /usr/sbin/iptables /usr/sbin/iptables-save
+iptablesPath=$($bb which iptables)
+iptablesSavePath=$($bb which iptables-save)
+
+$jtPath cp $jail /usr/sbin $iptablesPath $iptablesSavePath
 
 if [ ! -e $jail/root/usr/sbin/iptables ] || [ ! -e $jail/root/usr/sbin/iptables-save ]; then
 	echo "Mandatory applications iptables and/or iptables-save are missing."
