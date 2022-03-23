@@ -6,7 +6,7 @@ jtPath=$3
 
 . $testPath/../../utils/utils.sh
 
-jail=$testPath/firewall
+jail=$testPath/fwTest
 
 if [ -e $jail/run/jail.pid ]; then
 	lift $jtPath stop $jail
