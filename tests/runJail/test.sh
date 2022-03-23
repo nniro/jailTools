@@ -8,47 +8,53 @@ jtPath=$3
 
 bb=$testPath/../bin/busybox
 
-$jtPath new $testPath/basic 2>&1 || exit 1
+$jtPath new $testPath/basic >/dev/null 2>/dev/null || exit 1
 cd $testPath/basic
-sed -e 's/jailNet=true/jailNet=false/' -i rootCustomConfig.sh
-echo starting the jail
-$jtPath start sh -c exit 2>&1 || exit 1
-
-echo Starting a daemon
-$jtPath daemon 2>&1 || exit 1
-$bb timeout 10 $bb sh -c 'while :; do if [ -e run/jail.pid ]; then break; fi ; done'
-
-if [ ! -e run/jail.pid ]; then
-	echo "The daemonized jail is not running, run/jail.pid is missing"
+$jtPath config -s jailNet false >/dev/null
+if ! $jtPath start sh -c exit 2>/dev/null; then
+	echo "Error starting the jail with 'start'"
 	exit 1
 fi
 
-echo "Attempting to re-enter the daemonized jail"
-$jtPath shell sh -c exit 2>&1 || exit 1
-echo "Stopping the daemonized jail"
-$jtPath stop 2>&1 || exit 1
+if ! $jtPath daemon 2>/dev/null; then
+	echo "Error starting the jail with 'daemon'"
+	exit 1
+fi
+
+if ! $jtPath shell sh -c exit 2>/dev/null; then
+	echo "Unable to re-enter the daemonized jail"
+	exit 1
+fi
+
+if ! $jtPath stop 2>/dev/null; then
+	echo "Unable to stop the daemonized jail"
+	exit 1
+fi
 sleep 1
 
-echo "Starting a jail with the shell command should not work as is"
-$jtPath shell sh -c exit 2>&1 && exit 1
-
-echo "Now we start a new jail and expect it to actually fail"
-sed -e 's/^\(startCommand=\)""$/\1"fusionReactorStarter ignite ahahahah"/' -i rootCustomConfig.sh
-$jtPath start 2>&1 && exit 1
-
-echo "We check the jail's command line feature"
-
-$jtPath daemon 2>&1 || exit 1
-$bb timeout 5 $bb sh -c 'while :; do if [ -e run/jail.pid ]; then break; fi ; done'
-
-if [ ! -e run/jail.pid ]; then
-	echo "The daemonized jail is not running, run/jail.pid is missing"
+if $jtPath shell sh -c exit 2>/dev/null; then
+	echo "Starting a jail just with 'shell' should not work"
 	exit 1
 fi
 
-echo "checking if we can do multiple commands"
-$jtPath shell sh -c 'cd /usr/sbin; ls httpd' 2>/dev/null | grep -q '^httpd$' || exit 1
-$jtPath stop 2>&1 || exit 1
+$jtPath config -s startCommand "fusionReactorStarter ignite ahahahah" >/dev/null
+if $jtPath start 2>/dev/null; then
+	echo "The jail was started with a bogus startCommand and was expected to fail but it didn't"
+	exit 1
+fi
+
+# We check the jail's command line features
+
+if ! $jtPath daemon 2>/dev/null; then
+	echo "Error starting the jail with 'daemon' for the command line test"
+	exit 1
+fi
+
+if ! $jtPath shell sh -c 'cd /usr/sbin; ls httpd' 2>/dev/null | grep -q '^httpd$'; then
+	echo "Multiple commands check failed"
+	exit 1
+fi
+$jtPath stop 2>/dev/null || exit 1
 sleep 1
 
 exit 0
