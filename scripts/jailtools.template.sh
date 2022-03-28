@@ -230,7 +230,7 @@ case $cmd in
 				$bb sh -c "cd $rPath; source ./jailLib.sh; execRemNS $($bb cat $jPath/run/ns.pid) $bb chroot $rPath/root $1" 2>/dev/null
 			}
 
-			if [ "$(jailStatus $rPath)" = "1" ]; then # we check if the jail is running
+			if jailStatus $rPath; then # we check if the jail is running
 				if getVarVal 'showProcessStats' "$result" >/dev/null; then
 					$bb jt shell $rPath ps 2>/dev/null
 				elif getVarVal 'showIp' "$result" >/dev/null; then

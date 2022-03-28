@@ -16,20 +16,19 @@ detectJail() {
 
 # returns :
 #	2 when the file ns.pid contains a wrong process pid (could be after a reboot)
-#	1 the jail is running
-#	0 it is not running
+#	1 it is not running
+#	0 the jail is running
 jailStatus() {
 	local jailPath=$1 # this has to be an absolute path
 
-	local running=0
-
+	local running=1
 	if [ -e $jailPath/run/jail.pid ] && [ -e $jailPath/run/ns.pid ]; then
 		local pPath=$($bb pwdx $($bb cat $jailPath/run/ns.pid) \
 			| $bb sed -e 's/^[0-9]*: *//' \
 			| sed -e 's/\/root$//')
 
 		if [ "$jailPath" = "$pPath" ]; then
-			running=1
+			running=0
 		else
 			echo "The jail's pid doesn't seem to be correct, it should be deleted" >&2
 			running=2
