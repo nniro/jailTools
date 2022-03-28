@@ -589,7 +589,7 @@ runShell() {
 		if [ "$realRootInJail" = "true" ]; then
 			unshareArgs=""
 		else
-			preUnshare="$bb chpst -u $userCreds"
+			preUnshare="$nsBB chpst -u $userCreds"
 		fi
 	else
 		if [ "$($bb stat -c %U $rootDir/root)" = "root" ]; then
@@ -601,7 +601,7 @@ runShell() {
 		fi
 	fi
 
-	execRemNS $nsPid $bb sh -c "exec $bb $preUnshare unshare $unshareArgs -R $rootDir/root $baseEnv $curArgs"
+	execRemNS $nsPid $nsBB sh -c "exec $nsBB $preUnshare unshare $unshareArgs -R $rootDir/root $baseEnv $curArgs"
 
 	return $?
 }
