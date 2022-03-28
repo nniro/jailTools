@@ -19,6 +19,25 @@ cd $jail
 
 $jtPath daemon >/dev/null 2>/dev/null || exit 1
 
+# we check the status command itself
+# which is used to figure if a jail is running or not.
+
+if [ -e $jail/run/ns.pid ] \
+	&& [ -e $jail/run/jail.pid ]\
+	&& $bb ps | grep -q "^$(cat $jail/run/ns.pid) "\
+	&& $bb ps | grep -q "^$(cat $jail/run/jail.pid) "\
+	; then
+	# at this point, we know that the jail is running or we need to make sure that we 100% know.
+
+	if ! $jtPath status ; then
+		echo "We know the jail is running but it is not detected as so."
+		exit 1
+	fi
+else
+	echo "We expect the jail to be running at this point but it is not"
+	exit 1
+fi
+
 s1=$($jtPath status -p 2>/dev/null | sed -e '$ d')
 s2=$($jtPath shell ps 2>/dev/null | sed -e '$ d')
 
