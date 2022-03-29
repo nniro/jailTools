@@ -46,7 +46,7 @@ EOF
 $jtPath daemon $jail1 sh /home/startHttpd.sh 2>/dev/null
 err=$?
 
-[ "$err" = "0" ] && $jtPath shell $jail1 /sbin/ip addr 2>/dev/null | grep 'bridgePrimus:' || err=1
+[ "$err" = "0" ] && $jtPath shell $jail1 /sbin/ip addr 2>/dev/null | grep -q 'bridgePrimus:' 2>/dev/null || err=1
 
 if [ "$err" != "0" ]; then
 	echo "Unprivileged jail is supposed to be able to start a bridge - $err"
@@ -68,7 +68,7 @@ fi
 lift $jtPath stop $jail2 2>/dev/null || exit 1
 
 # we use bogus to attempt to join a non existing jail
-sed -e "s@# joinBridgeByJail /home/\$actualUser/jails/tor \"false\" \"3\"@joinBridgeByJail ${bogus}NonExisting \"false\" \"3\"@" -i $bogus/rootCustomConfig.sh
+sed -e "s@# joinBridgeByJail .*@joinBridgeByJail ${bogus}NonExisting \"false\" \"3\" || exit 1@" -i $bogus/rootCustomConfig.sh
 
 if $jtPath daemon $bogus 2>/dev/null; then
 	echo "Attempting to join a non existing jail should fail"
@@ -76,9 +76,11 @@ if $jtPath daemon $bogus 2>/dev/null; then
 	exit 1
 fi
 
+$jtPath stop $bogus 2>/dev/null
+
 # we setup the jail2
 
-sed -e "s@# joinBridgeByJail /home/\$actualUser/jails/tor \"false\" \"3\"@joinBridgeByJail $jail1 \"false\" \"3\"@" -i $jail2/rootCustomConfig.sh
+sed -e "s@# joinBridgeByJail .*@joinBridgeByJail $jail1 \"false\" \"3\" || exit 1@" -i $jail2/rootCustomConfig.sh
 
 # starting an unprivileged jail to join a bridge should not work
 if $jtPath daemon $jail2 2>/dev/null; then
@@ -87,10 +89,15 @@ if $jtPath daemon $jail2 2>/dev/null; then
 	exit 1
 fi
 
-lift $jtPath daemon $jail2 2>/dev/null || exit 1
+err=0
+lift $jtPath daemon $jail2 || err=1
 
-if ! $jtPath shell $jail2 timeout 2 wget 192.168.99.1:8000 -q -O - 2>/dev/null | grep -q '^This test has passed$'>&2; then
+[ "$err" = "0" ] && $jtPath shell $jail2 timeout 2 wget 192.168.99.1:8000 -q -O - 2>/dev/null | grep -q '^This test has passed$' || err=1
+
+if [ "$err" != "0" ]; then
 	echo "jail2 is supposed to be able to be able to connect to jail1's service"
+	lift $jtPath stop $jail1 2>/dev/null
+	lift $jtPath stop $jail2 2>/dev/null
 	exit 1
 fi
 
