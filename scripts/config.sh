@@ -1,27 +1,10 @@
 #! /bin/sh
 
-jailDir=$1
-shift
-
 bb="$BB"
 shower="$JT_SHOWER"
 runner="$JT_RUNNER"
 
 eval "$($shower jt_utils)"
-
-if $bb cat $jailDir/rootCustomConfig.sh | $bb grep -q '^# Command part$'; then
-	echo Please update your jail before you can use this command.
-	exit 1
-fi
-
-commandHeader='################# Command part #################'
-if $bb cat $jailDir/rootCustomConfig.sh | $bb grep -q "^$commandHeader$"; then
-	:
-else
-	echo "There has been a modification to your rootCustomConfig.sh file that makes this functionality unable to do it's job"
-	echo "Please don't remove or modify the section headers. They are used by this tool"
-	exit 1
-fi
 
 listCore() {
 	jailScript=$1
@@ -119,6 +102,23 @@ setCustomVal() {
 
 	setCoreVal $jailDir/rootCustomConfig.sh $confVal "$newVal"
 }
+
+jailDir=$1
+shift
+
+if $bb cat $jailDir/rootCustomConfig.sh | $bb grep -q '^# Command part$'; then
+	echo Please update your jail before you can use this command.
+	exit 1
+fi
+
+commandHeader='################# Command part #################'
+if $bb cat $jailDir/rootCustomConfig.sh | $bb grep -q "^$commandHeader$"; then
+	:
+else
+	echo "There has been a modification to your rootCustomConfig.sh file that makes this functionality unable to do it's job"
+	echo "Please don't remove or modify the section headers. They are used by this tool"
+	exit 1
+fi
 
 result=$(callGetopt "config [OPTIONS]" \
 	-o "d" "default" "Get the default configuration value" "getDefaultVal" "false" \
