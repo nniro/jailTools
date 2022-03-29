@@ -6,6 +6,7 @@ jtPath=$3
 
 jail1=$testPath/bridgePrimus
 jail2=$testPath/bridgeSecondus
+bogus=$testPath/bogus
 
 bb=$testPath/../bin/busybox
 
@@ -15,11 +16,15 @@ $jtPath new $jail1 >/dev/null 2>/dev/null || exit 1
 
 $jtPath new $jail2 >/dev/null 2>/dev/null || exit 1
 
+$jtPath new $bogus >/dev/null 2>/dev/null || exit 1
+
 $jtPath config $jail1 -s setNetAccess false >/dev/null
 $jtPath config $jail2 -s setNetAccess false >/dev/null
+$jtPath config $bogus -s setNetAccess false >/dev/null
 
 $jtPath config $jail1 -s networking false >/dev/null
 $jtPath config $jail2 -s networking false >/dev/null
+$jtPath config $bogus -s networking false >/dev/null
 
 # we setup the jail1
 $jtPath config $jail1 -s createBridge true >/dev/null
@@ -37,6 +42,19 @@ cd /home
 /usr/sbin/httpd -f -p 192.168.99.1:8000
 EOF
 
+# starting a jail with a bridge unprivileged should work
+$jtPath daemon $jail1 sh /home/startHttpd.sh 2>/dev/null
+err=$?
+
+[ "$err" = "0" ] && $jtPath shell $jail1 /sbin/ip addr 2>/dev/null | grep 'bridgePrimus:' || err=1
+
+if [ "$err" != "0" ]; then
+	echo "Unprivileged jail is supposed to be able to start a bridge - $err"
+	$jtPath stop $jail1 2>/dev/null
+	exit 1
+fi
+$jtPath stop $jail1 2>/dev/null
+
 lift $jtPath daemon $jail1 sh /home/startHttpd.sh 2>/dev/null || exit 1
 
 # we first try without setting the joinBridgeByJail and expect a failure
@@ -49,9 +67,25 @@ fi
 
 lift $jtPath stop $jail2 2>/dev/null || exit 1
 
+# we use bogus to attempt to join a non existing jail
+sed -e "s@# joinBridgeByJail /home/\$actualUser/jails/tor \"false\" \"3\"@joinBridgeByJail ${bogus}NonExisting \"false\" \"3\"@" -i $bogus/rootCustomConfig.sh
+
+if $jtPath daemon $bogus 2>/dev/null; then
+	echo "Attempting to join a non existing jail should fail"
+	$jtPath stop $bogus 2>/dev/null
+	exit 1
+fi
+
 # we setup the jail2
 
 sed -e "s@# joinBridgeByJail /home/\$actualUser/jails/tor \"false\" \"3\"@joinBridgeByJail $jail1 \"false\" \"3\"@" -i $jail2/rootCustomConfig.sh
+
+# starting an unprivileged jail to join a bridge should not work
+if $jtPath daemon $jail2 2>/dev/null; then
+	echo "Attempting to join a bridge with an unprivileged jail is not supposed to work"
+	$jtPath stop $jail2 2>/dev/null
+	exit 1
+fi
 
 lift $jtPath daemon $jail2 2>/dev/null || exit 1
 
