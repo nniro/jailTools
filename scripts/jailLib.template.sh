@@ -427,7 +427,7 @@ prepareChroot() {
 	if [ "$privileged" = "0" ]; then
 		if [ "$userNS" != "true" ]; then
 			echo "The user namespace is not supported. Can't start an unprivileged jail without it, bailing out." >&2
-			exit 1
+			return 1
 		fi
 		if [ "$networking" = "true" ]; then
 			networking="false"
@@ -514,6 +514,7 @@ prepareChroot() {
 		execNS $nsBB ip link set up lo
 
 		if [ "$createBridge" = "true" ]; then
+			# NOTE that it is perfectly possible to create a bridge unprivileged
 			# setting up the bridge
 			execNS $nsBB brctl addbr $bridgeName
 			execNS $nsBB ip addr add $bridgeIp/$bridgeIpBitmask dev $bridgeName scope link
