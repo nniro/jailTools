@@ -39,7 +39,6 @@ testGet() {
 		result=$(printf "%s" "$result" | $bb sed $resultFilter)
 	fi
 
-
 	if [ "$err" != "0" ]; then
 		[ "$reversed" = "true" ] && return 0
 		echo "Test : $description -- failed"
@@ -77,6 +76,7 @@ testGet() {
 	else
 		[ "$reversed" = "true" ] && return 0
 		echo "Test : $description -- failed"
+		expectedVal=$(printf "%s" "$expectedVal" | $bb sed -e 's/^\^//' -e 's/\$$//')
 		echo "got : '$result' instead of the expected : '$expectedVal'"
 		return 1
 	fi
