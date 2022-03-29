@@ -118,12 +118,12 @@ prepCustom() {
 	# we mount the ~/.asoundrc file which is required to gain alsa sound
 	mountSingle $rootDir /home/$actualUser/.asoundrc /home/.asoundrc
 
-	# joinBridgeByJail <jail path> <set as default route> <our last IP bit>
+	# Synopsis : joinBridgeByJail <jail path> <set as default route> <our last IP bit>
 	# To join an already running jail called tor at the path, we don't set it
 	# as our default internet route and we assign the interface the last IP bit of 3
 	# so for example if tor's bridge's IP is 192.168.11.1 we are automatically assigned
 	# the IP : 192.168.11.3
-	# joinBridgeByJail /home/$actualUser/jails/tor "false" "3"
+	# joinBridgeByJail /home/$actualUser/jails/tor "false" "3" || return 1
 
 	# To join a bridge not from a jail.
 	# The 1st argument is for if we want to route our internet through that bridge.
@@ -134,7 +134,7 @@ prepCustom() {
 	# The 5th argument is the bridge's device name
 	# The 6th argument is the last IP bit. For example if tor's bridge's IP is 192.168.11.1
 	# we are automatically assigned the IP : 192.168.11.3
-	# joinBridge "false" "intInt" "extInt" "" "br0" "3"
+	# joinBridge "false" "intInt" "extInt" "" "br0" "3" || return 1
 
 	# firewall
 	# synopsis :
