@@ -258,10 +258,10 @@ joinBridge() {
 		return 1
 	fi
 
-	$bb ip link add $vethExternal type veth peer name $vethInternal
-	$bb ip link set $vethExternal up
-	$bb ip link set $vethInternal netns $innerNSpid
-	execNS $nsBB ip link set $vethInternal up
+	$bb ip link add $vethExternal type veth peer name $vethInternal || return 1
+	$bb ip link set $vethExternal up || return 1
+	$bb ip link set $vethInternal netns $innerNSpid || return 1
+	execNS $nsBB ip link set $vethInternal up || return 1
 
 	if [ "$externalNetnsId" = "" ]; then
 		local masterBridgeIp=$($bb ip addr show $externalBridgeName | $bb grep 'inet ' | $bb grep "scope link" | $bb sed -e 's/^.*inet \([^/]*\)\/.*$/\1/')
@@ -318,38 +318,22 @@ joinBridgeByJail() {
 	fi
 
 	if detectJail $jailLocation; then
-		local defConfPath=$jailLocation/rootDefaultConfig.sh
-		local confPath=$jailLocation/rootCustomConfig.sh
-
-		local neededConfig="$($bb cat $confPath | $bb sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p;')"
-		for cfg in jailName createBridge bridgeName; do
-			tempVal="$(printf "%s" "$neededConfig" | $bb sed -ne "/^$cfg/ p" | $bb sed -e 's/#.*//' | $bb sed -e 's/^[^=]\+=\(.*\)$/\1/' | $bb sed -e 's/${\([^:]\+\):/${rem\1:/' -e 's/$\([^{(]\+\)/$rem\1/')"
-
-			if [ "$tempVal" = "" ] && [ -e $defConfPath ]; then
-				local neededDefConfig="$($bb cat $defConfPath | $bb sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p;')"
-				tempVal="$(printf "%s" "$neededDefConfig" | $bb sed -ne "/^$cfg/ p" | $bb sed -e 's/#.*//' | $bb sed -e 's/^[^=]\+=\(.*\)$/\1/' | $bb sed -e 's/${\([^:]\+\):/${rem\1:/' -e 's/$\([^{(]\+\)/$rem\1/')"
-			fi
-
-			if [ "$tempVal" = "" ]; then
-				echo "joinBridgeByJail - Error - Unable to process the remote jail's information" >&2
-				return 1
-			fi
-
-			eval "local rem$cfg"=$tempVal
-		done
+		remjailName=$($runner jt_config $jailLocation -g jailName)
+		remcreateBridge=$($runner jt_config $jailLocation -g createBridge)
+		rembridgeName=$($runner jt_config $jailLocation -g bridgeName)
 
 		if [ "$remcreateBridge" != "true" ]; then
 			echo "joinBridgeByJail: This jail does not have a bridge, aborting joining." >&2
 			return 1
 		fi
 
-		if [ ! -e "$jailLocation/run/ns.pid" ]; then
+		if ! jailStatus $jailLocation; then
 			echo "joinBridgeByJail: This jail at \`$jailLocation' is not currently started, aborting joining." >&2
 			return 1
 		fi
 		remnetnsId=$($bb cat $jailLocation/run/ns.pid)
 
-		# echo "Attempting to join bridge $rembridgeName on jail $remjailName with net ns $remnetnsId"
+		# echo "Attempting to join bridge $rembridgeName on jail $remjailName with net ns $remnetnsId" >&2
 		joinBridge "$isDefaultRoute" "$remjailName" "$jailName" "$remnetnsId" "$rembridgeName" "$internalIpNum" || return 1
 	else
 		echo "Supplied jail path is not a valid supported jail." >&2
@@ -362,13 +346,10 @@ joinBridgeByJail() {
 leaveBridgeByJail() {
 	local jailLocation=$1
 
-	if [ -d $jailLocation/root ] && [ -d $jailLocation/run ] && [ -f $jailLocation/startRoot.sh ] && [ -f $jailLocation/rootCustomConfig.sh ]; then
-		local confPath=$jailLocation/rootCustomConfig.sh
-
-		local neededConfig=$($bb cat $confPath | $bb sed -ne '/^jailName=/ p; /^createBridge=/ p; /^bridgeName=/ p;')
-		for cfg in jailName createBridge bridgeName; do
-			eval "local rem$cfg"="$(printf "%s" "$neededConfig" | $bb sed -ne "/^$cfg/ p" | $bb sed -e 's/#.*//' | $bb sed -e 's/^[^=]\+=\(.*\)$/\1/' | $bb sed -e 's/${\([^:]\+\):/${rem\1:/' -e 's/$\([^{(]\+\)/$rem\1/')"
-		done
+	if detectJail $jailLocation; then
+		remjailName=$($runner jt_config $jailLocation -g jailName)
+		remcreateBridge=$($runner jt_config $jailLocation -g createBridge)
+		rembridgeName=$($runner jt_config $jailLocation -g bridgeName)
 
 		if [ "$remcreateBridge" != "true" ]; then
 			echo "This jail does not have a bridge, bailing out." >&2
