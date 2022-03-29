@@ -26,13 +26,7 @@ fi
 [ "$ownPath" = "" ] && ownPath=$($bb dirname $0)
 firewallInstr="run/firewall.instructions"
 
-# substring offset <optional length> string
-# cuts a string at the starting offset and wanted length.
-substring() {
-	local init=$1; shift
-	if [ "$2" != "" ]; then toFetch="\(.\{$1\}\).*"; shift; else local toFetch="\(.*\)"; fi
-	echo "$1" | $bb sed -e "s/^.\{$init\}$toFetch$/\1/"
-}
+eval "$($shower jt_utils)" # detectJail substring
 
 # convert the path of this script to an absolute path
 if [ "$ownPath" = "." ]; then
@@ -323,7 +317,7 @@ joinBridgeByJail() {
 		return 1
 	fi
 
-	if [ -d $jailLocation/root ] && [ -d $jailLocation/run ] && [ -f $jailLocation/startRoot.sh ] && [ -f $jailLocation/rootCustomConfig.sh ]; then
+	if detectJail $jailLocation; then
 		local defConfPath=$jailLocation/rootDefaultConfig.sh
 		local confPath=$jailLocation/rootCustomConfig.sh
 
