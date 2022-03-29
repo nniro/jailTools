@@ -214,4 +214,11 @@ expectedResult="$($jtPath config --get runEnvironment | $bb sed -e 's/\\/\\\\\\/
 $jtPath config --set runEnvironment "$expectedResult" >/dev/null
 testGet -p "set multiple arguments separated by spaces" "runEnvironment" "$expectedResult" || exit 1
 
+$jtPath config --set jailName nabuchodonosor >/dev/null
+testGet -p "Change the jailName" jailName "^nabuchodonosorOfMesopotamia$" || exit 1
+
+testGet "Check the value of bridgeName" bridgeName "^nabuchodonoso$" || exit 1
+testGet "Check the value of vethExt" vethExt "^nabuchodonosoex$" || exit 1
+testGet "Check the value of vethInt" vethInt "^nabuchodonosoin$" || exit 1
+
 exit 0
