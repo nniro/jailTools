@@ -261,7 +261,7 @@ joinBridge() {
 
 	if [ "$privileged" = "0" ]; then
 		echo "joinBridge - Error - This is not possible from an unprivileged jail" >&2
-		return
+		return 1
 	fi
 
 	$bb ip link add $vethExternal type veth peer name $vethInternal
@@ -294,6 +294,7 @@ joinBridge() {
 	else
 		execRemNS $externalNetnsId $bb brctl addif $externalBridgeName $vethExternal
 	fi
+	return 0
 }
 
 leaveBridge() {
@@ -319,7 +320,7 @@ joinBridgeByJail() {
 
 	if [ "$privileged" = "0" ]; then
 		echo "joinBridgeByJail - Error - This is not possible from an unprivileged jail" >&2
-		return
+		return 1
 	fi
 
 	if [ -d $jailLocation/root ] && [ -d $jailLocation/run ] && [ -f $jailLocation/startRoot.sh ] && [ -f $jailLocation/rootCustomConfig.sh ]; then
@@ -337,7 +338,7 @@ joinBridgeByJail() {
 
 			if [ "$tempVal" = "" ]; then
 				echo "joinBridgeByJail - Error - Unable to process the remote jail's information" >&2
-				exit 1
+				return 1
 			fi
 
 			eval "local rem$cfg"=$tempVal
@@ -345,20 +346,22 @@ joinBridgeByJail() {
 
 		if [ "$remcreateBridge" != "true" ]; then
 			echo "joinBridgeByJail: This jail does not have a bridge, aborting joining." >&2
-			return
+			return 1
 		fi
 
 		if [ ! -e "$jailLocation/run/ns.pid" ]; then
 			echo "joinBridgeByJail: This jail at \`$jailLocation' is not currently started, aborting joining." >&2
-			return
+			return 1
 		fi
 		remnetnsId=$($bb cat $jailLocation/run/ns.pid)
 
 		# echo "Attempting to join bridge $rembridgeName on jail $remjailName with net ns $remnetnsId"
-		joinBridge "$isDefaultRoute" "$remjailName" "$jailName" "$remnetnsId" "$rembridgeName" "$internalIpNum"
+		joinBridge "$isDefaultRoute" "$remjailName" "$jailName" "$remnetnsId" "$rembridgeName" "$internalIpNum" || return 1
 	else
 		echo "Supplied jail path is not a valid supported jail." >&2
+		return 1
 	fi
+	return 0
 }
 
 # jailLocation - The jail that hosts a bridge you wish to disconnect from.
