@@ -19,9 +19,28 @@ listConfigs() {
 	listCore $jailDir/rootCustomConfig.sh
 }
 
-getCoreVal() {
-	jailScript=$1
+# this is for configurations that include shell scripts.
+# we expand the value before returning it.
+expandVal() {
+	jailDir=$1
 	confVal=$2
+
+	local _JAILTOOLS_RUNNING=1
+	local ownPath=$jailDir
+	. $jailDir/rootCustomConfig.sh
+
+	value=$($bb printf "%s\n" "$res1" \
+		| $bb sed -ne "/^$confVal=[^ ]\+/ { s/^[^=]*=\(.*\)$/\1/ ; p; }" \
+		| $bb sed -e 's/^"\(.*\)"$/\1/' \
+			-e 's/^\x27\(.*\)\x27$/\1/')
+
+	eval $bb printf "$value"
+}
+
+getCoreVal() {
+	jailDir=$1
+	jailScript=$2
+	confVal=$3
 
 	res1=$($bb grep "^$confVal" $jailScript)
 
@@ -32,11 +51,15 @@ getCoreVal() {
 			| $bb sed -ne "/^$confVal/ { s/.*// ; be ; :e ; N; $ p; /EOF/ { s/EOF// ; p; b; } ; be; }" \
 			| $bb sed -e '/^$/ d'
 	else
-		$bb printf "%s\n" "$res1" \
-			| $bb sed -ne "/^$confVal=[^ ]\+/ { s/^[^=]*=\(.*\)$/\1/ ; p; }" \
-			| $bb sed -e 's/^"\(.*\)"$/\1/' \
-				-e 's/^\x27\(.*\)\x27$/\1/' \
-				-e 's/\$/\\\$/g'
+		if $bb printf "%s" "$res1" | $bb grep -q '\$('; then
+			expandVal $jailDir $confVal
+		else
+			$bb printf "%s\n" "$res1" \
+				| $bb sed -ne "/^$confVal=[^ ]\+/ { s/^[^=]*=\(.*\)$/\1/ ; p; }" \
+				| $bb sed -e 's/^"\(.*\)"$/\1/' \
+					-e 's/^\x27\(.*\)\x27$/\1/' \
+					-e 's/\$/\\\$/g'
+		fi
 	fi
 }
 
@@ -44,7 +67,7 @@ getDefaultVal() {
 	jailDir=$1
 	confVal=$2
 
-	getCoreVal $jailDir/rootDefaultConfig.sh $confVal
+	getCoreVal $jailDir $jailDir/rootDefaultConfig.sh $confVal
 }
 
 getCurVal() {
@@ -53,8 +76,8 @@ getCurVal() {
 
 	listConfigs $jailDir | $bb grep -q "$confVal" || return 1
 
-	getCoreVal $jailDir/rootCustomConfig.sh $confVal && return 0
-	getCoreVal $jailDir/rootDefaultConfig.sh $confVal
+	getCoreVal $jailDir $jailDir/rootCustomConfig.sh $confVal && return 0
+	getCoreVal $jailDir $jailDir/rootDefaultConfig.sh $confVal
 }
 
 setCoreVal() {
