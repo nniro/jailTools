@@ -35,7 +35,7 @@ jailStatus() {
 		fi
 	fi
 
-	echo $running
+	return $running
 }
 
 # substring offset <optional length> string
