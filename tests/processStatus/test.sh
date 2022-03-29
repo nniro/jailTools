@@ -45,8 +45,8 @@ $jtPath stop 2>/dev/null || exit 1
 
 if [ "$s1" != "$s2" ]; then
 	echo "Incorrect status in 'jt status -p'"
-	echo "got : $s1"
-	echo "should be : $s2"
+	echo "got : '$s1'"
+	echo "should be : '$s2'"
 	exit 1
 fi
 
