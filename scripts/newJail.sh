@@ -54,13 +54,17 @@ $bb mkdir $newChrootHolder
 $bb mkdir $newChrootHolder/run
 $bb mkdir $newChrootDir
 
+$bb mkdir $newChrootDir/bin
+cp $JT_CALLER $newChrootHolder/root/bin/busybox
+bb=$newChrootHolder/root/bin/busybox
+
 $bb touch $newChrootHolder/startRoot.sh # this is to make cpDep detect the new style jail
 $bb touch $newChrootHolder/rootCustomConfig.sh
 
 fsData="$shower jt_filesystem_template"
 
 for fPath in $($fsData); do
-	$bb mkdir $newChrootDir/$fPath
+	$bb mkdir -p $newChrootDir/$fPath
 	$bb chmod 705 $newChrootDir/$fPath
 done
 
@@ -133,9 +137,6 @@ etcFiles=""
 for ef in termcap services protocols nsswitch.conf ld.so.cache inputrc hostname resolv.conf host.conf hosts; do etcFiles="$etcFiles /etc/$ef"; done
 $runner jt_cpDep $newChrootHolder /etc/ $etcFiles
 
-[ -e /etc/terminfo ] && $runner jt_cpDep $newChrootHolder /etc/ /etc/terminfo
-$runner jt_cpDep $newChrootHolder /bin $JT_CALLER
-$bb mv $newChrootDir/bin/jt $newChrootDir/bin/busybox
 
 for app in $($bb --list-full); do $bb ln -s /bin/busybox ${newChrootDir}/$app; done
 
