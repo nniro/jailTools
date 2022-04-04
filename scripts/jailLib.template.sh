@@ -497,8 +497,9 @@ EOF
 	innerNSpid=$!
 	$bb sleep 1
 	innerNSpid=$($bb pgrep -P $innerNSpid)
+	$bb sleep 2
 
-	if [ "$innerNSpid" = "" ]; then
+	if [ "$innerNSpid" = "" ] || ! $bb ps | $bb grep -q "^ *$innerNSpid "; then
 		echo "Creating the inner namespace session failed, bailing out" >&2
 		return 1
 	fi
