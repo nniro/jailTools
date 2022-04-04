@@ -466,6 +466,7 @@ prepareChroot() {
 tasksBeforePivot=$($bb cat << EOF
 $bb mount -tproc none $rootDir/root/proc
 $bb mount -t tmpfs -o size=256k,mode=775 tmpfs $rootDir/root/dev
+$bb ln -s /proc/self/fd $rootDir/root/dev/fd
 $bb sh -c ". $rootDir/jailLib.sh; addDevices $rootDir $availableDevices"
 $devMounts
 $roMounts
