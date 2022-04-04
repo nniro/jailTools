@@ -39,8 +39,13 @@ fi
 
 export JT_VERSION=
 
-exe=$(exec -a busybox $jtPath readlink /proc/$$/exe)
+exe=$(exec -a busybox $jtPath realpath $jtPath)
 bb="exec -a busybox $exe"
+
+if [ "$exe" = "" ]; then
+	echo "There is a problem with jt, the exe shouldn't be empty" >&2
+	exit 1
+fi
 
 if echo "$exe" | $bb grep -q "busybox"; then # jt is a link to busybox
 	bb="$exe"
