@@ -466,11 +466,11 @@ prepareChroot() {
 tasksBeforePivot=$($bb cat << EOF
 $bb mount -tproc none $rootDir/root/proc
 $bb mount -t tmpfs -o size=256k,mode=775 tmpfs $rootDir/root/dev
-($bb sh -c "ownPath=$rootDir; actualUser=$actualUser; . $rootDir/jailLib.sh; addDevices $rootDir $availableDevices")
+$bb sh -c ". $rootDir/jailLib.sh; addDevices $rootDir $availableDevices"
 $devMounts
 $roMounts
 $rwMounts
-$bb sh -c "ownPath=$rootDir; actualUser=$actualUser; . $rootDir/jailLib.sh; prepCustom $rootDir"
+$bb sh -c ". $rootDir/jailLib.sh; prepCustom $rootDir" || exit 1
 
 if [ "$mountSys" = "true" ]; then
 	if [ "$privileged" = "0" ] && [ "$setNetAccess" = "true" ]; then
