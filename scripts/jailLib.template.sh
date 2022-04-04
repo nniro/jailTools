@@ -482,8 +482,17 @@ fi
 
 EOF
 )
-
-	($preUnshare $bb unshare $unshareArgs ${unshareSupport}f -- $bb setpriv --bounding-set $corePrivileges $bb sh -c "$bb mount --make-private -o bind $rootDir/root $rootDir/root; $tasksBeforePivot; cd $rootDir/root; $bb pivot_root . $rootDir/root/root; exec $nsBB chroot . sh -c \"$nsBB umount -l /root; $nsBB setpriv --bounding-set $chrootPrivileges $baseEnv $chrootCmd\"") &
+	# this is the core jail instance being run in the background
+	(
+		$preUnshare $bb unshare $unshareArgs ${unshareSupport}f \
+			-- $bb setpriv --bounding-set $corePrivileges \
+			$bb sh -c "$bb mount --make-private -o bind $rootDir/root $rootDir/root; \
+				$tasksBeforePivot; \
+				cd $rootDir/root; \
+				$bb pivot_root . $rootDir/root/root; \
+				exec $nsBB chroot . sh -c \"$nsBB umount -l /root; \
+					$nsBB setpriv --bounding-set $chrootPrivileges $baseEnv $chrootCmd\"" \
+	) &
 	innerNSpid=$!
 	$bb sleep 1
 	innerNSpid=$($bb pgrep -P $innerNSpid)
