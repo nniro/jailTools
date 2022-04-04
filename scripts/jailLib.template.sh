@@ -336,7 +336,7 @@ joinBridgeByJail() {
 		# echo "Attempting to join bridge $rembridgeName on jail $remjailName with net ns $remnetnsId" >&2
 		joinBridge "$isDefaultRoute" "$remjailName" "$jailName" "$remnetnsId" "$rembridgeName" "$internalIpNum" || return 1
 	else
-		echo "Supplied jail path is not a valid supported jail." >&2
+		echo "joinBridgeByJail: Supplied jail path '$jailLocation' is not a valid supported jail." >&2
 		return 1
 	fi
 	return 0
