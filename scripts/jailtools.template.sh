@@ -57,7 +57,6 @@ if echo "$exe" | $bb grep -q "busybox"; then # jt is a link to busybox
 	export JT_RUNNER=$runner
 	export JT_SHOWER=$shower
 else
-
 	runner="runFile"
 	shower="showFile"
 	if [ "$ownPath" = "" ]; then # this is for an installed 'jt'
@@ -191,14 +190,13 @@ case $cmd in
 		checkJailPath $1 && jPath="$1" && shift
 		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
 
-		cd $jPath
-		($bb chpst -0 -1 $bb sh ./startRoot.sh 'daemon' $@ 2>./run/daemon.log) &
+		(cd $jPath; $bb chpst -0 -1 $bb sh ./startRoot.sh 'daemon' $@ 2>./run/daemon.log) &
 		#if [ "$?" != "0" ]; then echo "There was an error starting the daemon, it may already be running."; fi
 
-		$bb timeout 10 sh -c 'while :; do if [ -e run/jail.pid ]; then break; fi ; done'
+		$bb timeout 10 sh -c "while :; do [ -e $jPath/run/ns.pid ] && [ -e $jPath/run/jail.pid ] && break ; done"
 
-		if [ ! -e run/jail.pid ]; then
-			echo "The daemonized jail is not running, run/jail.pid is missing" >&2
+		if [ ! -e $jPath/run/ns.pid ] || [ ! -e $jPath/run/jail.pid ]; then
+			echo "The daemonized jail is not running, run/ns.pid or run/jail.pid is missing" >&2
 			exit 1
 		fi
 
