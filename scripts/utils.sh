@@ -83,7 +83,7 @@ listJails() {
 
 	if [ "$jailName" != "" ]; then # user asked for a specific jail
 
-		if printf "%s" "$jailName" | grep -q '^\/'; then
+		if printf "%s" "$jailName" | $bb grep -q '^\/'; then
 			jailName="^$jailName$"
 		else
 			jailName="\/$jailName$"
