@@ -7,7 +7,7 @@ isPrivileged() {
 # detects if the path as argument contains a valid jail
 detectJail() {
 	local jPath=$1
-	if [ -d $jPath/root ] && [ -d $jPath/run ] && [ -f $jPath/startRoot.sh ] && [ -f $jPath/rootCustomConfig.sh ]; then
+	if [ -d $jPath/root ] && [ -d $jPath/run ] && [ -f $jPath/startRoot.sh ] && [ -f $jPath/rootCustomConfig.sh ] && [ -x $jPath/root/bin/busybox ]; then
 		return 0
 	else
 		return 1
