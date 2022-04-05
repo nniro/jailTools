@@ -12,14 +12,12 @@ jail=$testPath/childJail
 
 $jtPath new $jail >/dev/null 2>/dev/null || exit 1
 
-cd $jail
-
 # some tests to deliberately fail various parts
 #rm root/usr/bin/jt
 #echo "exit 1" > root/usr/bin/jt
 #chmod +x root/usr/bin/jt
 
-internalTest=$(cat << EOF
+cat > $jail/root/home/internalListTest.sh << EOF
 #! /bin/sh
 
 cd /home
@@ -43,10 +41,7 @@ fi
 
 exit 0
 EOF
-)
 
-printf "%s" "$internalTest" > root/home/doTest.sh
-
-$jtPath start sh /home/doTest.sh 2>/dev/null || exit 1
+$jtPath start $jail sh /home/internalListTest.sh 2>/dev/null || exit 1
 
 exit 0
