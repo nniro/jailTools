@@ -55,7 +55,9 @@ $bb mkdir $newChrootHolder/run
 $bb mkdir $newChrootDir
 
 $bb mkdir $newChrootDir/bin
-cp $JT_CALLER $newChrootHolder/root/bin/busybox
+echo "copying jt over to the jail - '$JT_CALLER'"
+exe=$(echo $JT_CALLER | sed -e 's/^\([^ ]*\) .*/\1/')
+cp $exe $newChrootHolder/root/bin/busybox
 bb=$newChrootHolder/root/bin/busybox
 
 $bb touch $newChrootHolder/startRoot.sh # this is to make cpDep detect the new style jail
