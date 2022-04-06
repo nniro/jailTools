@@ -30,8 +30,41 @@ jailStatus() {
 		if [ "$jailPath" = "$pPath" ]; then
 			running=0
 		else
-			echo "The jail's pid doesn't seem to be correct, it should be deleted" >&2
-			running=2
+			pPath=$($bb pwdx $($bb cat $jailPath/run/jail.pid) \
+				| $bb sed -e 's/^[0-9]*: *//' \
+				| sed -e 's/\/root$//')
+
+			if [ "$jailPath" = "$pPath" ]; then
+				running=0
+			else
+				nsPid=$(cat $jailPath/run/ns.pid)
+				err=0
+
+				# first check that the process is running correctly
+				if ! $bb ps | grep -q "^ *$nsPid " ; then
+					err=1
+				fi
+
+				# now we check if the path of the process is a jail
+				# with pivot_root, we have to use this special technique.
+				if [ "$err" = "0" ]; then
+					# output is something like this :
+					# 150 138 179:2 /home/user/somePath/someJail/root / rw,relatime - ext4 /dev/root rw
+					allegedlyJailPath=$($bb cat /proc/$nsPid/mountinfo\
+						| $bb grep "\/root \/ "\
+						| sed -e 's/[0-9]\+ [0-9]\+ [^ ]\+ \([^ ]*\)\/root \/.*$/\1/'\
+						)
+
+					# and we pass that path to our jail detector
+					detectJail $allegedlyJailPath && running=0 || err=1
+				fi
+
+
+				if [ "$err" = "1" ]; then
+					echo "The jail's pid doesn't seem to be correct, it should be deleted" >&2
+					running=2
+				fi
+			fi
 		fi
 	fi
 
