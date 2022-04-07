@@ -275,7 +275,7 @@ joinBridge() {
 		execNS $nsBB ip addr add $newIntIp/$ipIntBitmask dev $vethInternal scope link
 	else
 		$bb ip link set $vethExternal netns $externalNetnsId
-		execRemNS $externalNetnsId $bb ip link set $vethExternal up
+		execRemNS $externalNetnsId $nsBB ip link set $vethExternal up
 		execNS $nsBB ip addr add $newIntIp/$ipIntBitmask dev $vethInternal scope link
 	fi
 
