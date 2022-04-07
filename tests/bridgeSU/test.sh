@@ -71,12 +71,19 @@ lift $jtPath stop $jail2 2>/dev/null || exit 1
 sed -e "s@# joinBridgeByJail .*@joinBridgeByJail ${bogus}NonExisting \"false\" \"3\" || exit 1@" -i $bogus/rootCustomConfig.sh
 
 if $jtPath daemon $bogus 2>/dev/null; then
-	echo "Attempting to join a non existing jail should fail"
+	echo "Attempting to join a bridge unprivileged should always fail"
 	$jtPath stop $bogus 2>/dev/null
 	exit 1
 fi
-
 $jtPath stop $bogus 2>/dev/null
+
+if lift $jtPath daemon $bogus 2>/dev/null; then
+	echo "Attempting to join a non existing jail should fail"
+	lift $jtPath stop $bogus 2>/dev/null
+	exit 1
+fi
+
+lift $jtPath stop $bogus 2>/dev/null
 
 # we setup the jail2
 
