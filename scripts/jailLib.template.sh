@@ -42,7 +42,7 @@ else
 fi
 
 if [ "$actualUser" = "" ]; then
-	actualUser=$($bb stat -c %U $ownPath/jailLib.sh)
+	export actualUser=$($bb stat -c %U $ownPath/jailLib.sh)
 fi
 
 # we get the uid and gid of this script, this way even when ran as root, we still get the right credentials
