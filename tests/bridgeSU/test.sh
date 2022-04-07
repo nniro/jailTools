@@ -68,7 +68,7 @@ fi
 lift $jtPath stop $jail2 2>/dev/null || exit 1
 
 # we use bogus to attempt to join a non existing jail
-sed -e "s@# joinBridgeByJail .*@joinBridgeByJail ${bogus}NonExisting \"false\" \"3\" || exit 1@" -i $bogus/rootCustomConfig.sh
+$jtPath config $bogus -s joinBridgeFromOtherJail "${bogus}NonExisting false 3" >/dev/null
 
 if $jtPath daemon $bogus 2>/dev/null; then
 	echo "Attempting to join a bridge unprivileged should always fail"
@@ -87,7 +87,7 @@ lift $jtPath stop $bogus 2>/dev/null
 
 # we setup the jail2
 
-sed -e "s@# joinBridgeByJail .*@joinBridgeByJail $jail1 \"false\" \"3\" || exit 1@" -i $jail2/rootCustomConfig.sh
+$jtPath config $jail2 -s joinBridgeFromOtherJail "$jail1 false 3" >/dev/null
 
 # starting an unprivileged jail to join a bridge should not work
 if $jtPath daemon $jail2 2>/dev/null; then

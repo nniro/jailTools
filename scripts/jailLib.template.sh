@@ -547,6 +547,29 @@ EOF
 				externalFirewall $rootDir snat $netInterface $vethExt
 			fi
 		fi
+
+		# do note that networking is not necessary for this to work.
+		if [ "$joinBridgeFromOtherJail" != "" ]; then
+			oldIFS="$IFS"
+			IFS="
+			"
+			for entry in $joinBridgeFromOtherJail; do
+				IFS=$oldIFS
+				joinBridgeByJail $entry || return 1
+			done
+			IFS=$oldIFS
+		fi
+
+		if [ "$joinBridge" != "" ]; then
+			oldIFS="$IFS"
+			IFS="
+			"
+			for entry in $joinBridge; do
+				IFS=$oldIFS
+				joinBridge $entry || return 1
+			done
+			IFS=$oldIFS
+		fi
 	fi
 
 	if [ "$privileged" = "1" ]; then

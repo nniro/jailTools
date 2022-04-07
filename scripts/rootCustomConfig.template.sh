@@ -99,6 +99,37 @@ EOF
 )
 
 
+################# Bridge Joining #################
+
+# Synopsis : <jail path> <set as default route> <our last IP bit>
+# one entry per line
+# To join an already running jail called tor at the path, we don't set it
+# as our default internet route and we assign the interface the last IP bit of 3
+# so for example if tor's bridge's IP is 192.168.11.1 we are automatically assigned
+# the IP : 192.168.11.3
+# example :
+# /home/$actualUser/jails/tor false 3
+joinBridgeFromOtherJail=$($bb cat << EOF
+EOF
+)
+
+# To join a bridge not from a jail.
+# one entry per line
+# The 1st argument is for if we want to route our internet through that bridge.
+# the 2nd and 3rd arguments : intInt and extInt are the interface names for the
+# internal interface and the external interface respecfully.
+# We left the 4th argument empty because this bridge is on the base system. If it
+# was in it's own namespace, we would use the namespace name there.
+# The 5th argument is the bridge's device name
+# The 6th argument is the last IP bit. For example if tor's bridge's IP is 192.168.11.1
+# we are automatically assigned the IP : 192.168.11.3
+# example :
+# false intInt extInt "" br0 3
+joinBridge=$($bb cat << EOF
+EOF
+)
+
+
 ################# Functions #################
 
 # this is called before each command that start a jail (daemon and start)
@@ -117,24 +148,6 @@ prepCustom() {
 
 	# we mount the ~/.asoundrc file which is required to gain alsa sound
 	mountSingle $rootDir /home/$actualUser/.asoundrc /home/.asoundrc
-
-	# Synopsis : joinBridgeByJail <jail path> <set as default route> <our last IP bit>
-	# To join an already running jail called tor at the path, we don't set it
-	# as our default internet route and we assign the interface the last IP bit of 3
-	# so for example if tor's bridge's IP is 192.168.11.1 we are automatically assigned
-	# the IP : 192.168.11.3
-	# joinBridgeByJail /home/$actualUser/jails/tor "false" "3" || return 1
-
-	# To join a bridge not from a jail.
-	# The 1st argument is for if we want to route our internet through that bridge.
-	# the 2nd and 3rd arguments : intInt and extInt are the interface names for the
-	# internal interface and the external interface respecfully.
-	# We left the 4th argument empty because this bridge is on the base system. If it
-	# was in it's own namespace, we would use the namespace name there.
-	# The 5th argument is the bridge's device name
-	# The 6th argument is the last IP bit. For example if tor's bridge's IP is 192.168.11.1
-	# we are automatically assigned the IP : 192.168.11.3
-	# joinBridge "false" "intInt" "extInt" "" "br0" "3" || return 1
 
 	# firewall
 	# synopsis :
