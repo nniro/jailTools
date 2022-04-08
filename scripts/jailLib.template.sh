@@ -16,11 +16,13 @@ fi
 
 _JAILTOOLS_RUNNING=1
 
-privileged=0
-if [ "$($bb id -u)" != "0" ]; then
-	echo "You are running this script unprivileged, most features will not work" >&2
-else
-	privileged=1
+if [ "$privileged" = "" ]; then
+	export privileged=0
+	if [ "$($bb id -u)" != "0" ]; then
+		echo "You are running this script unprivileged, most features will not work" >&2
+	else
+		export privileged=1
+	fi
 fi
 
 [ "$ownPath" = "" ] && ownPath=$($bb dirname $0)
