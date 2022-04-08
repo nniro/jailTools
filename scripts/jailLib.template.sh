@@ -405,6 +405,21 @@ initializeCoreJail() {
 	fi
 }
 
+isUserNamespaceSupported() {
+	if echo $unshareSupport | $bb grep -q 'U'; then
+		if [ -e /proc/sys/kernel/unprivileged_userns_clone ]; then
+			if [ "$($bb cat /proc/sys/kernel/unprivileged_userns_clone)" = "0" ]; then
+				return 1
+			else
+				return 0
+			fi
+		else
+			return 0
+		fi
+	else
+		return 1
+	fi
+}
 
 prepareChroot() {
 	local rootDir=$1
@@ -413,27 +428,19 @@ prepareChroot() {
 	local chrootCmd="sh -c 'while :; do sleep 9999; done'"
 	local preUnshare=""
 
-	if echo $unshareSupport | $bb grep -q 'U'; then
-		if [ -e /proc/sys/kernel/unprivileged_userns_clone ]; then
-			if [ "$($bb cat /proc/sys/kernel/unprivileged_userns_clone)" = "0" ]; then
-				if [ "$privileged" = "0" ]; then
-					echo "User namespace support is currently disabled. This has to be enabled to support starting a jail unprivileged." >&2
-					echo "Until the change is done, creating a jail requires privileges." >&2
-					echo "\tPlease do (as root) : echo 1 > /proc/sys/kernel/unprivileged_userns_clone   or find the method suitable for your distribution to activate unprivileged user namespace clone" >&2
-				fi
-				userNS=false
-			else
-				userNS=true
-			fi
-		else
-			userNS=true
-		fi
-	else
-		userNS=false
+	if ! isUserNamespaceSupported && ! isPrivileged; then
+		echo "User namespace support is currently disabled." >&2
+		echo "This has to be enabled to support starting a jail unprivileged." >&2
+		printf "Until the change is done, creating a jail requires privileges.\n\n" >&2
+		echo "Please do (as root) :" >&2
+		printf "\techo 1 > /proc/sys/kernel/unprivileged_userns_clone\n\n" >&2
+		echo "or find the method suitable for your distribution to" >&2
+		echo "activate unprivileged user namespace clone." >&2
+		return 1
 	fi
 
 	if [ "$privileged" = "0" ]; then
-		if [ "$userNS" != "true" ]; then
+		if ! isUserNamespaceSupported; then
 			echo "The user namespace is not supported. Can't start an unprivileged jail without it, bailing out." >&2
 			return 1
 		fi
@@ -473,10 +480,10 @@ prepareChroot() {
 		echo "This jail was already started, bailing out." >&2
 		return 1
 	fi
-	if [ "$privileged" = "1" ] && [ "$userNS" = "true" ] && [ "$realRootInJail" = "false" ]; then
+	if [ "$privileged" = "1" ] && isUserNamespaceSupported && [ "$realRootInJail" = "false" ]; then
 		preUnshare="$bb chpst -u $userCreds"
 		unshareArgs="-r"
-	elif [ "$privileged" = "0" ] && [ "$userNS" = "true" ]; then # unprivileged
+	elif [ "$privileged" = "0" ] && isUserNamespaceSupported; then # unprivileged
 		unshareArgs="-r"
 		chrootArgs=""
 		unshareSupport=$(echo "$unshareSupport" | $nsBB sed -e 's/U//g')
