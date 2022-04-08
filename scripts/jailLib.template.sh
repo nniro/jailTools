@@ -394,6 +394,31 @@ handleDirectMounts() {
 	fi
 }
 
+initializeCoreJail() {
+	rootDir=$1
+
+	$bb mount --make-private -o bind $rootDir/root $rootDir/root
+	$bb mount -tproc none $rootDir/root/proc
+	$bb mount -t tmpfs -o size=256k,mode=775 tmpfs $rootDir/root/dev
+	$bb ln -s /proc/self/fd $rootDir/root/dev/fd
+	addDevices $rootDir $availableDevices
+
+	mountMany $rootDir/root "rw,noexec" $(printf "%s" "$devMountPoints" | filterCommentedLines)
+	mountMany $rootDir/root "ro,exec" $(printf "%s" "$roMountPoints" | filterCommentedLines)
+	mountMany $rootDir/root "defaults" $(printf "%s" "$rwMountPoints" | filterCommentedLines)
+
+	handleDirectMounts $rootDir
+
+	if [ "$mountSys" = "true" ]; then
+		if [ "$privileged" = "0" ] && [ "$setNetAccess" = "true" ]; then
+			echo "Could not mount the /sys directory. As an unprivileged user, the only way this is possible is by disabling setNetAccess. Or you can always run this jail as a privileged user." >&2
+		else
+			$bb mount -tsysfs none $rootDir/root/sys
+		fi
+	fi
+}
+
+
 prepareChroot() {
 	local rootDir=$1
 	local unshareArgs=""
@@ -480,39 +505,12 @@ prepareChroot() {
 		fi
 	fi
 
-	devMounts=$(mountMany $rootDir/root -e "rw,noexec" \
-		$(printf "%s" "$devMountPoints" | filterCommentedLines))
-	roMounts=$(mountMany $rootDir/root -e "ro,exec" \
-		$(printf "%s" "$roMountPoints" | filterCommentedLines))
-	rwMounts=$(mountMany $rootDir/root -e "defaults" \
-		$(printf "%s" "$rwMountPoints" | filterCommentedLines))
-
-tasksBeforePivot=$($bb cat << EOF
-$bb mount -tproc none $rootDir/root/proc
-$bb mount -t tmpfs -o size=256k,mode=775 tmpfs $rootDir/root/dev
-$bb ln -s /proc/self/fd $rootDir/root/dev/fd
-$bb sh -c ". $rootDir/jailLib.sh; addDevices $rootDir $availableDevices"
-$devMounts
-$roMounts
-$rwMounts
-$bb sh -c ". $rootDir/jailLib.sh; handleDirectMounts $rootDir"
-
-if [ "$mountSys" = "true" ]; then
-	if [ "$privileged" = "0" ] && [ "$setNetAccess" = "true" ]; then
-		echo "Could not mount the /sys directory. As an unprivileged user, the only way this is possible is by disabling setNetAccess. Or you can always run this jail as a privileged user." >&2
-	else
-		$bb mount -tsysfs none $rootDir/root/sys
-	fi
-fi
-
-EOF
-)
 	# this is the core jail instance being run in the background
 	(
 		$preUnshare $bb unshare $unshareArgs ${unshareSupport}f \
 			-- $bb setpriv --bounding-set $corePrivileges \
-			$bb sh -c "$bb mount --make-private -o bind $rootDir/root $rootDir/root; \
-				$tasksBeforePivot; \
+			$bb sh -c " \
+				$bb sh -c \". $rootDir/jailLib.sh; initializeCoreJail $rootDir\"
 				cd $rootDir/root; \
 				$bb pivot_root . $rootDir/root/root; \
 				exec $nsBB chroot . sh -c \"$nsBB umount -l /root; \
