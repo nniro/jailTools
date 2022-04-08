@@ -25,23 +25,10 @@ if [ "$privileged" = "" ]; then
 	fi
 fi
 
-[ "$ownPath" = "" ] && ownPath=$($bb dirname $0)
+[ "$ownPath" = "" ] && ownPath=$($bb realpath $($bb dirname $0))
 firewallInstr="run/firewall.instructions"
 
 eval "$($shower jt_utils)" # detectJail substring
-
-# convert the path of this script to an absolute path
-if [ "$ownPath" = "." ]; then
-	ownPath=$PWD
-else
-	if [ "$(substring 0 1 $ownPath)" = "/" ]; then
-		# absolute path, we do nothing
-		:
-	else
-		# relative path
-		ownPath=$PWD/$ownPath
-	fi
-fi
 
 if [ "$actualUser" = "" ]; then
 	export actualUser=$($bb stat -c %U $ownPath/jailLib.sh)
