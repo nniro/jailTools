@@ -478,9 +478,12 @@ prepareChroot() {
 		fi
 	fi
 
-	devMounts=$(mountMany $rootDir/root -e "rw,noexec" $devMountPoints)
-	roMounts=$(mountMany $rootDir/root -e "ro,exec" $roMountPoints)
-	rwMounts=$(mountMany $rootDir/root -e "defaults" $rwMountPoints)
+	devMounts=$(mountMany $rootDir/root -e "rw,noexec" \
+		$(printf "%s" "$devMountPoints" | filterCommentedLines))
+	roMounts=$(mountMany $rootDir/root -e "ro,exec" \
+		$(printf "%s" "$roMountPoints" | filterCommentedLines))
+	rwMounts=$(mountMany $rootDir/root -e "defaults" \
+		$(printf "%s" "$rwMountPoints" | filterCommentedLines))
 
 tasksBeforePivot=$($bb cat << EOF
 $bb mount -tproc none $rootDir/root/proc
