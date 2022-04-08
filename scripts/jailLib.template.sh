@@ -373,6 +373,25 @@ internalFirewall() { local rootDir=$1; shift; firewall $firewallInstr "internal"
 # firewall on the base system
 externalFirewall() { local rootDir=$1; shift; firewall $firewallInstr "external" $@ ; }
 
+filterCommentedLines() { # and also empty lines
+	sed -e '/^\( \|\t\)*#.*$/ d' | sed -e '/^$/ d'
+}
+
+handleDirectMounts() {
+	rootDir=$1
+
+	oldIFS="$IFS"
+	if [ "$directMounts" != "" ]; then
+		IFS="
+"
+		for entry in $(printf "%s" "$directMounts" | filterCommentedLines); do
+			IFS=$oldIFS
+			mountSingle $rootDir $entry
+		done
+		IFS=$oldIFS
+	fi
+}
+
 prepareChroot() {
 	local rootDir=$1
 	local unshareArgs=""
@@ -471,7 +490,7 @@ $bb sh -c ". $rootDir/jailLib.sh; addDevices $rootDir $availableDevices"
 $devMounts
 $roMounts
 $rwMounts
-$bb sh -c ". $rootDir/jailLib.sh; prepCustom $rootDir" || exit 1
+$bb sh -c ". $rootDir/jailLib.sh; handleDirectMounts $rootDir"
 
 if [ "$mountSys" = "true" ]; then
 	if [ "$privileged" = "0" ] && [ "$setNetAccess" = "true" ]; then
@@ -578,6 +597,8 @@ EOF
 		for i in passwd shadow group; do $bb chmod 600 $rootDir/root/etc/$i && $bb chown root:root $rootDir/root/etc/$i; done
 		for i in passwd group; do $bb chmod 644 $rootDir/root/etc/$i; done
 	fi
+
+	prepCustom $rootDir || return 1
 
 	return 0
 }

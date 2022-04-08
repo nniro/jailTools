@@ -98,6 +98,22 @@ rwMountPoints=$($bb cat << EOF
 EOF
 )
 
+# Note :	The variable $actualUser contains the username that
+#		is the owner of the jail specific scripts. It can be
+#		used to access the home directory like : /home/$actualUser
+# It is necessary to use a full path rather than the $HOME env.
+# variable because don't forget that this could be run as root.
+#
+# One entry per line
+# synopsis : <source on the host> <destination in the jail>
+directMounts=$($bb cat << EOF
+# we mount the ~/.Xauthority file which is required for X11 support
+/home/$actualUser/.Xauthority /home/.Xauthority
+# we mount the ~/.asoundrc file which is required to gain alsa sound
+/home/$actualUser/.asoundrc /home/.asoundrc
+EOF
+)
+
 
 ################# Bridge Joining #################
 
@@ -136,18 +152,6 @@ EOF
 # among other, put your firewall rules here
 prepCustom() {
 	local rootDir=$1
-
-	# Note :	The variable $actualUser contains the username that
-	#		is the owner of the jail specific scripts. It can be
-	#		used to access the home directory like : /home/$actualUser
-	# It is necessary to use a full path rather than the $HOME env.
-	# variable because don't forget that this could be run as root.
-
-	# we mount the ~/.Xauthority file which is required for X11 support
-	mountSingle $rootDir /home/$actualUser/.Xauthority /home/.Xauthority
-
-	# we mount the ~/.asoundrc file which is required to gain alsa sound
-	mountSingle $rootDir /home/$actualUser/.asoundrc /home/.asoundrc
 
 	# firewall
 	# synopsis :
