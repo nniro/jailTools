@@ -374,7 +374,7 @@ internalFirewall() { local rootDir=$1; shift; firewall $firewallInstr "internal"
 externalFirewall() { local rootDir=$1; shift; firewall $firewallInstr "external" $@ ; }
 
 filterCommentedLines() { # and also empty lines
-	sed -e '/^\( \|\t\)*#.*$/ d' | sed -e '/^$/ d'
+	sed -e '/^\( \|\t\)*#.*$/ d' | sed -e '/^\( \|\t\)*$/ d'
 }
 
 handleDirectMounts() {
