@@ -130,8 +130,9 @@ populateFile() {
 	$bb cat $inFile | $bb sed -e "$result"
 }
 
-nsPids() {
-	for pid in $($bb ps | $bb grep "[0-9]\+ (id -un)" \
+listAllPidsOwnedByUser() {
+	uid=$1
+	for pid in $($bb ps | $bb grep "[0-9]\+ $uid" \
 		| $bb sed -e 's/\([0-9]\+\).*/\1/'); do
 		[ "$($bb readlink /proc/$pid/ns/pid)" != "$($bb readlink /proc/$$/ns/pid)" ] && echo $pid
 	done
@@ -152,7 +153,7 @@ listJails() {
 		fi
 
 		first=true
-		for pid in $(nsPids); do
+		for pid in $(listAllPidsOwnedByUser $(id -un)); do
 			dPath=$(getProcessPathFromMountinfo $pid $prefix) || continue
 			if detectJail $dPath; then
 				if echo $dPath | $bb grep -q $jailName; then
@@ -165,7 +166,7 @@ listJails() {
 			fi
 		done
 	else # output all jails
-		for pid in $(nsPids); do
+		for pid in $(listAllPidsOwnedByUser $(id -un)); do
 			dPath=$(getProcessPathFromMountinfo $pid $prefix) || continue
 			detectJail $dPath && echo "$dPath - pid $pid"
 		done
