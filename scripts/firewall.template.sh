@@ -12,8 +12,12 @@ if [ "$bb" = "" ]; then
 	nsBB=busybox
 fi
 
-isPrivileged() {
-	test $($bb id -u) = "0"
+_isPrivileged() {
+	if [ "$privileged" = "" ]; then
+		test $($bb id -u) = "0"
+	else
+		[ "$privileged" = "1" ] && return 0 || return 1
+	fi
 }
 
 parseArgs() {
@@ -92,7 +96,7 @@ cmdCtl() {
 # Internal is the firewall inside the jail
 # External is the host system's firewall
 firewall() {
-	if ! isPrivileged; then
+	if ! _isPrivileged; then
 		echo "This function requires to be run with root privileges." >&2
 		return 1
 	fi
@@ -521,7 +525,7 @@ checkFirewall() {
 resetFirewall() {
 	firewallInstr=$1
 
-	if ! isPrivileged; then
+	if ! _isPrivileged; then
 		echo "This function requires superuser privileges" >&2
 		return
 	fi
