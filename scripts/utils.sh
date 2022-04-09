@@ -110,8 +110,9 @@ populateFile() {
 }
 
 nsPids() {
-	for p in $($bb ps | $bb grep "[0-9]\+ $(id -un)" | $bb sed -e 's/\([0-9]\+\).*/\1/'); do
-		[ "$($bb readlink /proc/$p/ns/pid)" != "$($bb readlink /proc/$$/ns/pid)" ] && echo $p
+	for pid in $($bb ps | $bb grep "[0-9]\+ (id -un)" \
+		| $bb sed -e 's/\([0-9]\+\).*/\1/'); do
+		[ "$($bb readlink /proc/$pid/ns/pid)" != "$($bb readlink /proc/$$/ns/pid)" ] && echo $pid
 	done
 }
 
