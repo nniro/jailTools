@@ -16,19 +16,19 @@ fi
 
 _JAILTOOLS_RUNNING=1
 
+[ "$ownPath" = "" ] && ownPath=$($bb realpath $($bb dirname $0))
+firewallInstr="run/firewall.instructions"
+
+eval "$($shower jt_utils)" # detectJail substring isPrivileged
+
 if [ "$privileged" = "" ]; then
-	export privileged=0
-	if [ "$($bb id -u)" != "0" ]; then
+	if ! isPrivileged; then
 		echo "You are running this script unprivileged, most features will not work" >&2
+		export privileged=0
 	else
 		export privileged=1
 	fi
 fi
-
-[ "$ownPath" = "" ] && ownPath=$($bb realpath $($bb dirname $0))
-firewallInstr="run/firewall.instructions"
-
-eval "$($shower jt_utils)" # detectJail substring
 
 if [ "$actualUser" = "" ]; then
 	export actualUser=$($bb stat -c %U $ownPath/jailLib.sh)
@@ -45,7 +45,7 @@ userCreds="$userUID:$userGID"
 
 user=@MAINJAILUSERNAME@
 
-if [ "$privileged" = "1" ]; then
+if isPrivileged; then
 	# unprivileged user bb
 	uBB="$bb chpst -u $userCreds $bb"
 else
@@ -72,14 +72,14 @@ fi
 
 nsenterSupport=$(echo "$unshareSupport" | $bb sed -e 's/^-//' | $bb sed -e 's/\(.\)/-\1 /g')
 if [ "$netNS" = "true" ]; then
-	if [ "$jailNet" = "false" ] || ([ "$privileged" = "0" ] && [ "$setNetAccess" = "true" ]); then
+	if [ "$jailNet" = "false" ] || (! isPrivileged && [ "$setNetAccess" = "true" ]); then
 		:
 	else
 		nsenterSupport="$nsenterSupport -n";
 	fi
 fi
 
-if [ "$privileged" = "1" ]; then
+if isPrivileged; then
 	nsenterSupport="$(echo $nsenterSupport | $bb sed -e 's/-U//g')"
 fi
 
@@ -113,7 +113,7 @@ cmkdir() {
 			if [ "$isOutput" = "false" ]; then
 				if test ! -d $parentdir$subdir; then
 					$bb mkdir $callArgs $parentdir$subdir
-					[ "$privileged" = "1" ] && $bb chown $actualUser $parentdir$subdir
+					isPrivileged && $bb chown $actualUser $parentdir$subdir
 				fi
 			else
 				result="$result $bb mkdir -p $callArgs $parentdir$subdir;"
@@ -242,7 +242,7 @@ joinBridge() {
 	local internalIpNum=$6
 	local ipIntBitmask=24 # hardcoded for now, we set this very rarely
 
-	if [ "$privileged" = "0" ]; then
+	if ! isPrivileged; then
 		echo "joinBridge - Error - This is not possible from an unprivileged jail" >&2
 		return 1
 	fi
@@ -301,7 +301,7 @@ joinBridgeByJail() {
 	local isDefaultRoute=$2
 	local internalIpNum=$3
 
-	if [ "$privileged" = "0" ]; then
+	if ! isPrivileged; then
 		echo "joinBridgeByJail - Error - This is not possible from an unprivileged jail" >&2
 		return 1
 	fi
@@ -397,7 +397,7 @@ initializeCoreJail() {
 	handleDirectMounts $rootDir
 
 	if [ "$mountSys" = "true" ]; then
-		if [ "$privileged" = "0" ] && [ "$setNetAccess" = "true" ]; then
+		if ! isPrivileged && [ "$setNetAccess" = "true" ]; then
 			echo "Could not mount the /sys directory. As an unprivileged user, the only way this is possible is by disabling setNetAccess. Or you can always run this jail as a privileged user." >&2
 		else
 			$bb mount -tsysfs none $rootDir/root/sys
@@ -439,7 +439,7 @@ prepareChroot() {
 		return 1
 	fi
 
-	if [ "$privileged" = "0" ]; then
+	if ! isPrivileged; then
 		if ! isUserNamespaceSupported; then
 			echo "The user namespace is not supported. Can't start an unprivileged jail without it, bailing out." >&2
 			return 1
@@ -464,7 +464,7 @@ prepareChroot() {
 		fi
 	fi
 
-	if [ "$($bb cat /proc/sys/net/ipv4/ip_forward)" = "0" ] && [ "$privileged" = "1" ] && [ "$setNetAccess" = "true" ]; then
+	if [ "$($bb cat /proc/sys/net/ipv4/ip_forward)" = "0" ] && isPrivileged && [ "$setNetAccess" = "true" ]; then
 		networking=false
 		echo "The ip_forward bit in /proc/sys/net/ipv4/ip_forward is disabled. This has to be enabled to get handled network support. Setting networking to false." >&2
 		echo "\tPlease do (as root) : echo 1 > /proc/sys/net/ipv4/ip_forward  or find the method suitable for your distribution to activate IP forwarding." >&2
@@ -472,7 +472,7 @@ prepareChroot() {
 
 	# we check if $rootDir/root is owned by root, we use this technique for when the base instance was started with a privileged account
 	# 	and when we use an unprivileged account to reenter the jail.
-	if [ "$privileged" = "0" ] && [ "$netNS" = "true" ] && [ "$($bb stat -c %U $rootDir/root)" = "root" ]; then
+	if ! isPrivileged && [ "$netNS" = "true" ] && [ "$($bb stat -c %U $rootDir/root)" = "root" ]; then
 		nsenterSupport="$nsenterSupport -n";
 	fi
 
@@ -480,21 +480,21 @@ prepareChroot() {
 		echo "This jail was already started, bailing out." >&2
 		return 1
 	fi
-	if [ "$privileged" = "1" ] && isUserNamespaceSupported && [ "$realRootInJail" = "false" ]; then
+	if isPrivileged && isUserNamespaceSupported && [ "$realRootInJail" = "false" ]; then
 		preUnshare="$bb chpst -u $userCreds"
 		unshareArgs="-r"
-	elif [ "$privileged" = "0" ] && isUserNamespaceSupported; then # unprivileged
+	elif ! isPrivileged && isUserNamespaceSupported; then # unprivileged
 		unshareArgs="-r"
 		chrootArgs=""
 		unshareSupport=$(echo "$unshareSupport" | $nsBB sed -e 's/U//g')
-	else
+	else # unprivileged
 		unshareArgs=""
 		chrootArgs=""
 		unshareSupport=$(echo "$unshareSupport" | $nsBB sed -e 's/U//g')
 	fi # unprivileged
 
 	if [ "$jailNet" = "true" ]; then
-		if [ "$privileged" = "1" ] || ([ "$privileged" = "0" ] && [ "$setNetAccess" = "false" ]); then
+		if isPrivileged || (! isPrivileged && [ "$setNetAccess" = "false" ]); then
 			unshareArgs="$unshareArgs -n"
 		fi
 	fi
@@ -588,7 +588,7 @@ prepareChroot() {
 		fi
 	fi
 
-	if [ "$privileged" = "1" ]; then
+	if isPrivileged; then
 		# this protects from an adversary to delete and recreate root owned files
 		for i in bin root etc lib usr sbin sys . ; do [ -d $rootDir/root/$i ] && $bb chmod 755 $rootDir/root/$i && $bb chown root:root $rootDir/root/$i; done
 		for i in passwd shadow group; do $bb chmod 600 $rootDir/root/etc/$i && $bb chown root:root $rootDir/root/etc/$i; done
@@ -620,7 +620,7 @@ runShell() {
 	preUnshare=""
 	unshareArgs="-U --map-user=$userUID --map-group=$userGID"
 
-	if [ "$privileged" = "1" ]; then
+	if isPrivileged; then
 		if [ "$realRootInJail" = "true" ]; then
 			unshareArgs=""
 		else
@@ -687,7 +687,7 @@ runJail() {
 
 	unshareArgs="-U --map-user=$userUID --map-group=$userGID"
 	nsenterArgs="--preserve-credentials"
-	if [ "$privileged" = "1" ]; then
+	if isPrivileged; then
 		if [ "$runAsRoot" = "true" ]; then
 			unshareArgs=""
 			nsenterArgs=""
@@ -710,7 +710,7 @@ stopChroot() {
 
 	stopCustom $rootDir
 
-	if [ "$privileged" = "0" ]; then
+	if ! isPrivileged; then
 		if [ "$($bb stat -c %U $rootDir/root)" = "root" ]; then
 			echo "This jail was started as root and it needs to be stopped as root as well."
 			exit 1
@@ -747,7 +747,7 @@ stopChroot() {
 	done
 	IFS=$oldIFS
 
-	if [ "$privileged" = "1" ]; then
+	if isPrivileged; then
 		for i in bin root etc lib usr sbin sys . ; do $bb chown $userCreds $rootDir/root/$i; done
 		for i in passwd shadow group; do $bb chown $userCreds $rootDir/root/etc/$i; done
 	fi
