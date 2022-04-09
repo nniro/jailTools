@@ -135,22 +135,22 @@ listJails() {
 		fi
 
 		first=true
-		for p in $(nsPids); do
-			dPath=$(processPath $p $prefix) || continue
+		for pid in $(nsPids); do
+			dPath=$(processPath $pid $prefix) || continue
 			if detectJail $dPath; then
 				if echo $dPath | $bb grep -q $jailName; then
 					if [ "$first" = "true" ]; then
 						printf "jail path : $dPath\npids :\n"
 						first=false
 					fi
-					echo $p
+					echo $pid
 				fi
 			fi
 		done
 	else # output all jails
-		for p in $(nsPids); do
-			dPath=$(processPath $p $prefix) || continue
-			detectJail $dPath && echo "$dPath - pid $p"
+		for pid in $(nsPids); do
+			dPath=$(processPath $pid $prefix) || continue
+			detectJail $dPath && echo "$dPath - pid $pid"
 		done
 	fi
 }
