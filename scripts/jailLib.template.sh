@@ -316,7 +316,7 @@ joinBridgeByJail() {
 			return 1
 		fi
 
-		if ! jailStatus $jailLocation; then
+		if ! isJailRunning $jailLocation; then
 			echo "joinBridgeByJail: This jail at \`$jailLocation' is not currently started, aborting joining." >&2
 			return 1
 		fi

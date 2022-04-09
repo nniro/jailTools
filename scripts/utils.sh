@@ -39,7 +39,7 @@ getProcessPathFromMountinfo() {
 #	2 when the file ns.pid contains a wrong process pid (could be after a reboot)
 #	1 it is not running
 #	0 the jail is running
-jailStatus() {
+isJailRunning() {
 	local jailPath=$1 # this has to be an absolute path
 
 	getProcessPathFromPwdx() {
