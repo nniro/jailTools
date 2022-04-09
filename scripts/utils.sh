@@ -1,7 +1,11 @@
 # we expect the 'bb' variable to be provided by the script that includes this
 
 isPrivileged() {
-	test $($bb id -u) = "0"
+	if [ "$privileged" = "" ]; then
+		test $($bb id -u) = "0"
+	else
+		[ "$privileged" = "1" ] && return 0 || return 1
+	fi
 }
 
 # detects if the path as argument contains a valid jail
