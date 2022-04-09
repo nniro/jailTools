@@ -686,11 +686,9 @@ runJail() {
 	fi
 
 	unshareArgs="-U --map-user=$userUID --map-group=$userGID"
-	nsenterArgs="--preserve-credentials"
 	if isPrivileged; then
 		if [ "$runAsRoot" = "true" ]; then
 			unshareArgs=""
-			nsenterArgs=""
 		else
 			preUnshare="$nsBB chpst -u $userCreds"
 		fi
