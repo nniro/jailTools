@@ -130,13 +130,13 @@ shift
 
 @EMBEDDEDFILES_LOCATION@
 
-eval "$($shower jt_utils)" # detectJail callGetopt
+eval "$($shower jt_utils)" # isValidJailPath callGetopt
 eval "$($shower jt_firewall)" # firewall functions
 
 jPath="."
 
 checkJailPath() {
-	[ "$1" != "" ] && [ -d $1 ] && detectJail $1
+	[ "$1" != "" ] && [ -d $1 ] && isValidJailPath $1
 }
 
 opts=""
@@ -160,7 +160,7 @@ case $cmd in
 
 	cp|cpDep)
 		checkJailPath $1 && jPath="$1" && shift
-		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
+		[ "$jPath" != "." ] || isValidJailPath $jPath || showJailPathError
 
 		$runner jt_cpDep $jPath $@
 		exit $?
@@ -179,7 +179,7 @@ case $cmd in
 
 	start|stop|shell)
 		checkJailPath $1 && jPath="$1" && shift
-		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
+		[ "$jPath" != "." ] || isValidJailPath $jPath || showJailPathError
 
 		cd $jPath
 		$bb sh ./startRoot.sh $cmd $@
@@ -188,7 +188,7 @@ case $cmd in
 
 	daemon)
 		checkJailPath $1 && jPath="$1" && shift
-		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
+		[ "$jPath" != "." ] || isValidJailPath $jPath || showJailPathError
 
 		(cd $jPath; $bb chpst -0 -1 $bb sh ./startRoot.sh 'daemon' $@ 2>./run/daemon.log) &
 		#if [ "$?" != "0" ]; then echo "There was an error starting the daemon, it may already be running."; fi
@@ -205,7 +205,7 @@ case $cmd in
 
 	f|firewall)
 		checkJailPath $1 && jPath="$1" && shift
-		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
+		[ "$jPath" != "." ] || isValidJailPath $jPath || showJailPathError
 		rPath=$($bb realpath $jPath)
 
 		firewallCLI $rPath/run/firewall.instructions $@
@@ -217,7 +217,7 @@ case $cmd in
 
 	s|status)
 		checkJailPath $1 && jPath="$1" && shift
-		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
+		[ "$jPath" != "." ] || isValidJailPath $jPath || showJailPathError
 		rPath=$($bb realpath $jPath)
 
 		result=$(callGetopt "status [OPTIONS]" \
@@ -262,7 +262,7 @@ case $cmd in
 
 	upgrade)
 		checkJailPath $1 && jPath="$1" && shift
-		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
+		[ "$jPath" != "." ] || isValidJailPath $jPath || showJailPathError
 
 		eval "$($shower jt_upgrade)"
 		startUpgrade $jPath $@
@@ -270,7 +270,7 @@ case $cmd in
 
 	config)
 		checkJailPath $1 && jPath="$1" && shift
-		[ "$jPath" != "." ] || detectJail $jPath || showJailPathError
+		[ "$jPath" != "." ] || isValidJailPath $jPath || showJailPathError
 		rPath=$($bb realpath $jPath)
 
 		$runner jt_config $rPath "$@"
@@ -281,7 +281,7 @@ case $cmd in
 	v|version)
 		availJail=0
 		checkJailPath $1 && jPath="$1" && shift
-		[ "$jPath" != "." ] || detectJail $jPath && availJail=1
+		[ "$jPath" != "." ] || isValidJailPath $jPath && availJail=1
 
 		if [ "$availJail" = "1" ]; then
 			rPath=$($bb realpath $jPath)

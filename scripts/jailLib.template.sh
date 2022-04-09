@@ -19,7 +19,7 @@ _JAILTOOLS_RUNNING=1
 [ "$ownPath" = "" ] && ownPath=$($bb realpath $($bb dirname $0))
 firewallInstr="run/firewall.instructions"
 
-eval "$($shower jt_utils)" # detectJail substring isPrivileged
+eval "$($shower jt_utils)" # isValidJailPath substring isPrivileged
 
 if [ "$privileged" = "" ]; then
 	if ! isPrivileged; then
@@ -306,7 +306,7 @@ joinBridgeByJail() {
 		return 1
 	fi
 
-	if detectJail $jailLocation; then
+	if isValidJailPath $jailLocation; then
 		remjailName=$($runner jt_config $jailLocation -g jailName)
 		remcreateBridge=$($runner jt_config $jailLocation -g createBridge)
 		rembridgeName=$($runner jt_config $jailLocation -g bridgeName)
@@ -335,7 +335,7 @@ joinBridgeByJail() {
 leaveBridgeByJail() {
 	local jailLocation=$1
 
-	if detectJail $jailLocation; then
+	if isValidJailPath $jailLocation; then
 		remjailName=$($runner jt_config $jailLocation -g jailName)
 		remcreateBridge=$($runner jt_config $jailLocation -g createBridge)
 		rembridgeName=$($runner jt_config $jailLocation -g bridgeName)

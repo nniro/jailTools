@@ -9,7 +9,7 @@ isPrivileged() {
 }
 
 # detects if the path as argument contains a valid jail
-detectJail() {
+isValidJailPath() {
 	local jPath=$1
 	if [ -d $jPath/root ] \
 		&& [ -d $jPath/run ] \
@@ -61,7 +61,7 @@ jailStatus() {
 	# check that the process is running correctly
 	$bb ps | $bb grep -q "^ *$nsPid " || err=1
 
-	[ "$err" = "0" ] && detectJail "$(getProcessPathFromMountinfo $nsPid)" && return 0 || err=1
+	[ "$err" = "0" ] && isValidJailPath "$(getProcessPathFromMountinfo $nsPid)" && return 0 || err=1
 
 	if [ "$err" = "1" ]; then
 		echo "The jail's pid doesn't seem to be correct, it should be deleted" >&2
@@ -124,7 +124,7 @@ listJails() {
 		first=true
 		for pid in $(listAllPidsOwnedByUser $(id -un)); do
 			dPath=$(getProcessPathFromMountinfo $pid $prefix) || continue
-			if detectJail $dPath; then
+			if isValidJailPath $dPath; then
 				if echo $dPath | $bb grep -q $jailName; then
 					if [ "$first" = "true" ]; then
 						printf "jail path : $dPath\npids :\n"
@@ -137,7 +137,7 @@ listJails() {
 	else # output all jails
 		for pid in $(listAllPidsOwnedByUser $(id -un)); do
 			dPath=$(getProcessPathFromMountinfo $pid $prefix) || continue
-			detectJail $dPath && echo "$dPath - pid $pid"
+			isValidJailPath $dPath && echo "$dPath - pid $pid"
 		done
 	fi
 }
