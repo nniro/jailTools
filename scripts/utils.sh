@@ -22,6 +22,19 @@ detectJail() {
 	fi
 }
 
+getProcessPathFromMountinfo() {
+	local pid=$1
+	local prefix=$2
+	[ ! -d /proc ] || [ ! -d /proc/$pid ] || [ ! -e /proc/$pid/mountinfo ] && return 1
+	# we filter a line similar to this :
+	# 150 138 179:2 /home/user/somePath/someJail/root / rw,relatime - ext4 /dev/root rw
+	local result=$($bb cat /proc/$pid/mountinfo\
+		| $bb grep "\/root \/ "\
+		| $bb sed -e 's/^[0-9]\+ [0-9]\+ [0-9:]\+ \([^ ]*\)\/root \/.*$/\1/')
+	echo ${result##$prefix}
+	return 0
+}
+
 # returns :
 #	2 when the file ns.pid contains a wrong process pid (could be after a reboot)
 #	1 it is not running
@@ -116,19 +129,10 @@ nsPids() {
 	done
 }
 
-processPath() {
-	local pid=$1
-	local prefix=$2
-	[ ! -d /proc ] || [ ! -d /proc/$p ] || [ ! -e /proc/$p/mountinfo ] && return 1
-	result=$($bb cat /proc/$pid/mountinfo | $bb head -n 1 | $bb sed -e 's/^[0-9]\+ [0-9]\+ [0-9:]\+ \([^ ]\+\).*$/\1/' | $bb sed -e 's/\/root$//')
-	echo ${result##prefix}
-	return 0
-}
-
 listJails() {
 	local jailName=$1
 
-	prefix=$(processPath 1)
+	prefix=$(getProcessPathFromMountinfo 1)
 	[ "$prefix" = "/" ] && prefix="" || prefix="$prefix/root"
 
 	if [ "$jailName" != "" ]; then # user asked for a specific jail
@@ -141,7 +145,7 @@ listJails() {
 
 		first=true
 		for pid in $(nsPids); do
-			dPath=$(processPath $pid $prefix) || continue
+			dPath=$(getProcessPathFromMountinfo $pid $prefix) || continue
 			if detectJail $dPath; then
 				if echo $dPath | $bb grep -q $jailName; then
 					if [ "$first" = "true" ]; then
@@ -154,7 +158,7 @@ listJails() {
 		done
 	else # output all jails
 		for pid in $(nsPids); do
-			dPath=$(processPath $pid $prefix) || continue
+			dPath=$(getProcessPathFromMountinfo $pid $prefix) || continue
 			detectJail $dPath && echo "$dPath - pid $pid"
 		done
 	fi
