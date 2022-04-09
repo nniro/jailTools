@@ -117,11 +117,11 @@ nsPids() {
 }
 
 processPath() {
-	local p=$1
+	local pid=$1
 	local prefix=$2
 	[ ! -d /proc ] || [ ! -d /proc/$p ] || [ ! -e /proc/$p/mountinfo ] && return 1
-	r=$($bb cat /proc/$p/mountinfo | $bb head -n 1 | $bb sed -e 's/^[0-9]\+ [0-9]\+ [0-9:]\+ \([^ ]\+\).*$/\1/' | $bb sed -e 's/\/root$//')
-	echo ${r##$prefix}
+	result=$($bb cat /proc/$pid/mountinfo | $bb head -n 1 | $bb sed -e 's/^[0-9]\+ [0-9]\+ [0-9:]\+ \([^ ]\+\).*$/\1/' | $bb sed -e 's/\/root$//')
+	echo ${result##prefix}
 	return 0
 }
 
