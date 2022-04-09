@@ -35,9 +35,9 @@ if [ "$actualUser" = "" ]; then
 fi
 
 # we get the uid and gid of this script, this way even when ran as root, we still get the right credentials
-userUID=$($bb stat -c %u $ownPath/jailLib.sh)
-userGID=$($bb stat -c %g $ownPath/jailLib.sh)
-userCreds="$userUID:$userGID"
+[ "$userUID" = "" ] && export userUID=$($bb stat -c %u $ownPath/jailLib.sh)
+[ "$userGID" = "" ] && export userGID=$($bb stat -c %g $ownPath/jailLib.sh)
+[ "$userCreds" = "" ] && export userCreds="$userUID:$userGID"
 
 . $ownPath/rootCustomConfig.sh
 
