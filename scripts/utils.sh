@@ -42,62 +42,31 @@ getProcessPathFromMountinfo() {
 jailStatus() {
 	local jailPath=$1 # this has to be an absolute path
 
-	local running=1
-	if [ -e $jailPath/run/jail.pid ] && [ -e $jailPath/run/ns.pid ]; then
-		if [ -s $jailPath/run/ns.pid ]; then
-			local pPath=$($bb pwdx $($bb cat $jailPath/run/ns.pid) \
-				| $bb sed -e 's/^[0-9]*: *//' \
-				| sed -e 's/\/root$//')
-		else
-			local pPath=""
-		fi
+	getProcessPathFromPwdx() {
+		local pidFile=$1
+		$bb pwdx $($bb cat $pidFile)\
+			| $bb sed -e 's/^[0-9]*: *//' \
+			| $bb sed -e 's/\/root$//'
+	}
 
-		if [ "$jailPath" = "$pPath" ]; then
-			running=0
-		else
-			if [ -s $jailPath/run/jail.pid ]; then
-				pPath=$($bb pwdx $($bb cat $jailPath/run/jail.pid) \
-					| $bb sed -e 's/^[0-9]*: *//' \
-					| sed -e 's/\/root$//')
-			else
-				pPath=""
-			fi
+	# the files exist and the size is more than zero
+	[ -s $jailPath/run/jail.pid ] && [ -s $jailPath/run/ns.pid ] || return 1
 
-			if [ "$jailPath" = "$pPath" ]; then
-				running=0
-			elif [ -s $jailPath/run/ns.pid ]; then
-				nsPid=$(cat $jailPath/run/ns.pid)
-				err=0
+	getProcessPathFromPwdx $jailPath/run/ns.pid | $bb grep -q "^$jailPath$" && return 0
+	getProcessPathFromPwdx $jailPath/run/jail.pid | $bb grep -q "^$jailPath$" && return 0
 
-				# first check that the process is running correctly
-				if ! $bb ps | grep -q "^ *$nsPid " ; then
-					err=1
-				fi
+	local nsPid=$(cat $jailPath/run/ns.pid)
+	local err=0
 
-				# now we check if the path of the process is a jail
-				# with pivot_root, we have to use this special technique.
-				if [ "$err" = "0" ]; then
-					# output is something like this :
-					# 150 138 179:2 /home/user/somePath/someJail/root / rw,relatime - ext4 /dev/root rw
-					allegedlyJailPath=$($bb cat /proc/$nsPid/mountinfo\
-						| $bb grep "\/root \/ "\
-						| sed -e 's/[0-9]\+ [0-9]\+ [^ ]\+ \([^ ]*\)\/root \/.*$/\1/'\
-						)
+	# check that the process is running correctly
+	$bb ps | $bb grep -q "^ *$nsPid " || err=1
 
-					# and we pass that path to our jail detector
-					detectJail $allegedlyJailPath && running=0 || err=1
-				fi
+	[ "$err" = "0" ] && detectJail "$(getProcessPathFromMountinfo $nsPid)" && return 0 || err=1
 
-
-				if [ "$err" = "1" ]; then
-					echo "The jail's pid doesn't seem to be correct, it should be deleted" >&2
-					running=2
-				fi
-			fi
-		fi
+	if [ "$err" = "1" ]; then
+		echo "The jail's pid doesn't seem to be correct, it should be deleted" >&2
+		return 2
 	fi
-
-	return $running
 }
 
 # substring offset <optional length> string
