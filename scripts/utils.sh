@@ -27,20 +27,28 @@ jailStatus() {
 
 	local running=1
 	if [ -e $jailPath/run/jail.pid ] && [ -e $jailPath/run/ns.pid ]; then
-		local pPath=$($bb pwdx $($bb cat $jailPath/run/ns.pid) \
-			| $bb sed -e 's/^[0-9]*: *//' \
-			| sed -e 's/\/root$//')
+		if [ -s $jailPath/run/ns.pid ]; then
+			local pPath=$($bb pwdx $($bb cat $jailPath/run/ns.pid) \
+				| $bb sed -e 's/^[0-9]*: *//' \
+				| sed -e 's/\/root$//')
+		else
+			local pPath=""
+		fi
 
 		if [ "$jailPath" = "$pPath" ]; then
 			running=0
 		else
-			pPath=$($bb pwdx $($bb cat $jailPath/run/jail.pid) \
-				| $bb sed -e 's/^[0-9]*: *//' \
-				| sed -e 's/\/root$//')
+			if [ -s $jailPath/run/jail.pid ]; then
+				pPath=$($bb pwdx $($bb cat $jailPath/run/jail.pid) \
+					| $bb sed -e 's/^[0-9]*: *//' \
+					| sed -e 's/\/root$//')
+			else
+				pPath=""
+			fi
 
 			if [ "$jailPath" = "$pPath" ]; then
 				running=0
-			else
+			elif [ -s $jailPath/run/ns.pid ]; then
 				nsPid=$(cat $jailPath/run/ns.pid)
 				err=0
 
