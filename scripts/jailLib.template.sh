@@ -363,6 +363,7 @@ internalFirewall() { local rootDir=$1; shift; firewall $firewallInstr "internal"
 externalFirewall() { local rootDir=$1; shift; firewall $firewallInstr "external" $@ ; }
 
 filterCommentedLines() { # and also empty lines
+	IFS=" "
 	$bb sed -e '/^\( \|\t\)*#.*$/ d' | $bb sed -e '/^\( \|\t\)*$/ d'
 }
 
