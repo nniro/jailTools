@@ -363,7 +363,7 @@ internalFirewall() { local rootDir=$1; shift; firewall $firewallInstr "internal"
 externalFirewall() { local rootDir=$1; shift; firewall $firewallInstr "external" $@ ; }
 
 filterCommentedLines() { # and also empty lines
-	sed -e '/^\( \|\t\)*#.*$/ d' | sed -e '/^\( \|\t\)*$/ d'
+	$bb sed -e '/^\( \|\t\)*#.*$/ d' | $bb sed -e '/^\( \|\t\)*$/ d'
 }
 
 handleDirectMounts() {
@@ -758,7 +758,7 @@ stopChroot() {
 			$bb rm -f $rootDir/run/jail.pid
 		fi
 	fi
-	rm $rootDir/run/isStopping
+	$bb rm $rootDir/run/isStopping
 }
 
 execNS() { execRemNS $innerNSpid "$@"; }
