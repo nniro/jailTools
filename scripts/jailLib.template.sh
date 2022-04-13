@@ -507,7 +507,7 @@ prepareChroot() {
 				$bb sh -c \". $rootDir/jailLib.sh; initializeCoreJail $rootDir\"
 				cd $rootDir/root; \
 				$bb pivot_root . $rootDir/root/root; \
-				exec $nsBB chroot . sh -c \"$nsBB umount -l /root; \
+				exec $nsBB chroot . /bin/sh -c \"$nsBB umount -l /root; \
 					$nsBB setpriv --bounding-set $chrootPrivileges $baseEnv $chrootCmd\"" \
 	) &
 	innerNSpid=$!
