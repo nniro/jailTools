@@ -66,7 +66,7 @@ cmdParse() {
 			jArgs="-d"
 			[ "$realRootInJail" = "true" ] && jArgs="$jArgs -r"
 			prepareChroot $ownPath || exit 1
-			sleep 1
+			$bb sleep 1
 			runJail $jArgs $ownPath $(prepareCmd "$runEnvironment" "$daemonCommand" "$@")
 			err=$?
 			stopChroot $ownPath
@@ -77,7 +77,7 @@ cmdParse() {
 			jArgs=""
 			[ "$realRootInJail" = "true" ] && jArgs="$jArgs -r"
 			prepareChroot $ownPath || exit 1
-			sleep 1
+			$bb sleep 1
 			runJail $jArgs $ownPath $(prepareCmd "$runEnvironment" "$startCommand" "$@")
 			err=$?
 			stopChroot $ownPath
