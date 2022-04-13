@@ -47,4 +47,19 @@ if [ "$s1" != "$s2" ]; then
 	exit 1
 fi
 
+# test starting a daemon and attempting to start it again
+
+$jtPath daemon $jail || exit 1
+
+$jtPath start $jail sh -c 'exit' 2>/dev/null && _err=1 || _err=0
+
+if [ "$_err" = "1" ] || ! $jtPath status $jail; then
+	echo "Attempting to start an already started jail should fail graciously."
+	echo "It should not stop the jail."
+
+	exit 1
+fi
+
+$jtPath stop $jail >/dev/null 2>/dev/null
+
 exit 0
