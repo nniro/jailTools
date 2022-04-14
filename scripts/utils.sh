@@ -34,7 +34,7 @@ getProcessPathFromMountinfo() {
 	local result=$($bb cat /proc/$pid/mountinfo\
 		| $bb grep "\/root \/ "\
 		| $bb sed -e 's/^[0-9]\+ [0-9]\+ [0-9:]\+ \([^ ]*\)\/root \/.*$/\1/')
-	echo ${result##$prefix}
+	[ "$result" != "" ] && echo ${result##$prefix} || return 1
 	return 0
 }
 
