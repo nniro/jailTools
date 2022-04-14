@@ -505,7 +505,7 @@ prepareChroot() {
 		$preUnshare $bb unshare $unshareArgs ${unshareSupport}f \
 			-- $bb setpriv --bounding-set $corePrivileges \
 			$bb sh -c " \
-				$bb sh -c \". $rootDir/jailLib.sh; initializeCoreJail $rootDir\"
+				$bb sh -c \". $rootDir/jailLib.sh; initializeCoreJail $rootDir\"; \
 				cd $rootDir/root; \
 				$bb pivot_root . $rootDir/root/root; \
 				exec $nsBB chroot . /bin/sh -c \"$nsBB umount -l /root; \
