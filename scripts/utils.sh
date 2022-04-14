@@ -26,6 +26,9 @@ getProcessPathFromMountinfo() {
 	local pid=$1
 	local prefix=$2
 	[ ! -d /proc ] || [ ! -d /proc/$pid ] || [ ! -e /proc/$pid/mountinfo ] && return 1
+	# in case mountinfo is empty, we bail out with an error
+	# can't use test -s on that file for some reasons
+	$bb cat /proc/$pid/mountinfo | $bb wc -c | $bb grep -q '^0$' && return 1
 	# we filter a line similar to this :
 	# 150 138 179:2 /home/user/somePath/someJail/root / rw,relatime - ext4 /dev/root rw
 	local result=$($bb cat /proc/$pid/mountinfo\
