@@ -181,8 +181,7 @@ case $cmd in
 		checkJailPath $1 && jPath="$1" && shift
 		[ "$jPath" != "." ] || isValidJailPath $jPath || showJailPathError
 
-		cd $jPath
-		$bb sh ./startRoot.sh $cmd $@
+		(cd $jPath; $bb sh ./startRoot.sh $cmd $@)
 		exit $?
 	;;
 
