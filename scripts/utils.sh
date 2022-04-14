@@ -38,38 +38,31 @@ getProcessPathFromMountinfo() {
 	return 0
 }
 
-# returns :
-#	2 when the file ns.pid contains a wrong process pid (could be after a reboot)
-#	1 it is not running
-#	0 the jail is running
+getProcessPathFromPwdx() {
+	local pid=$1
+	$bb pwdx $pid\
+		| $bb sed -e 's/^[0-9]*: *//' \
+		| $bb sed -e 's/\/root$//'
+}
+
+isProcessRunning() {
+	pid=$1
+
+	$bb ps | $bb grep -q "^ *$pid "
+}
+
 isJailRunning() {
 	local jailPath=$1 # this has to be an absolute path
 
-	getProcessPathFromPwdx() {
-		local pidFile=$1
-		$bb pwdx $($bb cat $pidFile)\
-			| $bb sed -e 's/^[0-9]*: *//' \
-			| $bb sed -e 's/\/root$//'
-	}
-
 	# the files exist and the size is more than zero
 	[ -s $jailPath/run/jail.pid ] && [ -s $jailPath/run/ns.pid ] || return 1
-
-	getProcessPathFromPwdx $jailPath/run/ns.pid | $bb grep -q "^$jailPath$" && return 0
-	getProcessPathFromPwdx $jailPath/run/jail.pid | $bb grep -q "^$jailPath$" && return 0
-
 	local nsPid=$(cat $jailPath/run/ns.pid)
-	local err=0
+	local jailPid=$(cat $jailPath/run/jail.pid)
 
-	# check that the process is running correctly
-	$bb ps | $bb grep -q "^ *$nsPid " || err=1
+	getProcessPathFromPwdx $nsPid | $bb grep -q "^$jailPath$" && return 0
+	getProcessPathFromPwdx $jailPid | $bb grep -q "^$jailPath$" && return 0
 
-	[ "$err" = "0" ] && isValidJailPath "$(getProcessPathFromMountinfo $nsPid)" && return 0 || err=1
-
-	if [ "$err" = "1" ]; then
-		echo "The jail's pid doesn't seem to be correct, it should be deleted" >&2
-		return 2
-	fi
+	isProcessRunning $nsPid && isValidJailPath "$(getProcessPathFromMountinfo $nsPid)" || return 1
 }
 
 # substring offset <optional length> string
