@@ -1,6 +1,7 @@
 # we expect the 'bb' variable to be provided by the script that includes this
 
 isPrivileged() {
+	# privileged is a potentially global variable set by jailLib
 	if [ "$privileged" = "" ]; then
 		test $($bb id -u) = "0"
 	else
