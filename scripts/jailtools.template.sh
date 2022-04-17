@@ -238,7 +238,7 @@ case $cmd in
 				elif getVarVal 'showIp' "$result" >/dev/null; then
 					runInNS "/sbin/ip addr show dev \$vethInt" | $bb sed -ne 's/ *inet \([0-9\.]*\).*/\1/ p'
 				elif getVarVal 'showFirewallStatus' "$result" > /dev/null; then
-					$bb sh -c "cd $rPath; source ./jailLib.sh; checkFirewall $rPath" 2>/dev/null
+					$bb sh -c "cd $rPath; source ./jailLib.sh; checkFirewall $firewallInstr" 2>/dev/null
 					result=$?
 
 					if [ "$result" = "0" ]; then
