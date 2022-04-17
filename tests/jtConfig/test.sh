@@ -222,4 +222,11 @@ testGet "Check the value of bridgeName" bridgeName "^nabuchodonoso$" || exit 1
 testGet "Check the value of vethExt" vethExt "^nabuchodonosoex$" || exit 1
 testGet "Check the value of vethInt" vethInt "^nabuchodonosoin$" || exit 1
 
+# purge the multiple line configuration rwMountPoints
+$jtPath config --set rwMountPoints "" >/dev/null
+testGet -p "Purge rwMountPoints" rwMountPoints "" || exit 1
+
+$jtPath config --set rwMountPoints >/dev/null
+testGet -p "Purge rwMountPoints without a value" rwMountPoints "" || exit 1
+
 exit 0
