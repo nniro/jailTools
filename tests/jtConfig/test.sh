@@ -46,7 +46,8 @@ testGet() {
 		return 1
 	fi
 
-	if printf "%s" "$result" | $bb grep -q "$expectedVal"; then
+	if ([ "$expectedVal" = "" ] && [ "$result" = "" ]) \
+		|| printf "%s" "$result" | $bb grep -q "$expectedVal"; then
 		if [ "$reversed" = "true" ]; then
 			echo "Test : $description -- failed"
 			echo "We expected to fail but instead succeded"
