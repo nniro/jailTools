@@ -480,7 +480,18 @@ prepareChroot() {
 	if isJailRunning $rootDir; then
 		echo "This jail was already started, bailing out." >&2
 		return 1
+	else
+		if [ -e $rootDir/run/jail.pid ]; then
+			echo "removing dangling run/jail.pid" >&2
+			rm $rootDir/run/jail.pid
+		fi
+
+		if [ -e $rootDir/run/ns.pid ]; then
+			echo "removing dangling run/ns.pid" >&2
+			rm $rootDir/run/ns.pid
+		fi
 	fi
+
 	if isPrivileged && isUserNamespaceSupported && [ "$realRootInJail" = "false" ]; then
 		preUnshare="$bb chpst -u $userCreds"
 		unshareArgs="-r"
