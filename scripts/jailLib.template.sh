@@ -477,7 +477,7 @@ prepareChroot() {
 		nsenterSupport="$nsenterSupport -n";
 	fi
 
-	if [ -e $rootDir/run/jail.pid ]; then
+	if isJailRunning $rootDir; then
 		echo "This jail was already started, bailing out." >&2
 		return 1
 	fi
