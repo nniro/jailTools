@@ -16,6 +16,9 @@ $jtPath new $jail >/dev/null 2>/dev/null || exit 1
 
 $jtPath config $jail -s realRootInJail true >/dev/null 2>/dev/null
 
+$jtPath config $jail -s setNetAccess false >/dev/null
+$jtPath config $jail -s rwMountPoints "" >/dev/null
+
 cat - > $jail/root/home/firewallFront.sh << EOF
 #! /bin/sh
 
