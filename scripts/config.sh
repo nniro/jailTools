@@ -175,13 +175,8 @@ if [ "$?" = "0" ]; then
 			echo "Setting the config $curConf to default value"
 			setDefaultVal $jailDir $curConf
 		else
-			if [ "$confVal" = "" ]; then
-				echo "Invalid configuration value entered"
-				exit 1
-			else
-				echo "Setting the config $curConf with value : $confVal"
-				setCustomVal $jailDir $curConf "$confVal"
-			fi
+			echo "Setting the config $curConf with value : $confVal"
+			setCustomVal $jailDir $curConf "$confVal"
 		fi
 	fi
 fi
