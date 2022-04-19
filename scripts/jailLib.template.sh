@@ -441,10 +441,6 @@ prepareChroot() {
 	fi
 
 	if ! isPrivileged; then
-		if ! isUserNamespaceSupported; then
-			echo "The user namespace is not supported. Can't start an unprivileged jail without it, bailing out." >&2
-			return 1
-		fi
 		if [ "$networking" = "true" ]; then
 			networking="false"
 			echo "Unprivileged jails do not support the setting networking, turning it off" >&2
@@ -454,15 +450,6 @@ prepareChroot() {
 	if [ "$netNS" = "false" ] && [ "$jailNet" = "true" ]; then
 		jailNet=false
 		echo "jailNet is set to false automatically as it needs network namespace support which is not available." >&2
-	fi
-
-	if [ "$networking" = "true" ]; then
-		iptablesBin=$(PATH="$PATH:/sbin:/usr/sbin:/usr/local/sbin" command which iptables 2>/dev/null)
-
-		if [ "$iptablesBin" = "" ]; then
-			echo "The firewall \`iptables' was chosen but it needs the command \`iptables' which is not available or it's not in the available path. Setting networking to false." >&2
-			networking=false
-		fi
 	fi
 
 	if [ "$($bb cat /proc/sys/net/ipv4/ip_forward)" = "0" ] && isPrivileged && [ "$setNetAccess" = "true" ]; then
