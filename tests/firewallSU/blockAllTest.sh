@@ -138,4 +138,33 @@ if ! lift $jtPath start $jail sh /home/runTest.sh 2>/dev/null; then
 fi
 # rule deletion test end
 
+# phantom instruction test
+cat - > $jail/root/home/runTest.sh << __EOF__
+cat - > $jail/root/tmp/firewallInstructions.txt << EOF
+firewall /tmp/firewallInstructions.txt external blockAll fwTestIn fwTestIn;
+EOF
+
+sh /home/singleTest.sh /home/firewallCmd /home/firewallExpectedInstr /home/firewallExpectedIptablesRules
+__EOF__
+
+cat - > $jail/root/home/firewallCmd << EOF
+sh /home/firewallFront.sh \$fwInstrPath firewall blockAll fwTestIn fwTestIn
+EOF
+
+cat - > $jail/root/home/firewallExpectedInstr << EOF
+firewall /tmp/firewallInstructions.txt external blockAll fwTestIn fwTestIn;
+EOF
+
+cat - > $jail/root/home/firewallExpectedIptablesRules << EOF
+-A INPUT -i fwTestIn -p tcp -m tcp --dport 1:65535 -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
+-A INPUT -i fwTestIn -p udp -m udp --dport 1:65535 -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
+-A OUTPUT -o fwTestIn -m state ! --state RELATED,ESTABLISHED -j REJECT --reject-with icmp-port-unreachable
+EOF
+
+if ! lift $jtPath start $jail sh runTest.sh 2>/dev/null; then
+	echo "Phantom instruction blockAll test failed"
+	exit 1
+fi
+# phantom instruction test end
+
 exit 0
