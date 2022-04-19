@@ -207,7 +207,7 @@ case $cmd in
 		[ "$jPath" != "." ] || isValidJailPath $jPath || showJailPathError
 		rPath=$($bb realpath $jPath)
 
-		firewallCLI $rPath/run/firewall.instructions $@
+		$bb sh -c "cd $rPath; source ./jailLib.sh; firewallCLI $firewallInstr $@" 2>/dev/null
 		_err=$?
 
 
