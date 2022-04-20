@@ -570,10 +570,17 @@ firewallCLI() {
 
 	        firewall|f|command|cmd)
 	                firewall $instrFile external $@
+			return $?
 	        ;;
 
 	        check)
-	                checkFirewall $instrFile >/dev/null 2>/dev/null && echo "All is fine" || echo "Error detected"
+	                if checkFirewall $instrFile >/dev/null 2>/dev/null; then
+				echo "All is fine" >&2
+				return 0
+			else
+				echo "Error detected" >&2
+				return 1
+			fi
 	        ;;
 
 		reset)
