@@ -171,6 +171,9 @@ firewall() {
 
 			if [ "$singleRunMode" = "false" ]; then
 				if cmdCtl "$fwInstrFile" exists "firewall $fwInstrFile $fwType $cmd $arguments"; then
+					# instruction already present so we rerun this in single run mode
+					echo "firewall : Reapplying rules that should be applied but aren't." >&2
+					firewall $fwInstrFile $fwType -s $cmd $arguments
 					return 0
 				fi
 			fi # not singleRunMode
