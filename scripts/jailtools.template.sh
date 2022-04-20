@@ -189,6 +189,11 @@ case $cmd in
 		checkJailPath $1 && jPath="$1" && shift
 		[ "$jPath" != "." ] || isValidJailPath $jPath || showJailPathError
 
+		if isJailRunning $jPath; then
+			echo "This jail is already running." >&2
+			exit 1
+		fi
+
 		(cd $jPath; $bb chpst -0 -1 $bb sh ./startRoot.sh 'daemon' $@ 2>./run/daemon.log) &
 		#if [ "$?" != "0" ]; then echo "There was an error starting the daemon, it may already be running."; fi
 
