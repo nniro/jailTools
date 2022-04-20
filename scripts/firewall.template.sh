@@ -211,12 +211,12 @@ firewall() {
 
 			# block all tcp packets except those that are established
 			# and related (this is appended at the bottom)
-			$fwCmd $t INPUT -i $1 -p tcp -m tcp --dport 1:65535 -m state \! --state ESTABLISHED,RELATED -j REJECT
+			$fwCmd $t INPUT -i $1 -p tcp -m tcp --dport 1:65535 -m state \! --state ESTABLISHED,RELATED -j REJECT >&2
 			[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
-			$fwCmd $t INPUT -i $1 -p udp -m udp --dport 1:65535 -m state \! --state ESTABLISHED,RELATED -j REJECT
+			$fwCmd $t INPUT -i $1 -p udp -m udp --dport 1:65535 -m state \! --state ESTABLISHED,RELATED -j REJECT >&2
 			[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
 			# block all outgoing packets except established ones
-			$fwCmd $t OUTPUT -o $2 -p all -m state \! --state ESTABLISHED,RELATED -j REJECT
+			$fwCmd $t OUTPUT -o $2 -p all -m state \! --state ESTABLISHED,RELATED -j REJECT >&2
 			[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
 		;;
 
@@ -239,14 +239,14 @@ firewall() {
 
 
 			# request ext -> int:port
-			$fwCmd $t OUTPUT -o $1 -p $3 --dport $4 -j ACCEPT
+			$fwCmd $t OUTPUT -o $1 -p $3 --dport $4 -j ACCEPT >&2
 			[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
-			$fwCmd $t OUTPUT -o $2 -p $3 --sport $4 -j ACCEPT
+			$fwCmd $t OUTPUT -o $2 -p $3 --sport $4 -j ACCEPT >&2
 			[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
-			$fwCmd $t INPUT -i $2 -p $3 --dport $4 -j ACCEPT
+			$fwCmd $t INPUT -i $2 -p $3 --dport $4 -j ACCEPT >&2
 			[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
 			# response int:port -> ext
-			$fwCmd $t INPUT -i $1 -p $3 --sport $4 -j ACCEPT
+			$fwCmd $t INPUT -i $1 -p $3 --sport $4 -j ACCEPT >&2
 			[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
 		;;
 
@@ -307,7 +307,7 @@ firewall() {
 				;;
 			esac
 
-			$fwCmd $t OUTPUT -p $1 -o $2 -d $3 --dport $4 -j ACCEPT >/dev/null 2>/dev/null
+			$fwCmd $t OUTPUT -p $1 -o $2 -d $3 --dport $4 -j ACCEPT >&2
 			[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
 		;;
 
@@ -369,11 +369,11 @@ firewall() {
 					t2="-C"
 				;;
 			esac
-			$fwCmd -t nat $t PREROUTING -i $2 -p $1 -m $1 --dport $4 -j DNAT --to-destination $5:$6
+			$fwCmd -t nat $t PREROUTING -i $2 -p $1 -m $1 --dport $4 -j DNAT --to-destination $5:$6 >&2
 			[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
-			$fwCmd -t filter $t2 FORWARD -p $1 -i $2 -o $3 -m state --state NEW,ESTABLISHED,RELATED -m $1 --dport $6 -j ACCEPT
+			$fwCmd -t filter $t2 FORWARD -p $1 -i $2 -o $3 -m state --state NEW,ESTABLISHED,RELATED -m $1 --dport $6 -j ACCEPT >&2
 			[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
-			$fwCmd -t filter $t2 FORWARD -p $1 -i $3 -o $2 -m state --state ESTABLISHED,RELATED -j ACCEPT
+			$fwCmd -t filter $t2 FORWARD -p $1 -i $3 -o $2 -m state --state ESTABLISHED,RELATED -j ACCEPT >&2
 			[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
 		;;
 
@@ -454,18 +454,18 @@ firewall() {
 				[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
 			fi
 
-			$fwCmd -t nat $t2 POSTROUTING -o $upstream -j ${upstream}_${downstream}_masq
+			$fwCmd -t nat $t2 POSTROUTING -o $upstream -j ${upstream}_${downstream}_masq >&2
 			[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
-			$fwCmd -t nat $t2 ${upstream}_${downstream}_masq -s $baseAddr/$ipIntBitmask -j MASQUERADE
+			$fwCmd -t nat $t2 ${upstream}_${downstream}_masq -s $baseAddr/$ipIntBitmask -j MASQUERADE >&2
 			[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
 
-			$fwCmd -t filter $t3 FORWARD -i $downstream -o $upstream -j ACCEPT
+			$fwCmd -t filter $t3 FORWARD -i $downstream -o $upstream -j ACCEPT >&2
 			[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
-			$fwCmd -t filter $t3 FORWARD -i $upstream -o $downstream -m state --state ESTABLISHED,RELATED -j ACCEPT
+			$fwCmd -t filter $t3 FORWARD -i $upstream -o $downstream -m state --state ESTABLISHED,RELATED -j ACCEPT >&2
 			[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
 
 			if [ "$mode" = "delete" ]; then
-				$fwCmd -t nat $t ${upstream}_${downstream}_masq
+				$fwCmd -t nat $t ${upstream}_${downstream}_masq >&2
 				[ "$?" != "0" ] && [ "$mode" = "check" ] && return 1
 			fi
 		;;
