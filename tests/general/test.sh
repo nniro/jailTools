@@ -62,4 +62,18 @@ fi
 
 $jtPath stop $jail >/dev/null 2>/dev/null
 
+$jtPath daemon $jail 2>/dev/null || exit 1
+
+$jtPath daemon $jail 2>/dev/null && _err=1 || _err=0
+
+if [ "$_err" = "1" ] || ! $jtPath status $jail; then
+	echo "Attempting to start a daemon of an already started jail should fail graciously."
+	echo "It should not stop the jail."
+
+	$jtPath stop $jail >/dev/null 2>/dev/null
+	exit 1
+fi
+
+$jtPath stop $jail >/dev/null 2>/dev/null
+
 exit 0
