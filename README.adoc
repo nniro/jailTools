@@ -41,9 +41,9 @@ bare jails.
 === Quick steps :
 
 . compilation requirements: git, gcc, GNU make (and GNU autotools as some of the extra dependencies rely on them)
-. get the source code with 'git clone https://github.com/nniro/jailTools '
-. alternatively, you can recursively get all the dependencies and extra tools by doing : 'git clone --recurse-submodules https://github.com/nniro/jailTools '
-. 'make' will download, configure and compile musl and busybox.
+. get the source code with `git clone https://github.com/nniro/jailTools`
+. alternatively, you can recursively get all the dependencies and extra tools by doing : `git clone --recurse-submodules https://github.com/nniro/jailTools`
+. `make` will download, configure and compile musl and busybox.
 . install the super script with install.sh
 
 === Elaborated steps :
@@ -66,7 +66,7 @@ To compile, just run 'make'.
 This will compile musl and then use it to statically link busybox.
 
 ==== Step 3:
-The installation script 'install.sh' will copy the super script 'jt' to
+The installation script `install.sh` will copy the super script `jt` to
 a location of your choice. It only installs the super script, not the whole jailTools
 directory.
 
@@ -97,7 +97,7 @@ sudo sh install.sh /usr/local/bin
 
 == Usage
 
-Here is a list of available commands when calling 'jt':
+Here is a list of available commands when calling `jt`:
 
     * new
 
@@ -137,7 +137,7 @@ jt new /path/to/example foo bar
 This will create a new directory called example containing the jail and once running, the user's
 UID and GID will be mapped to foo and bar respectively. Inside the jail directory /path/to/example
 there are 3 notable scripts :
-. startRoot.sh (don't run this directly, use the super script 'jt')
+. startRoot.sh (don't run this directly, use the super script `jt`)
 . rootCustomConfig.sh (where you place your configuration and custom scripting)
 . update.sh (this contains the files which are copied by the 'cp/cpDep' command so you can reproduce
 and update your jail)
@@ -180,7 +180,7 @@ TIP: You usually want to make this start your services automatically. This is mo
 
 === *How to install applications in a jail*
 
-To add more applications to the jail, use 'jt cp' command.
+To add more applications to the jail, use `jt cp` command.
 
 Here we show how to copy the application strace to the jail :
 
