@@ -55,14 +55,14 @@ Get jailTools from the git repository:
 git clone https://github.com/nniro/jailTools
 ----
 
-This will download the repository to the directory 'jailTools'.
+This will download the repository to the directory `jailTools`.
 
 ==== Step 2:
 The project relies on musl (libc) and busybox. The latter provides the underlying filesystem shell and commands inside each jail.
 Both of these dependencies are automatically cloned by the Makefile process.
 We don't use already installed versions because we want statically linked versions of both of these to save space.
 
-To compile, just run 'make'.
+To compile, just run `make`.
 This will compile musl and then use it to statically link busybox.
 
 ==== Step 3:
@@ -126,7 +126,7 @@ inside the chroot. The main user will be exactly the same UID as the user that c
 the jail, same goes for the group. If they are not explicitely added, they will be
 created with the same name as the jail.
 
-IMPORTANT: The jail name is initially the directory in which the jail resides. That name can be changed inside the configuration file rootCustomConfig.sh.
+IMPORTANT: The jail name is initially the directory in which the jail resides. That name can be changed inside the configuration file `rootCustomConfig.sh`.
 
 Example :
 
@@ -137,12 +137,12 @@ jt new /path/to/example foo bar
 This will create a new directory called example containing the jail and once running, the user's
 UID and GID will be mapped to foo and bar respectively. Inside the jail directory /path/to/example
 there are 3 notable scripts :
-. startRoot.sh (don't run this directly, use the super script `jt`)
-. rootCustomConfig.sh (where you place your configuration and custom scripting)
-. update.sh (this contains the files which are copied by the 'cp/cpDep' command so you can reproduce
+. `startRoot.sh` (don't run this directly, use the super script `jt`)
+. `rootCustomConfig.sh` (where you place your configuration and custom scripting)
+. `update.sh` (this contains the files which are copied by the `cp` or `cpDep` command so you can reproduce
 and update your jail)
 
-The script startRoot.sh is not meant to be edited.  Make your changes in the script rootCustomConfig.sh. 
+The script `startRoot.sh` is not meant to be edited.  Make your changes in the script `rootCustomConfig.sh`.
 
 As is, the jailTools creates a jail with only basic apps and a shell (provided by busybox).
 
@@ -159,7 +159,7 @@ TIP: You usually want to make this start your programs automatically. This is mo
 
 * sudo jt shell
 
-        If the jail is not already started, this behaves exactly like the command 'start'.
+        If the jail is not already started, this behaves exactly like the command `start`.
         But when the jail is already running, this provides a shell inside it.
 
 * sudo jt daemon
@@ -211,7 +211,7 @@ IMPORTANT: Certain applications also requires specific devices (in /dev) and/or 
 === *How to Customize the jail*
 
 There are 4 vectors of customization for jails. Each
-in their own section in rootCustomConfig.sh.
+in their own section in `rootCustomConfig.sh`.
 
 They are :
 
@@ -232,9 +232,9 @@ They are :
         scope of the mount points section) and set up your own start instructions so the
         jail can run the service you want.
 
-. startRoot.sh CUI commands
+. `startRoot.sh` CUI commands
 
-        Use this to set up your own startRoot.sh commands.
+        Use this to set up your own `startRoot.sh` commands.
 
 == Tutorial
 
@@ -242,4 +242,4 @@ They are :
 
 == Firewall
 
-The user's configuration file rootCustomConfig.sh contains a synopsis of the firewall commands and examples.
+The user's configuration file `rootCustomConfig.sh` contains a synopsis of the firewall commands and examples.
