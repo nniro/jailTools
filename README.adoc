@@ -41,8 +41,8 @@ bare jails.
 === Quick steps :
 
 . compilation requirements: git, gcc, GNU make (and GNU autotools as some of the extra dependencies rely on them)
-. get the source code with 'git clone https://github.com/nniro/jailTools.git'
-. alternatively, you can recursively get all the dependencies and extra tools by doing : 'git clone --recurse-submodules https://github.com/nniro/jailTools.git'
+. get the source code with 'git clone https://github.com/nniro/jailTools '
+. alternatively, you can recursively get all the dependencies and extra tools by doing : 'git clone --recurse-submodules https://github.com/nniro/jailTools '
 . 'make' will download, configure and compile musl and busybox.
 . install the super script with install.sh
 
@@ -52,7 +52,7 @@ bare jails.
 Get jailTools from the git repository:
 
 ----
-git clone https://github.com/nniro/jailTools.git
+git clone https://github.com/nniro/jailTools
 ----
 
 This will download the repository to the directory 'jailTools'.
