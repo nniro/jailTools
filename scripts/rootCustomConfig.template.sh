@@ -65,8 +65,8 @@ shellCommand=""
 # it's important to note that these mount points will *only* mount a directory
 # exactly at the same location as the base system but inside the jail.
 # so if you put /etc/ssl in the read-only mount points, the place it will be mounted
-# is /etc/ssl in the jail. If you want more flexibility, you will have to mount
-# manually like the Xauthority example in the function prepCustom.
+# is /etc/ssl in the jail. If you want more flexibility, use the directMounts variable
+# a little below.
 
 # dev mount points : read-write, no-exec
 devMountPoints=$($bb cat << EOF
