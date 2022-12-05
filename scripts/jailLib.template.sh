@@ -385,8 +385,8 @@ handleDirectMounts() {
 initializeCoreJail() {
 	rootDir=$1
 
-	$bb mount --make-private -o bind $rootDir/root $rootDir/root
-	$bb mount -tproc none $rootDir/root/proc
+	$bb mount -o private,bind $rootDir/root $rootDir/root
+	$bb mount -tproc proc $rootDir/root/proc
 	$bb mount -t tmpfs -o size=256k,mode=775 tmpfs $rootDir/root/dev
 	$bb ln -s /proc/self/fd $rootDir/root/dev/fd
 	addDevices $rootDir $availableDevices
@@ -394,6 +394,14 @@ initializeCoreJail() {
 	mountMany $rootDir/root "rw,noexec" $(printf "%s" "$devMountPoints" | filterCommentedLines)
 	mountMany $rootDir/root "ro,exec" $(printf "%s" "$roMountPoints" | filterCommentedLines)
 	mountMany $rootDir/root "defaults" $(printf "%s" "$rwMountPoints" | filterCommentedLines)
+
+	# only these should be writable
+	$bb mount -o bind,rw $rootDir/root/home $rootDir/root/home
+	$bb mount -o bind,rw $rootDir/root/var $rootDir/root/var
+	$bb mount -o bind,rw $rootDir/root/tmp $rootDir/root/tmp
+
+	$bb mount -o private,bind,remount,ro $rootDir/root
+	$bb mount -o bind,ro,remount $rootDir/root/dev
 
 	handleDirectMounts $rootDir
 
