@@ -173,7 +173,7 @@ mountSingle() {
 
 	[ ! -d $rootDir/root/$($bb dirname $dst) ] && echo "Invalid mounting path chosen" >&2 && return
 
-	if [ -f $src ]; then
+	if [ -f $src ] || [ -b $src ] || [ -c $src ]; then
 		[ ! -e $rootDir/root$dst ] && $bb touch $rootDir/root$dst
 	elif [ -d $src ]; then
 		[ ! -e $rootDir/root$dst ] && $bb mkdir $rootDir/root$dst
