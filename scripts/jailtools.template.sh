@@ -267,9 +267,10 @@ case $cmd in
 	upgrade)
 		checkJailPath $1 && jPath="$1" && shift
 		[ "$jPath" != "." ] || isValidJailPath $jPath || showJailPathError
+		rPath=$($bb realpath $jPath)
 
 		eval "$($shower jt_upgrade)"
-		startUpgrade $jPath $@
+		startUpgrade $rPath $@
 	;;
 
 	config)

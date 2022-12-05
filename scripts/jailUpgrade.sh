@@ -15,30 +15,23 @@ EOF
 )
 
 startUpgrade() {
-	# we are already garanteed that the first argument is the jail path and it is valid
+	# we are already garanteed that the first argument is the absolute jail path and it is valid
 	local jPath=$1
 	shift
-
-	# convert the path of this script to an absolute path
-	if [ "$jPath" = "." ]; then
-		local jPath=$PWD
-	else
-		if [ "$(substring 0 1 $jPath)" = "/" ]; then
-			# absolute path, we do nothing
-			:
-		else
-			# relative path
-			local jPath=$PWD/$jPath
-		fi
-	fi
 
 	local njD=$jPath/.__jailUpgrade # the temporary new jail path
 	local jailName=$(basename $jPath)
 	local nj=$njD/$jailName # new jail
 
-	case $1 in
-		--continue)
+	local result=""
+	result=$(callGetopt "upgrade [OPTIONS]" \
+		-o '' 'continue' 'continue an upgrade process' 'doContinue' 'false' \
+		-o '' 'abort' 'abort the current upgrade process' 'doAbort' 'false' \
+		-- "$@")
+	local err="$?"
 
+	if [ "$err" = "0" ]; then
+		if getVarVal 'doContinue' "$result" >/dev/null; then
 			if [ ! -e $jPath/$configFile.merged ]; then
 				echo "This command is to continue a failed automatic upgrade session."
 				echo "It is not currently the case, bailing out."
@@ -56,9 +49,7 @@ startUpgrade() {
 
 			echo "Done upgrading jail. Thank you for using the jailUpgrade service."
 			exit 0
-		;;
-
-		--abort)
+		elif getVarVal 'doAbort' "$result" >/dev/null; then
 			[ -e $jPath/$configFile.new ] && rm $jPath/$configFile.new
 			[ -e $jPath/$configFile.patch ] && rm $jPath/$configFile.patch
 			for file in $filesUpgrade; do
@@ -69,16 +60,10 @@ startUpgrade() {
 
 			echo "Reverted changes done by the upgrade. Thank you for using the jailUpgrade service."
 			exit 0
-		;;
-
-		"")
-		;;
-
-		*)
-			echo "upgrade: invalid command \`$1'"
-			exit 1
-		;;
-	esac
+		fi
+	else
+		exit 1
+	fi
 
 	# if the result is 0 this means the files are the same
 	fileDiff() {
@@ -148,6 +133,8 @@ startUpgrade() {
 			cp $jPath/$file $backupF
 		done
 
+		# TODO do a check if the embedded busybox jt is of the same version as 'jt' beind used.
+
 		# we apply the patch to the new configuration file
 		if cat $jPath/$configFile.patch | $bb patch $jPath/$configFile.new; then
 			mv $jPath/$configFile.new $jPath/$configFile
@@ -158,38 +145,66 @@ startUpgrade() {
 
 			echo "Done upgrading jail. Thank you for using the jailUpgrade service."
 		else 
-			echo
-			echo "*******************************************************************"
-			echo
-			echo "There was an error upgrading your custom configuration file."
-			echo
-			echo
-			echo "You will need to upgrade it manually. Here's a few suggestions on how to do that :"
-			echo "	NOTE : do your changes in the file $configFile.merged"
-			echo
-			echo " 1- You could attempt to upgrade manually by comparing your $configFile.merged with $configFile.new and merge the changes yourself."
-			echo
-			echo " 2- you can check the backup path to determine what exactly went wrong."
-			echo
-			echo " 3- you can use a tool like GNU diff3 to handle the changes for you. like so :"
-			echo
-			echo "	diff3 -m $configFile.new ._$configFile.initial $configFile > $configFile.merged"
-			echo
-			echo
-			echo "When you are done merging $configFile.merged just do :"
-			echo
-			echo "	jt upgrade --continue"
-			echo
-			echo
-			echo "You can abort this upgrade by doing :"
-			echo
-			echo "	jt upgrade --abort"
-			echo
-			echo "This will put everything back to what it was before."
-			echo
-			echo "We're sorry for the inconvenience. Thank you for using the jailUpgrade service."
+			diff3Path=$($bb which diff3)
+			if [ "$diff3Path" != "" ]; then
+				$diff3Path -m $configFile.new ._$configFile.initial $configFile > $configFile.merged
+cat - << EOF
+*******************************************************************
 
-			cp $jPath/$configFile.new $jPath/$configFile.merged
+There was an error upgrading your custom configuration file.
+
+You will need to upgrade it manually.
+NOTE : do your changes in the file $configFile.merged
+
+We took the liberty to use the command diff3 and output it's result to $configFile.merged.
+
+
+Before continuing, fire up a text editor and open up $configFile.merged and check for visual
+merge cues and fix them.
+
+
+When you are done merging $configFile.merged just do :
+
+	jt upgrade --continue
+
+You can abort this upgrade by doing :
+
+	jt upgrade --abort
+
+This will put everything back to how it was before.
+
+We're sorry for the inconvenience. Thank you for using the jailUpgrade service.
+EOF
+			else
+cat - << EOF
+*******************************************************************
+
+There was an error upgrading your custom configuration file.
+
+You will need to upgrade it manually. Here's a few suggestions on how to do that :
+NOTE : do your changes in the file $configFile.merged
+
+1- You could attempt to upgrade manually by comparing your $configFile.merged with $configFile.new and merge the changes yourself.
+2- you can check the backup path to determine what exactly went wrong.
+3- you can use a tool like GNU diff3 to handle the changes for you. like so :
+
+	diff3 -m $configFile.new ._$configFile.initial $configFile > $configFile.merged
+
+When you are done merging $configFile.merged just do :
+
+	jt upgrade --continue
+
+You can abort this upgrade by doing :
+
+	jt upgrade --abort
+
+This will put everything back to how it was before.
+
+We're sorry for the inconvenience. Thank you for using the jailUpgrade service.
+EOF
+
+				cp $jPath/$configFile.new $jPath/$configFile.merged
+			fi
 		fi
 	fi
 
