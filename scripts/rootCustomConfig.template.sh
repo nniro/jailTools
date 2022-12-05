@@ -123,9 +123,9 @@ EOF
 # as our default internet route and we assign the interface the last IP bit of 3
 # so for example if tor's bridge's IP is 192.168.11.1 we are automatically assigned
 # the IP : 192.168.11.3
+joinBridgeFromOtherJail=$($bb cat << EOF
 # example :
 # /home/$actualUser/jails/tor false 3
-joinBridgeFromOtherJail=$($bb cat << EOF
 EOF
 )
 
@@ -139,9 +139,9 @@ EOF
 # The 5th argument is the bridge's device name
 # The 6th argument is the last IP bit. For example if tor's bridge's IP is 192.168.11.1
 # we are automatically assigned the IP : 192.168.11.3
+joinBridge=$($bb cat << EOF
 # example :
 # false intInt extInt "" br0 3
-joinBridge=$($bb cat << EOF
 EOF
 )
 

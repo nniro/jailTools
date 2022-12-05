@@ -576,7 +576,7 @@ prepareChroot() {
 			oldIFS="$IFS"
 			IFS="
 			"
-			for entry in $joinBridgeFromOtherJail; do
+			for entry in $(printf "%s" "$joinBridgeFromOtherJail" | filterCommentedLines); do
 				IFS=$oldIFS
 				joinBridgeByJail $entry || return 1
 			done
@@ -587,7 +587,7 @@ prepareChroot() {
 			oldIFS="$IFS"
 			IFS="
 			"
-			for entry in $joinBridge; do
+			for entry in $(printf "%s" "$joinBridge" | filterCommentedLines); do
 				IFS=$oldIFS
 				joinBridge $entry || return 1
 			done
