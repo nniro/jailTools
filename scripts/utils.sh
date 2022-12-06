@@ -171,40 +171,6 @@ listSpecificJail() {
 	IFS=$oldIFS
 }
 
-listJailsOld() {
-	local jailName=$1
-
-	local prefix=$(getProcessPathFromMountinfo 1)
-	[ "$prefix" = "/" ] && prefix="" || prefix="$prefix/root"
-
-	if [ "$jailName" != "" ]; then # user asked for a specific jail
-		if printf "%s" "$jailName" | $bb grep -q '^\/'; then
-			jailName="^$jailName$"
-		else
-			jailName="\/$jailName$"
-		fi
-
-		first=true
-		for pid in $(listAllNamespacedPidsOwnedByUser $(id -un)); do
-			allegedlyJailPath=$(getProcessPathFromMountinfo $pid $prefix) || continue
-			if isValidJailPath $allegedlyJailPath; then
-				if echo $allegedlyJailPath | $bb grep -q $jailName; then
-					if [ "$first" = "true" ]; then
-						printf "jail path : $allegedlyPath\npids :\n"
-						first=false
-					fi
-					echo $pid
-				fi
-			fi
-		done
-	else # output all jails
-		for pid in $(listAllNamespacedPidsOwnedByUser $(id -un)); do
-			allegedlyJailPath=$(getProcessPathFromMountinfo $pid $prefix) || continue
-			isValidJailPath $allegedlyJailPath && echo "$allegedlyJailPath - pid $pid"
-		done
-	fi
-}
-
 listJailsMain() {
 	local result=""
 	result=$(callGetopt "list [jail name]" \
