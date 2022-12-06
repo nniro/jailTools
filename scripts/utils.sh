@@ -96,7 +96,7 @@ populateFile() {
 	$bb cat $inFile | $bb sed -e "$result"
 }
 
-listAllPidsOwnedByUser() {
+listAllNamespacedPidsOwnedByUser() {
 	user=$1
 	for pid in $($bb ps | $bb grep "[0-9]\+ $user" \
 		| $bb sed -e 's/\([0-9]\+\).*/\1/'); do
@@ -104,14 +104,80 @@ listAllPidsOwnedByUser() {
 	done
 }
 
-listJails() {
+listAllJails() {
+	OPTIND=0
+	local showZombies="false"
+	local showJailPath="true"
+	local showPrettyPrint="true"
+	local showPid="true"
+	while getopts rz f 2>/dev/null ; do
+		case $f in
+			r) showPrettyPrint="false";;
+			z) showZombies="true"; showJailPath="false"; showPrettyPrint="false";;
+		esac
+	done
+	[ $(($OPTIND > 1)) = 1 ] && shift $($bb expr $OPTIND - 1)
+	local user=$1
+
+	local prefix=$(getProcessPathFromMountinfo 1)
+	[ "$prefix" = "/" ] && prefix="" || prefix="$prefix/root"
+
+	showResult() {
+		jailPath=$1
+		pid=$2
+		[ "$showJailPath" = "true" ] && printf "$jailPath "
+		[ "$showPrettyPrint" = "true" ] && printf "- pid "
+		[ "$showPid" = "true" ] && printf "$pid"
+		printf "\n"
+	}
+
+	for pid in $(listAllNamespacedPidsOwnedByUser $user); do
+		allegedlyJailPath=$(getProcessPathFromMountinfo $pid $prefix) || continue
+
+		if isValidJailPath $allegedlyJailPath; then
+			[ "$showZombies" = "false" ] && showResult $allegedlyJailPath $pid
+		else
+			[ "$showZombies" = "true" ] && showResult $allegedlyJailPath $pid
+		fi
+	done
+}
+
+listSpecificJail() {
+	local user=$1
+	local jailName=$2
+
+	if printf "%s" "$jailName" | $bb grep -q '^\/'; then
+		jailName="^$jailName$"
+	else
+		jailName="\/$jailName "
+	fi
+
+	local entries=$(listAllJails -r $user | $bb grep $jailName)
+	local first=true
+	oldIFS=$IFS
+	IFS="
+"
+	for entry in $entries; do
+		IFS=$oldIFS
+		set -- $entry
+		jailPath=$1
+		pid=$2
+		if [ "$first" = "true" ]; then
+			printf "jail path : $jailPath\npids :\n"
+			first=false
+		fi
+		echo $pid
+	done
+	IFS=$oldIFS
+}
+
+listJailsOld() {
 	local jailName=$1
 
-	prefix=$(getProcessPathFromMountinfo 1)
+	local prefix=$(getProcessPathFromMountinfo 1)
 	[ "$prefix" = "/" ] && prefix="" || prefix="$prefix/root"
 
 	if [ "$jailName" != "" ]; then # user asked for a specific jail
-
 		if printf "%s" "$jailName" | $bb grep -q '^\/'; then
 			jailName="^$jailName$"
 		else
@@ -119,12 +185,12 @@ listJails() {
 		fi
 
 		first=true
-		for pid in $(listAllPidsOwnedByUser $(id -un)); do
-			dPath=$(getProcessPathFromMountinfo $pid $prefix) || continue
-			if isValidJailPath $dPath; then
-				if echo $dPath | $bb grep -q $jailName; then
+		for pid in $(listAllNamespacedPidsOwnedByUser $(id -un)); do
+			allegedlyJailPath=$(getProcessPathFromMountinfo $pid $prefix) || continue
+			if isValidJailPath $allegedlyJailPath; then
+				if echo $allegedlyJailPath | $bb grep -q $jailName; then
 					if [ "$first" = "true" ]; then
-						printf "jail path : $dPath\npids :\n"
+						printf "jail path : $allegedlyPath\npids :\n"
 						first=false
 					fi
 					echo $pid
@@ -132,23 +198,29 @@ listJails() {
 			fi
 		done
 	else # output all jails
-		for pid in $(listAllPidsOwnedByUser $(id -un)); do
-			dPath=$(getProcessPathFromMountinfo $pid $prefix) || continue
-			isValidJailPath $dPath && echo "$dPath - pid $pid"
+		for pid in $(listAllNamespacedPidsOwnedByUser $(id -un)); do
+			allegedlyJailPath=$(getProcessPathFromMountinfo $pid $prefix) || continue
+			isValidJailPath $allegedlyJailPath && echo "$allegedlyJailPath - pid $pid"
 		done
 	fi
 }
 
 listJailsMain() {
+	local result=""
 	result=$(callGetopt "list [jail name]" \
+		-o 'z' '' "list only zombie processes (running jails that no longer have a directory presence)" "listZombies" "false" \
 		-o '' '' "" "jailName" "true" \
 		-- "$@")
+	local err=$?
 
-	if [ "$?" = "0" ]; then
+	local args=""
+	getVarVal 'listZombies' "$result" >/dev/null && args="-z"
+
+	if [ "$err" = "0" ]; then
 		if jailName=$(getVarVal 'jailName' "$result"); then
-			listJails $jailName
+			[ "$jailName" != "" ] && listSpecificJail $($bb id -un) $jailName
 		else
-			listJails | $bb sort
+			listAllJails $args $($bb id -un) | $bb sort
 		fi
 	fi
 }
