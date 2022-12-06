@@ -149,18 +149,13 @@ As is, the jailTools creates a jail with only basic apps and a shell (provided b
 
 === Jail commands
 
-A newly created jail includes 3 ways to start the chroot :
+A newly created jail includes 2 ways to start the chroot :
 
 * sudo jt start
 
 	This starts the jail and provides you with an interactive shell inside it.
 
 TIP: You usually want to make this start your programs automatically. This is mostly for applications like firefox, games or anything that you use directly.
-
-* sudo jt shell
-
-        If the jail is not already started, this behaves exactly like the command `start`.
-        But when the jail is already running, this provides a shell inside it.
 
 * sudo jt daemon
 
@@ -172,11 +167,8 @@ TIP: You usually want to make this start your programs automatically. This is mo
 
 TIP: You usually want to make this start your services automatically. This is mostly for starting servers and any application that run in the background.
 
-////
-* tmux and abduco
-    Terminal multiplexers can be used to deamonize jails, and reconnect to
-    running jails without using network tool like ssh or telnet.
-////
+TIP: It's also a good idea to start your jail with sudo jt daemon as is and then you can, as an unprivileged user start your program with jt shell <command>; starting the daemon with sudo makes it possible to setup the firewall and set the networking parameters. All that is left is to start programs that require those accesses as your normal user (using jt shell <command>).
+
 
 === *How to install applications in a jail*
 
@@ -218,28 +210,14 @@ They are :
 . The configuration variables/flags
 
         These are used to toggle features provided in the jail and set various values
-        for configurating, for example, the firewall.
+        for configurating for example : the network IP of the jail and if the jail should get internet access.
 
 . The mount points
 
         These are used specifically to mount external directories inside the jail itself,
-        making the files/directories accessible to the jailed applications. There are 3 kinds
+        making the files/directories accessible to the jailed applications. There are 4 kinds
         of mount points each with their section.
 
 . the functions
 
-        These are used to customize firewall rules, mount extra files (those that are out of
-        scope of the mount points section) and set up your own start instructions so the
-        jail can run the service you want.
-
-. `startRoot.sh` CUI commands
-
-        Use this to set up your own `startRoot.sh` commands.
-
-== Tutorial
-
-== Tips and Tricks
-
-== Firewall
-
-The user's configuration file `rootCustomConfig.sh` contains a synopsis of the firewall commands and examples.
+        These are used to customize firewall rules.
