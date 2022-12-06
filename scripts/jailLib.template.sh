@@ -506,6 +506,9 @@ prepareChroot() {
 		fi
 	fi
 
+	chrootCmd="touch /var/run/.loadCoreDone; $chrootCmd"
+
+	[ -e $rootDir/root/var/run/.loadCoreDone ] && rm $rootDir/root/var/run/.loadCoreDone
 	# this is the core jail instance being run in the background
 	(
 		$preUnshare $bb unshare $unshareArgs ${unshareSupport}f \
@@ -518,9 +521,8 @@ prepareChroot() {
 					$nsBB setpriv --bounding-set $chrootPrivileges $baseEnv $chrootCmd\"" \
 	) &
 	innerNSpid=$!
-	$bb sleep 1
+	$bb timeout 5 sh -c "while [ ! -e $rootDir/root/var/run/.loadCoreDone ]; do sleep 0.1; done; rm $rootDir/root/var/run/.loadCoreDone"
 	innerNSpid=$($bb pgrep -P $innerNSpid)
-	$bb sleep 2
 
 	if [ "$innerNSpid" = "" ] || ! $bb ps | $bb grep -q "^ *$innerNSpid "; then
 		echo "Creating the inner namespace session failed, bailing out" >&2
