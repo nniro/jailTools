@@ -77,7 +77,7 @@ $(BUSYBOX): $(SUPERSCRIPT) $(BUSYBOX_BUILD_ROOT)/.ready
 	-ln -sf /usr/include/linux $(PROJECTROOT)/usr/include/
 	$(if $(shell sh $(PROJECTROOT)/checkAsm.sh $(MUSLGCC)), ,$(error Could not find the directory 'asm' in either '/usr/include/' or '/usr/include/$(shell $(MUSLGCC) -dumpmachine)/'))
 	-ln -sf /usr/include/asm-generic $(PROJECTROOT)/usr/include/
-	sh -c 'cd $(BUSYBOX_BUILD_ROOT); make KBUILD_DEFCONFIG=$(PROJECTROOT)/busybox.config KBUILD_SRC=$(PROJECTROOT)/busybox -f $(PROJECTROOT)/busybox/Makefile defconfig'
+	sh -c 'cd $(BUSYBOX_BUILD_ROOT); make HOSTCC=$(MUSLGCC) CC=$(MUSLGCC) KBUILD_DEFCONFIG=$(PROJECTROOT)/busybox.config KBUILD_SRC=$(PROJECTROOT)/busybox -f $(PROJECTROOT)/busybox/Makefile defconfig'
 	$(MAKE) HOSTCC=$(MUSLGCC) CC=$(MUSLGCC) HOSTCFLAGS=-static HOSTLDFLAGS=-static -C $(BUSYBOX_BUILD_ROOT)
 	# this is for being backward compatible with the old busybox emplacement so upgrading is possible, this should be removed soonish
 	ln -sfT $(BUSYBOX) $(PROJECTROOT)/busybox/busybox
