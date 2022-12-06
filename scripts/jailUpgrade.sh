@@ -22,15 +22,21 @@ startUpgrade() {
 	local njD=$jPath/.__jailUpgrade # the temporary new jail path
 	local jailName=$(basename $jPath)
 	local nj=$njD/$jailName # new jail
+	local updateInternalBusybox="false"
 
 	local result=""
 	result=$(callGetopt "upgrade [OPTIONS]" \
+		-o 'b' 'busybox' "update the jail's /bin/busybox as well" 'doBusybox' 'false' \
 		-o '' 'continue' 'continue an upgrade process' 'doContinue' 'false' \
 		-o '' 'abort' 'abort the current upgrade process' 'doAbort' 'false' \
 		-- "$@")
 	local err="$?"
 
 	if [ "$err" = "0" ]; then
+		if getVarVal 'doBusybox' "$result" >/dev/null; then
+			updateInternalBusybox="true"
+		fi
+
 		if getVarVal 'doContinue' "$result" >/dev/null; then
 			if [ ! -e $jPath/$configFile.merged ]; then
 				echo "This command is to continue a failed automatic upgrade session."
@@ -94,7 +100,6 @@ startUpgrade() {
 
 	[ ! -d $njD ] && mkdir $njD
 
-
 	$JT_CALLER new $nj >/dev/null 2>/dev/null
 
 	isChanged="false"
@@ -134,6 +139,15 @@ startUpgrade() {
 		done
 
 		# TODO do a check if the embedded busybox jt is of the same version as 'jt' beind used.
+		if [ "$updateInternalBusybox" = "true" ]; then
+			if [ "$(basename "$bb")" = "jt busybox" ]; then
+				local baseBusybox=$(dirname "$bb")/jt
+			else
+				local baseBusybox="$bb"
+			fi
+			echo "updating the internal busybox with '$baseBusybox'"
+			cp $baseBusybox $jPath/root/bin/busybox
+		fi
 
 		# we apply the patch to the new configuration file
 		if cat $jPath/$configFile.patch | $bb patch $jPath/$configFile.new; then
