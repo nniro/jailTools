@@ -391,16 +391,16 @@ initializeCoreJail() {
 	$bb ln -s /proc/self/fd $rootDir/root/dev/fd
 	addDevices $rootDir $availableDevices
 
+	# only these should be writable
+	$bb mount -o bind,rw $rootDir/root/home $rootDir/root/home
+	$bb mount -o bind,rw $rootDir/root/var $rootDir/root/var
+	$bb mount -o bind,rw $rootDir/root/tmp $rootDir/root/tmp
+
 	mountMany $rootDir/root "rw,noexec" $(printf "%s" "$devMountPoints" | filterCommentedLines)
 	mountMany $rootDir/root "ro,exec" $(printf "%s" "$roMountPoints" | filterCommentedLines)
 	mountMany $rootDir/root "defaults" $(printf "%s" "$rwMountPoints" | filterCommentedLines)
 
 	handleDirectMounts $rootDir
-
-	# only these should be writable
-	$bb mount -o bind,rw $rootDir/root/home $rootDir/root/home
-	$bb mount -o bind,rw $rootDir/root/var $rootDir/root/var
-	$bb mount -o bind,rw $rootDir/root/tmp $rootDir/root/tmp
 
 	$bb mount -o private,bind,remount,ro $rootDir/root
 	$bb mount -o bind,ro,remount $rootDir/root/dev
