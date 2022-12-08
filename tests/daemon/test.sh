@@ -23,6 +23,8 @@ resetConfig() {
 	cp $jail/._rootCustomConfig.sh.initial $jail/rootCustomConfig.sh
 }
 
+bb=$testPath/../bin/busybox
+
 doCheck() {
 	jail=$1
 	# giving 8 seconds maximum timeout for the jail to start the daemon
@@ -35,12 +37,12 @@ doCheck() {
 	#echo "the jail is running"
 
 	#echo "Testing to see if the httpd service is running"
-	pstree $(cat $jail/run/jail.pid) | grep -q httpd
+	$bb pstree $(cat $jail/run/jail.pid) | grep -q httpd
 	err=$?
 
 	if [ "$err" != "0" ]; then
 		echo "Failed, the httpd service is not running"
-		echo "here is the info on the running process : \"$(pstree $(cat $jail/run/jail.pid))\""
+		echo "here is the info on the running process : \"$($bb pstree $(cat $jail/run/jail.pid))\""
 		echo "Jail processes : $($jtPath status $jail -p)"
 		echo "here is the line in rootCustomConfig.sh :"
 		grep '^daemonCommand=' $jail/rootCustomConfig.sh
