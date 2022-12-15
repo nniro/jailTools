@@ -30,7 +30,7 @@ $jtPath config $jail -s realRootInJail true >/dev/null 2>/dev/null
 jUid=$($jtPath start $jail id -u 2>/dev/null)
 
 if [ "$jUid" != "0" ]; then
-	echo "jail UID must be the root UID"
+	echo "With realRootInJail, jail UID must be the root UID we got : $jUid instead of 0"
 	exit 1
 fi
 
