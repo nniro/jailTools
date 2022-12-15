@@ -52,7 +52,7 @@ else
 	uBB="$bb"
 fi
 
-baseEnv="$nsBB env - PATH=/usr/bin:/bin USER=$user HOME=/home HOSTNAME=nowhere.here TERM=linux"
+baseEnv="$nsBB env - PATH=/usr/bin:/bin USER=$user HOME=/home HOSTNAME=nowhere.here TERM=linux JT_VERSION=$jailVersion"
 
 innerNSpid=""
 
