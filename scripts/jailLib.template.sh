@@ -386,7 +386,7 @@ initializeCoreJail() {
 	rootDir=$1
 
 	$bb mount -o private,bind $rootDir/root $rootDir/root
-	$bb mount -tproc proc $rootDir/root/proc
+	$bb mount -tproc proc $rootDir/root/proc || $bb mount --bind /proc $rootDir/root/proc || return 1
 	$bb mount -t tmpfs -o size=256k,mode=775 tmpfs $rootDir/root/dev
 	$bb ln -s /proc/self/fd $rootDir/root/dev/fd
 	addDevices $rootDir $availableDevices
