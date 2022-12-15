@@ -33,9 +33,17 @@ getProcessPathFromMountinfo() {
 	# we filter a line similar to this :
 	# 150 138 179:2 /home/user/somePath/someJail/root / rw,relatime - ext4 /dev/root rw
 	local result=$($bb cat /proc/$pid/mountinfo\
-		| $bb grep "\/root \/ "\
-		| $bb sed -e 's/^[0-9]\+ [0-9]\+ [0-9:]\+ \([^ ]*\)\/root \/.*$/\1/')
+		| $bb grep "\/root\(\|\/\/deleted\) \/ "\
+		| $bb sed -e 's/^[0-9]\+ [0-9]\+ [0-9:]\+ \([^ ]*\)\/root\(\|\/\/deleted\) \/.*$/\1/')
 	[ "$result" != "" ] && echo ${result##$prefix} || return 1
+	return 0
+}
+
+isProcessAValidJail() {
+	local pid=$1
+
+	cat /proc/$pid/environ 2>/dev/null | $bb grep "JT_VERSION" >/dev/null || return 1
+
 	return 0
 }
 
@@ -131,13 +139,21 @@ listAllJails() {
 		printf "\n"
 	}
 
+	local allegedlyJailPath=""
 	for pid in $(listAllNamespacedPidsOwnedByUser $user); do
-		allegedlyJailPath=$(getProcessPathFromMountinfo $pid $prefix) || continue
+		allegedlyJailPath=$(getProcessPathFromMountinfo $pid $prefix)
+		if [ "$?" != "0" ]; then
+			if isProcessAValidJail $pid; then
+				allegedlyJailPath=" "
+			else
+				continue
+			fi
+		fi
 
-		if isValidJailPath $allegedlyJailPath; then
-			[ "$showZombies" = "false" ] && showResult $allegedlyJailPath $pid
+		if isValidJailPath $allegedlyJailPath && isJailRunning $allegedlyJailPath; then
+			[ "$showZombies" = "false" ] && showResult "$allegedlyJailPath" $pid
 		else
-			[ "$showZombies" = "true" ] && showResult $allegedlyJailPath $pid
+			[ "$showZombies" = "true" ] && showResult "$allegedlyJailPath" $pid
 		fi
 	done
 }
