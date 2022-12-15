@@ -494,11 +494,11 @@ prepareChroot() {
 		unshareArgs="-r"
 		chrootArgs=""
 		unshareSupport=$(echo "$unshareSupport" | $nsBB sed -e 's/U//g')
-	else # unprivileged
+	else # ! isUserNamespaceSupported or $realRootInJail = "true"
 		unshareArgs=""
 		chrootArgs=""
 		unshareSupport=$(echo "$unshareSupport" | $nsBB sed -e 's/U//g')
-	fi # unprivileged
+	fi # ! isUserNamespaceSupported or $realRootInJail = "true"
 
 	if [ "$jailNet" = "true" ]; then
 		if isPrivileged || (! isPrivileged && [ "$setNetAccess" = "false" ]); then
@@ -615,6 +615,7 @@ runShell() {
 	local curArgs=""
 	shift 2
 
+	local arg=""
 	while [ "$1" != "" ]; do
 		arg="$(printf "%s" "$1" | $bb sed -e 's/%20/ /g')"
 		if printf "%s" "$arg" | $bb grep -q ' '; then

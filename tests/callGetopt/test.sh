@@ -12,6 +12,10 @@ bb=$testPath/../bin/busybox
 . $scriptsPath/utils.sh
 
 standardCLIOptions() {
+	# note we may be tempted to put local on the result assignation below but
+	# it turns out that "local" actually interferes with the returned status value.
+	# this is why we set result as local before assigning it. And this should serve
+	# as a warning to your implementations as well.
 	local result=""
 	result=$(callGetopt "status [OPTIONS] <argument 1> <argument 2>" \
 	       -o "i" "" "display ip information" "showIp" "false" \
@@ -21,7 +25,7 @@ standardCLIOptions() {
 	       -o '' '' "" "arg1Data" "true" \
 	       -o '' '' "" "arg2Data" "true" \
 	       -- "$@" 2>&1)
-	err=$?
+	local err=$?
 
 	echo $result
 	return $err
