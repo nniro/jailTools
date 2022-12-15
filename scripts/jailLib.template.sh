@@ -518,7 +518,7 @@ prepareChroot() {
 				cd $rootDir/root; \
 				$bb pivot_root . $rootDir/root/root; \
 				exec $nsBB chroot . /bin/sh -c \"$nsBB umount -l /root; \
-					$nsBB setpriv --bounding-set $chrootPrivileges $baseEnv $chrootCmd\"" \
+					$nsBB setpriv --bounding-set $chrootPrivileges $baseEnv $chrootCmd\"" 2>$rootDir/run/innerCoreLog \
 	) &
 	innerNSpid=$!
 	$bb timeout 5 sh -c "while [ ! -e $rootDir/root/var/run/.loadCoreDone ]; do sleep 0.1; done; rm $rootDir/root/var/run/.loadCoreDone"
