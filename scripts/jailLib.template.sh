@@ -521,8 +521,11 @@ prepareChroot() {
 					$nsBB setpriv --bounding-set $chrootPrivileges $baseEnv $chrootCmd\"" 2>$rootDir/run/innerCoreLog \
 	) &
 	innerNSpid=$!
-	$bb timeout 5 sh -c "while [ ! -e $rootDir/root/var/run/.loadCoreDone ]; do sleep 0.1; done; rm $rootDir/root/var/run/.loadCoreDone"
-	innerNSpid=$($bb pgrep -P $innerNSpid)
+	if waitUntilFileAppears "$rootDir/root/var/run/.loadCoreDone" 5; then
+		innerNSpid=$($bb pgrep -P $innerNSpid)
+	else
+		innerNSpid=""
+	fi
 
 	if [ "$innerNSpid" = "" ] || ! $bb ps | $bb grep -q "^ *$innerNSpid "; then
 		echo "Creating the inner namespace session failed, bailing out" >&2

@@ -104,6 +104,20 @@ populateFile() {
 	$bb cat $inFile | $bb sed -e "$result"
 }
 
+waitUntilFileAppears() {
+	local eventFile="$1"
+	local endTime="$(($($bb date +"%s") + $2))"
+
+	while [ ! -e $eventFile ]; do
+		if [ $(($($bb date +"%s") >= $endTime )) = 1 ]; then
+			return 1
+		fi
+		sleep 0.1
+	done
+	rm $eventFile
+	return 0
+}
+
 listAllNamespacedPidsOwnedByUser() {
 	user=$1
 	for pid in $($bb ps | $bb grep "[0-9]\+ $user" \
