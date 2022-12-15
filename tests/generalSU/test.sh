@@ -36,15 +36,27 @@ fi
 $jtPath config $jail -s realRootInJail true >/dev/null 2>/dev/null
 
 jUid=$(lift $jtPath start $jail id -u 2>/dev/null)
+#jUid=$(lift $jtPath start $jail id -u)
 
-if [ ! "$jUid" = "0" ]; then
-	echo "jail UID must be the root UID"
+if [ "$jUid" != "0" ]; then
+	echo "With realRootInJail, jail UID must be the root UID we got : $jUid instead of 0"
+	cat $jail/run/innerCoreLog
 	exit 1
 fi
 
 # Doing a test by making a directory, changing it's ownership to root and checking it
-$jtPath start $jail sh -c 'mkdir /home/testDir' 2>/dev/null
-lift $jtPath start $jail chown root /home/testDir 2>/dev/null || exit 1
+if ! lift $jtPath start $jail mkdir /home/testDir 2>$jail/run/errorInfo; then
+	echo "Unable to create the directory /home/testDir"
+	cat $jail/run/errorInfo
+	exit 1
+fi
+
+if ! lift $jtPath start $jail chown root /home/testDir 2>$jail/run/errorInfo; then
+	echo "Attempt to change ownership of /home/testDir to root failed"
+	cat $jail/run/errorInfo
+	ls $jail/root
+	exit 1
+fi
 
 if ! $bb stat -c %U $jail/root/home/testDir | grep -q root; then
 	echo "user owning the directory : '$($bb stat -c %U $jail/root/home/testDir)' (expecting 'root')"
@@ -55,7 +67,10 @@ fi
 
 $jtPath config $jail -s realRootInJail true >/dev/null 2>/dev/null
 
-lift $jtPath daemon $jail 2>/dev/null || exit 1
+if ! lift $jtPath daemon $jail 2>/dev/null; then
+	echo "Could not start a daemon instance"
+	exit 1
+fi
 
 jUid=$(lift $jtPath shell $jail id -u 2>/dev/null)
 
@@ -90,7 +105,10 @@ if ! $bb stat -c %U $jail/root/home/testDir2 | grep -q root; then
 	exit 1
 fi
 
-lift $jtPath stop $jail 2>/dev/null || exit 1
+if ! lift $jtPath stop $jail 2>/dev/null; then
+	echo  "Stopping daemonized jail failed"
+	exit 1
+fi
 sleep 1
 
 # test jt itself, embedded in busybox
