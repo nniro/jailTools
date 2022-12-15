@@ -508,6 +508,10 @@ prepareChroot() {
 
 	chrootCmd="touch /var/run/.loadCoreDone; $chrootCmd"
 
+	if [ "$realRootInJail" = "true" ]; then
+		chrootCmd="sleep 1; $chrootCmd"
+	fi
+
 	[ -e $rootDir/root/var/run/.loadCoreDone ] && rm $rootDir/root/var/run/.loadCoreDone
 	# this is the core jail instance being run in the background
 	(
