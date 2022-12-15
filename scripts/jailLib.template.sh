@@ -600,12 +600,6 @@ prepareChroot() {
 		fi
 	fi
 
-	if isPrivileged; then
-		# this protects from an adversary to delete and recreate root owned files
-		for i in bin root etc lib usr sbin sys . ; do [ -d $rootDir/root/$i ] && $bb chmod 755 $rootDir/root/$i && $bb chown root:root $rootDir/root/$i; done
-		for i in passwd shadow group; do $bb chmod 600 $rootDir/root/etc/$i && $bb chown root:root $rootDir/root/etc/$i; done
-		for i in passwd group; do $bb chmod 644 $rootDir/root/etc/$i; done
-	fi
 
 	prepCustom $rootDir || return 1
 
@@ -758,10 +752,6 @@ stopChroot() {
 	done
 	IFS=$oldIFS
 
-	if isPrivileged; then
-		for i in bin root etc lib usr sbin sys . ; do $bb chown $userCreds $rootDir/root/$i; done
-		for i in passwd shadow group; do $bb chown $userCreds $rootDir/root/etc/$i; done
-	fi
 
 	if [ -e $rootDir/run/ns.pid ]; then
 		echo "" > $rootDir/run/isStopping
