@@ -20,6 +20,15 @@ if $jtPath start $jail sh -c 'jt ls -z' >/dev/null 2>/dev/null; then
 	exit 1
 fi
 
+$jtPath daemon $jail 2>/dev/null
+
+if $jtPath shell $jail sh -c 'jt ls -z' >/dev/null 2>/dev/null; then
+	echo "A newly created jail and started as a daemon should not have zombie jail processes"
+	$jtPath stop $jail 2>/dev/null
+	exit 1
+fi
+$jtPath stop $jail 2>/dev/null
+
 # create a child jail
 $jtPath start $jail sh -c 'jt new /home/childjail 2>/dev/null >/dev/null' 2>/dev/null || exit 1
 
