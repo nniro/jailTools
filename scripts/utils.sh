@@ -55,7 +55,7 @@ getProcessPathFromPwdx() {
 }
 
 isProcessRunning() {
-	pid=$1
+	local pid=$1
 
 	$bb ps | $bb grep -q "^ *$pid "
 }
