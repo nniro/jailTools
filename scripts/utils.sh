@@ -155,6 +155,11 @@ listAllJails() {
 
 	local allegedlyJailPath=""
 	for pid in $(listAllNamespacedPidsOwnedByUser $user); do
+		if [ "$pid" = "1" ] || [ "$pid" = "$($bb pgrep -P 1)" ]; then
+			# in case we are in a jail, these may be detected as a zombie jail
+			continue
+		fi
+
 		allegedlyJailPath=$(getProcessPathFromMountinfo $pid $prefix)
 		if [ "$?" != "0" ]; then
 			if isProcessAValidJail $pid; then
