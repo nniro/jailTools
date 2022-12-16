@@ -155,7 +155,7 @@ listAllJails() {
 
 	local allegedlyJailPath=""
 	for pid in $(listAllNamespacedPidsOwnedByUser $user); do
-		if [ "$pid" = "1" ] || [ "$pid" = "$($bb pgrep -P 1)" ]; then
+		if [ "$pid" = "1" ] || $bb pgrep -P 1 | $bb grep -q $pid; then
 			# in case we are in a jail, these may be detected as a zombie jail
 			continue
 		fi
