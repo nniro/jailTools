@@ -13,6 +13,13 @@ if $jtPath start $jail sh -c 'jt ls 2>/dev/null' 2>/dev/null; then
        	exit 1
 fi
 
+# quick zombie check
+
+if $jtPath start $jail sh -c 'jt ls -z' >/dev/null 2>/dev/null; then
+	echo "A newly created jail should not have zombie jail processes"
+	exit 1
+fi
+
 # create a child jail
 $jtPath start $jail sh -c 'jt new /home/childjail 2>/dev/null >/dev/null' 2>/dev/null || exit 1
 
