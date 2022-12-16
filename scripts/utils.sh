@@ -122,7 +122,7 @@ listAllNamespacedPidsOwnedByUser() {
 	user=$1
 	for pid in $($bb ps | $bb grep "[0-9]\+ $user" \
 		| $bb sed -e 's/\([0-9]\+\).*/\1/'); do
-		[ "$($bb readlink /proc/$pid/ns/pid)" != "$($bb readlink /proc/$$/ns/pid)" ] && echo $pid
+		[ "$($bb readlink /proc/$pid/ns/pid)" != "" ] && [ "$($bb readlink /proc/$pid/ns/pid)" != "$($bb readlink /proc/$$/ns/pid)" ] && echo $pid
 	done
 }
 
