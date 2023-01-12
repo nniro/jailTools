@@ -114,7 +114,7 @@ testGet -dp "default extIp" "extIp" "^172.16.0.1$" || exit 1
 testGet -dp "default jailNet" "jailNet" "^true$" || exit 1
 testGet -dp "default createBridge" "createBridge" "^false$" || exit 1
 testGet -dp "default networking" "networking" "^false$" || exit 1
-testGet -dp "default availableDevices" "availableDevices" "^null random urandom zero$" || exit 1
+testGet -dp "default availableDevices" "availableDevices" "^null random urandom zero tty$" || exit 1
 testGet -dp "default mountSys" "mountSys" "^true$" || exit 1
 testGet -dp "default setNetAccess" "setNetAccess" "^false$" || exit 1
 
@@ -172,7 +172,7 @@ testGet -p "daemonCommand without quotes" "daemonCommand" '^/usr/sbin/httpd -p 8
 testGet -dp "default jailNet" "jailNet" "^true$" || exit 1
 testGet -dp "default createBridge" "createBridge" "^false$" || exit 1
 testGet -dp "default networking" "networking" "^false$" || exit 1
-testGet -dp "default availableDevices" "availableDevices" "^null random urandom zero$" || exit 1
+testGet -dp "default availableDevices" "availableDevices" "^null random urandom zero tty$" || exit 1
 testGet -dp "default mountSys" "mountSys" "^true$" || exit 1
 testGet -dp "default setNetAccess" "setNetAccess" "^false$" || exit 1
 
