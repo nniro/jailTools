@@ -109,7 +109,6 @@ if ! lift $jtPath stop $jail 2>/dev/null; then
 	echo  "Stopping daemonized jail failed"
 	exit 1
 fi
-sleep 1
 
 # test jt itself, embedded in busybox
 
@@ -122,6 +121,26 @@ if [ "$s1" != "$s2" ]; then
 	echo "the embedded jt is not working correctly"
 	PATH= $jtPath busybox jt v
 	exit 1
+fi
+
+$jtPath config $jail -s realRootInJail false >/dev/null 2>/dev/null
+
+# test that the pid namespace works correctly in the jail
+# only if the pid namespace and user namespace are supported on the host system
+if unshare -rp id >/dev/null; then
+	lift $jtPath daemon $jail
+
+	if ! $jtPath shell $jail unshare -rp id >/dev/null 2>/dev/null; then
+		echo "PID namespace nesting inside a daemonized jail is not working correctly."
+		lift $jtPath stop $jail
+		exit 1
+	fi
+	lift $jtPath stop $jail
+
+	if ! lift $jtPath start $jail unshare -rp id >/dev/null 2>/dev/null; then
+		echo "PID namespace nesting inside a standalone jail is not working correctly."
+		exit 1
+	fi
 fi
 
 exit 0
