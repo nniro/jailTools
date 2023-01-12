@@ -63,7 +63,9 @@ busybox/embed: busybox/Makefile $(MUSL)
 
 $(BUSYBOX_BUILD_ROOT)/.ready: busybox/Makefile busybox/embed $(MUSL)
 	mkdir -p $(BUSYBOX_BUILD_ROOT)
-	sh -c 'cd busybox; git apply $(PROJECTROOT)/patches/busybox/*.patch 2>/dev/null; exit 0'
+	sh -c 'cd busybox && git reset --hard && git clean -f'
+	sh -c 'cd busybox && git apply $(PROJECTROOT)/patches/busybox/*.patch 2>/dev/null; exit 0'
+	sh genAppletsPatches.sh
 	touch $(BUSYBOX_BUILD_ROOT)/.ready
 
 # we want this to be ran unconditionnally
@@ -81,6 +83,7 @@ $(BUSYBOX): $(SUPERSCRIPT) $(BUSYBOX_BUILD_ROOT)/.ready
 	$(MAKE) HOSTCC=$(MUSLGCC) CC=$(MUSLGCC) HOSTCFLAGS=-static HOSTLDFLAGS=-static -C $(BUSYBOX_BUILD_ROOT)
 	# this is for being backward compatible with the old busybox emplacement so upgrading is possible, this should be removed soonish
 	ln -sfT $(BUSYBOX) $(PROJECTROOT)/busybox/busybox
+	rm -f $(BUSYBOX_BUILD_ROOT)/.ready
 
 zlib/configure: $(MUSL)
 	git submodule init zlib
