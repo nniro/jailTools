@@ -96,7 +96,7 @@ $bb chmod 644 $newChrootDir/etc/group
 $bb cat >> $newChrootDir/etc/passwd << EOF
 root:x:0:0::/root:/bin/false
 nobody:x:99:99::/dev/null:/bin/false
-$mainJailUsername:x:$uid:$gid::/home:/bin/false
+$mainJailUsername:x:$uid:$gid::/home:/bin/sh
 EOF
 $bb chmod 644 $newChrootDir/etc/passwd
 # shadow
