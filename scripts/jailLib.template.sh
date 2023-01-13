@@ -519,7 +519,7 @@ prepareChroot() {
 	[ -e $rootDir/root/var/run/.loadCoreDone ] && rm $rootDir/root/var/run/.loadCoreDone
 	# this is the core jail instance being run in the background
 	(
-		$preUnshare $bb unshare $unshareArgs ${unshareSupport}f \
+		$preUnshare $bb unshare -f $unshareArgs ${unshareSupport} \
 			-- $bb setpriv --bounding-set $corePrivileges \
 			$bb sh -c " \
 				$bb sh -c \". $rootDir/jailLib.sh; initializeCoreJail $rootDir\"; \
@@ -639,7 +639,7 @@ runShell() {
 		if [ "$realRootInJail" = "true" ]; then
 			unshareArgs=""
 		else
-			preUnshare="$nsBB chpst -u $userCreds"
+			:
 		fi
 	else
 		if [ "$($bb stat -c %U $rootDir/root)" = "root" ]; then
@@ -705,7 +705,7 @@ runJail() {
 		if [ "$runAsRoot" = "true" ]; then
 			unshareArgs=""
 		else
-			preUnshare="$nsBB chpst -u $userCreds"
+			:
 		fi
 	else # unprivileged
 		[ "$runAsRoot" = "true" ] && unshareArgs="-r"
@@ -778,6 +778,14 @@ execRemNS() {
 	local nsPid=$1
 	shift
 	#echo "NS [$nsPid] -- args : $nsenterSupport exec : \"$@\"" >&2
-	$bb nsenter --preserve-credentials $nsenterSupport -t $nsPid -- "$@"
+	extraParams=""
+	preNSenter=""
+	if isPrivileged; then
+		if [ "$realRootInJail" = "false" ]; then
+			extraParams="-U"
+			preNSenter="$bb chpst -u $userCreds"
+		fi
+	fi
+	$preNSenter $bb nsenter --preserve-credentials $extraParams $nsenterSupport -t $nsPid -- "$@"
 	return $?
 }
