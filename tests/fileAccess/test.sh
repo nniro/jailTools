@@ -1,7 +1,7 @@
 #! /bin/sh
 
 # Tests if it is possible to create file and directories in directories and expect
-# to be able to do so only in two directories : /home and /var
+# to be able to do so only in three directories : /home , /var and /tmp
 
 sh=$1
 testPath=$2
@@ -11,19 +11,22 @@ jail=$testPath/fileAccess
 
 $jtPath new $jail >/dev/null 2>/dev/null || exit 1
 
-createAndTestTouchFile() {
-	path=$1
-	file=$2
-	expectedResult=$3
+cat - > $jail/root/home/doTest.sh << EOF
+#! /bin/sh
 
-	if $jtPath start $jail sh -c "touch $path/$file; [ -e $path/$file ]" >/dev/null 2>/dev/null; then
-		if [ "$expectedResult" = "0" ]; then
-			echo "We should not be able to create a file in $path"
+createAndTestTouchFile() {
+	path=\$1
+	file=\$2
+	expectedResult=\$3
+
+	if sh -c "touch \$path/\$file; [ -e \$path/\$file ]" >/dev/null 2>/dev/null; then
+		if [ "\$expectedResult" = "0" ]; then
+			echo "We should not be able to create a file in \$path"
 			return 1
 		fi
 	else
-		if [ "$expectedResult" = "1" ]; then
-			echo "We should be able to create a file in $path"
+		if [ "\$expectedResult" = "1" ]; then
+			echo "We should be able to create a file in \$path"
 			return 1
 		fi
 	fi
@@ -31,18 +34,18 @@ createAndTestTouchFile() {
 }
 
 createAndTestCreateDir() {
-	path=$1
-	dir=$2
-	expectedResult=$3
+	path=\$1
+	dir=\$2
+	expectedResult=\$3
 
-	if $jtPath start $jail sh -c "mkdir $path/$dir; [ -d $path/$dir ]" >/dev/null 2>/dev/null; then
-		if [ "$expectedResult" = "0" ]; then
-			echo "We should not be able to create a directory in $path"
+	if sh -c "mkdir \$path/\$dir; [ -d \$path/\$dir ]" >/dev/null 2>/dev/null; then
+		if [ "\$expectedResult" = "0" ]; then
+			echo "We should not be able to create a directory in \$path"
 			return 1
 		fi
 	else
-		if [ "$expectedResult" = "1" ]; then
-			echo "We should be able to create a directory in $path"
+		if [ "\$expectedResult" = "1" ]; then
+			echo "We should be able to create a directory in \$path"
 			return 1
 		fi
 	fi
@@ -101,5 +104,10 @@ createAndTestTouchFile '/sbin' 'bleh' 0 || exit 1
 
 createAndTestCreateDir '/opt' 'blehDir' 0 || exit 1
 createAndTestTouchFile '/opt' 'bleh' 0 || exit 1
+
+exit 0
+EOF
+
+$jtPath start $jail sh -c "cd /home; sh doTest.sh" 2>/dev/null || exit 1
 
 exit 0
