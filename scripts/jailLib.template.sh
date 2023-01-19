@@ -23,7 +23,6 @@ eval "$($shower jt_utils)" # isValidJailPath substring isPrivileged
 
 if [ "$privileged" = "" ]; then
 	if ! isPrivileged; then
-		echo "You are running this script unprivileged, most features will not work" >&2
 		export privileged=0
 	else
 		export privileged=1
@@ -453,6 +452,7 @@ prepareChroot() {
 	fi
 
 	if ! isPrivileged; then
+		echo "You are running this script unprivileged, most features will not work" >&2
 		if [ "$networking" = "true" ]; then
 			networking="false"
 			echo "Unprivileged jails do not support the setting networking, turning it off" >&2
