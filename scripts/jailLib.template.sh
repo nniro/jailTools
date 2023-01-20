@@ -82,6 +82,11 @@ if isPrivileged; then
 	nsenterSupport="$(echo $nsenterSupport | $bb sed -e 's/-U//g')"
 fi
 
+isStartedAsPrivileged() {
+	local rootDir=$1
+	[ -e $rootDir/run/.isPrivileged ]
+}
+
 # mkdir -p with a mode only applies the mode to the last child dir... this function applies the mode to all directories
 # arguments :
 #		-m [directory permission mode in octal]
@@ -457,6 +462,8 @@ prepareChroot() {
 			networking="false"
 			echo "Unprivileged jails do not support the setting networking, turning it off" >&2
 		fi
+	else
+		touch $rootDir/run/.isPrivileged
 	fi
 
 	if [ "$netNS" = "false" ] && [ "$jailNet" = "true" ]; then
@@ -470,9 +477,7 @@ prepareChroot() {
 		echo "\tPlease do (as root) : echo 1 > /proc/sys/net/ipv4/ip_forward  or find the method suitable for your distribution to activate IP forwarding." >&2
 	fi
 
-	# we check if $rootDir/root is owned by root, we use this technique for when the base instance was started with a privileged account
-	# 	and when we use an unprivileged account to reenter the jail.
-	if ! isPrivileged && [ "$netNS" = "true" ] && [ "$($bb stat -c %U $rootDir/root)" = "root" ]; then
+	if ! isPrivileged && [ "$netNS" = "true" ] && isStartedAsPrivileged $rootDir; then
 		nsenterSupport="$nsenterSupport -n";
 	fi
 
@@ -670,7 +675,7 @@ runShell() {
 		if [ "$realRootInJail" = "true" ]; then
 			unshareArgs="-r"
 		fi
-		if [ "$($bb stat -c %U $rootDir/root)" = "root" ]; then
+		if isStartedAsPrivileged $rootDir; then
 			if [ "$netNS" = "true" ]; then
 				if [ "$jailNet" = "true" ]; then
 					nsenterSupport="$nsenterSupport -n";
@@ -708,7 +713,7 @@ stopChroot() {
 	stopCustom $rootDir
 
 	if ! isPrivileged; then
-		if [ "$($bb stat -c %U $rootDir/root)" = "root" ]; then
+		if isStartedAsPrivileged $rootDir; then
 			echo "This jail was started as root and it needs to be stopped as root as well."
 			return 1
 		fi
@@ -754,6 +759,8 @@ stopChroot() {
 		fi
 	fi
 	$bb rm $rootDir/run/isStopping
+
+	[ -e $rootDir/run/.isPrivileged ] && $bb rm -f $rootDir/run/.isPrivileged
 
 	return 0
 }
