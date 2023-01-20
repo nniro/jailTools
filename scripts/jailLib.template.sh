@@ -521,6 +521,16 @@ prepareChroot() {
 		chrootCmd="sleep 1; $chrootCmd"
 	fi
 
+	# ensure these files are owned by the user
+	# we don't touch those that already exist, fix them yourself
+	[ ! -e $rootDir/$firewallInstr ] && $uBB touch $rootDir/$firewallInstr
+	if [ ! -e $rootDir/run/daemon.log ]; then # this file is special, it's created by the superscript
+		$uBB touch $rootDir/run/daemon.log
+	elif [ "$($bb stat -c %U $rootDir/run/daemon.log)" != "$userUID" ]; then
+		$bb chown $userUID $rootDir/run/daemon.log
+	fi
+	[ ! -e $rootDir/run/innerCoreLog ] && $uBB touch $rootDir/run/innerCoreLog
+
 	[ -e $rootDir/root/var/run/.loadCoreDone ] && rm $rootDir/root/var/run/.loadCoreDone
 	# this is the core jail instance being run in the background
 	(
