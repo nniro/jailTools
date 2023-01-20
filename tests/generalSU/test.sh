@@ -14,7 +14,7 @@ bb=$testPath/../bin/busybox
 
 $jtPath new $jail >/dev/null 2>/dev/null || exit 1
 
-uid=$(id -u)
+uid=$($bb id -u)
 
 jUid=$(lift $jtPath start $jail id -u 2>/dev/null)
 
@@ -25,6 +25,23 @@ fi
 
 if [ "$jUid" = "0" ]; then
 	echo "jail UID must not be the root UID"
+	exit 1
+fi
+
+# check the files run/{daemon.log, firewall.instructions and innerCoreLog} to make sure that they are
+# not owned by root. They must be owned by the user instead.
+
+lift $jtPath daemon $jail 2>/dev/null
+lift $jtPath stop $jail
+
+if [ "$($bb stat -c %U $jail/run/daemon.log)" != "$($bb id -nu)" ] \
+	|| [ "$($bb stat -c %U $jail/run/firewall.instructions)" != "$($bb id -nu)" ] \
+	|| [ "$($bb stat -c %U $jail/run/innerCoreLog)" != "$($bb id -nu)" ]; then
+	
+	echo "files in run/ must be owned by the user and they currently are not."
+	echo "run/daemon.log owned by $($bb stat -c %U $jail/run/daemon.log) should be $($bb id -nu)"
+	echo "run/firewall.instructions owned by $($bb stat -c %U $jail/run/firewall.instructions) should be $($bb id -nu)"
+	echo "run/innerCoreLog owned by $($bb stat -c %U $jail/run/innerCoreLog) should be $($bb id -nu)"
 	exit 1
 fi
 
