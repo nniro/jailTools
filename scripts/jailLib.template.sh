@@ -545,7 +545,6 @@ prepareChroot() {
 
 	# dev
 
-
 	if [ "$jailNet" = "true" ]; then
 		# loopback device is activated
 		execNS $nsBB ip link set up lo
@@ -719,26 +718,26 @@ runJail() {
 stopChroot() {
 	local rootDir=$1
 
-	[ -e $rootDir/run/isStopping ] && exit 0
+	[ -e $rootDir/run/isStopping ] && return 0
 
 	stopCustom $rootDir
 
 	if ! isPrivileged; then
 		if [ "$($bb stat -c %U $rootDir/root)" = "root" ]; then
 			echo "This jail was started as root and it needs to be stopped as root as well."
-			exit 1
+			return 1
 		fi
 	fi
 
 	if [ ! -e $rootDir/run/ns.pid ]; then
 		echo "This jail is not running, can't stop it. Bailing out." >&2
-		exit 1
+		return 1
 	fi
 	innerNSpid="$($bb cat $rootDir/run/ns.pid)"
 
 	if [ "$innerNSpid" = "" ] || [ "$($bb pstree $innerNSpid)" = "" ]; then
 		echo "This jail doesn't seem to be running anymore, please check lsns to confirm" >&2
-		exit 1
+		return 1
 	fi
 
 	if [ "$jailNet" = "true" ]; then
@@ -770,6 +769,8 @@ stopChroot() {
 		fi
 	fi
 	$bb rm $rootDir/run/isStopping
+
+	return 0
 }
 
 execNS() { execRemNS $innerNSpid "$@"; }
