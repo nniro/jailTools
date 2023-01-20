@@ -110,6 +110,23 @@ fi
 
 lift $jtPath stop $jail2 2>/dev/null || exit 1
 
+# we test with quotes in the configuration arguments
+$jtPath config $jail2 -s joinBridgeFromOtherJail "$jail1 \"false\" \"3\"" >/dev/null
+
+err=0
+lift $jtPath daemon $jail2 || err=1
+
+[ "$err" = "0" ] && $jtPath shell $jail2 timeout 2 wget 192.168.99.1:8000 -q -O - 2>/dev/null | grep -q '^This test has passed$' || err=1
+
+if [ "$err" != "0" ]; then
+	echo "(Quoted arguments test) jail2 is supposed to be able to be able to connect to jail1's service"
+	lift $jtPath stop $jail1 2>/dev/null
+	lift $jtPath stop $jail2 2>/dev/null
+	exit 1
+fi
+
+lift $jtPath stop $jail2 2>/dev/null || exit 1
+
 lift $jtPath stop $jail1 2>/dev/null || exit 1
 
 exit 0
