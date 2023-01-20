@@ -614,6 +614,18 @@ prepareChroot() {
 }
 
 runShell() {
+	local primaryShell="false"
+	local daemonize="false"
+	local jailMainMounts=""
+	local preUnshare=""
+	OPTIND=0
+	while getopts dp f 2>/dev/null ; do
+		case $f in
+			p) local primaryShell="true";;
+			d) local daemonize="true";;
+		esac
+	done
+	[ $(($OPTIND > 1)) = 1 ] && shift $($bb expr $OPTIND - 1)
 	local rootDir=$1
 	local nsPid=$2
 	local curArgs=""
@@ -631,6 +643,20 @@ runShell() {
 		shift
 	done
 
+	if [ "$primaryShell" = "true" ]; then
+		echo $$ > $rootDir/run/jail.pid
+		$bb chmod o+r $rootDir/run/jail.pid
+	fi
+
+	if [ "$daemonize" = "true" ]; then
+		if [ "$curArgs" = "" ]; then
+			curArgs="sh -c 'while :; do sleep 9999; done'"
+		else
+			curArgs=$(printf "%s" "$curArgs" | $bb sed -e 's/\x27/"/g') # replace all ' with "
+			curArgs="sh -c '${curArgs}; while :; do sleep 9999; done'"
+		fi
+	fi
+
 	preUnshare=""
 	unshareArgs="-U --map-user=$userUID --map-group=$userGID"
 
@@ -641,6 +667,9 @@ runShell() {
 			:
 		fi
 	else
+		if [ "$realRootInJail" = "true" ]; then
+			unshareArgs="-r"
+		fi
 		if [ "$($bb stat -c %U $rootDir/root)" = "root" ]; then
 			if [ "$netNS" = "true" ]; then
 				if [ "$jailNet" = "true" ]; then
@@ -656,62 +685,18 @@ runShell() {
 }
 
 runJail() {
-	local daemonize=false
-	local enableUserNS="false"
-	local jailMainMounts=""
-	local runAsRoot="false"
-	local preUnshare=""
+	local callOptions=""
 	OPTIND=0
-	while getopts rfd f 2>/dev/null ; do
+	while getopts rd f 2>/dev/null ; do
 		case $f in
-			r) local runAsRoot="true";; # could be real or fake root depending if this was started privileged or not.
-			f) local enableUserNS="true";; # run as a fake root (with the user namespace)
-			d) local daemonize="true";;
+			r) ;;
+			d) local callOptions="$callOptions -d";;
 		esac
 	done
 	[ $(($OPTIND > 1)) = 1 ] && shift $($bb expr $OPTIND - 1)
 	local rootDir=$1
 	shift
-	local chrootCmd=""
-	if [ $(($# > 0)) = 1 ]; then
-		while [ "$1" != "" ]; do
-			local curArg=""
-			arg="$(printf "%s" "$1" | $bb sed -e 's/%20/ /g')"
-			if printf "%s" "$arg" | $bb grep -q ' '; then
-				curArg="'$arg'"
-			else
-				curArg="$arg"
-			fi
-			[ "$chrootCmd" = "" ] && chrootCmd=$curArg || chrootCmd="$chrootCmd $curArg"
-			shift
-		done
-	fi
-
-	echo $$ > $rootDir/run/jail.pid
-	$bb chmod o+r $rootDir/run/jail.pid
-
-	if [ "$daemonize" = "true" ]; then
-		if [ "$chrootCmd" = "" ]; then
-			chrootCmd="sh -c 'while :; do sleep 9999; done'"
-		else
-			chrootCmd=$(printf "%s" "$chrootCmd" | $bb sed -e 's/\x27/"/g') # replace all ' with "
-			chrootCmd="sh -c '${chrootCmd}; while :; do sleep 9999; done'"
-		fi
-	fi
-
-	unshareArgs="-U --map-user=$userUID --map-group=$userGID"
-	if isPrivileged; then
-		if [ "$runAsRoot" = "true" ]; then
-			unshareArgs=""
-		else
-			:
-		fi
-	else # unprivileged
-		[ "$runAsRoot" = "true" ] && unshareArgs="-r"
-	fi
-
-	execNS $preUnshare $nsBB sh -c "exec $nsBB unshare $unshareArgs $baseEnv $chrootCmd"
-
+	runShell -p $callOptions $rootDir $innerNSpid "$@"
 	return $?
 }
 
