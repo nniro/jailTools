@@ -26,7 +26,8 @@ resetConfig() {
 bb=$testPath/../bin/busybox
 
 doCheck() {
-	jail=$1
+	description=$1
+	jail=$2
 	# giving 8 seconds maximum timeout for the jail to start the daemon
 	timeout 8 sh -c 'while :; do if [ -e run/jail.pid ]; then break; fi ; sleep 0.5 ; done'
 	# 8 seconds timeout is done
@@ -41,7 +42,7 @@ doCheck() {
 	err=$?
 
 	if [ "$err" != "0" ]; then
-		echo "Failed, the httpd service is not running"
+		echo "Test '$description' Failed, the httpd service is not running"
 		echo "here is the info on the running process : \"$($bb pstree $(cat $jail/run/jail.pid))\""
 		echo "Jail processes : $($jtPath status $jail -p)"
 		echo "here is the line in rootCustomConfig.sh :"
@@ -64,7 +65,7 @@ if ! $jtPath daemon $jail /usr/sbin/httpd -p 8000 2>&1; then
 	echo "Failed to start a daemonized httpd server from the command line"
 	exit 1
 fi
-doCheck $jail || exit 1
+doCheck "directly" $jail || exit 1
 $jtPath stop $jail 2>/dev/null
 resetConfig $jail
 
@@ -75,7 +76,7 @@ if ! $jtPath daemon $jail sh -c '/usr/sbin/httpd -p 8000' 2>&1; then
 	echo "Failed to start an httpd server under a shell from the command line"
 	exit 1
 fi
-doCheck $jail || exit 1
+doCheck "with a shell" $jail || exit 1
 $jtPath stop $jail 2>/dev/null
 resetConfig $jail
 
@@ -87,7 +88,7 @@ if ! $jtPath daemon $jail 2>&1; then
 	echo "Failed to start a daemon in the daemonCommand config put in the background"
 	exit 1
 fi
-doCheck $jail || exit 1
+doCheck "with the daemonCommand config in the background" $jail || exit 1
 $jtPath stop $jail 2>/dev/null
 resetConfig $jail
 
@@ -99,7 +100,7 @@ if ! $jtPath daemon $jail 2>&1; then
 	echo "Failed to start a daemon in the daemonCommand config put in the foreground"
 	exit 1
 fi
-doCheck $jail || exit 1
+doCheck "with the daemonCommand config in the foreground" $jail || exit 1
 $jtPath stop $jail 2>/dev/null
 resetConfig $jail
 
@@ -111,7 +112,7 @@ if ! $jtPath daemon $jail 2>&1; then
 	echo "Failed to start a daemon with a shell that calls the command single quoted and is put in the background"
 	exit 1
 fi
-doCheck $jail || exit 1
+doCheck "with the daemonCommand config single quoted as a shell in the background" $jail || exit 1
 $jtPath stop $jail 2>/dev/null
 resetConfig $jail
 
@@ -123,7 +124,7 @@ if ! $jtPath daemon $jail 2>&1; then
 	echo "Failed to start a daemon with a shell that calls the command single quoted and is put in the foreground"
 	exit 1
 fi
-doCheck $jail || exit 1
+doCheck "with the daemonCommand config single quoted as a shell in the foreground" $jail || exit 1
 $jtPath stop $jail 2>/dev/null
 resetConfig $jail
 
@@ -135,7 +136,7 @@ if ! $jtPath daemon $jail 2>&1; then
 	echo "Failed to start a daemon with a shell that calls the command double quoted and is put in the background"
 	exit 1
 fi
-doCheck $jail || exit 1
+doCheck "with the daemonCommand config double quoted as a shell in the foreground" $jail || exit 1
 $jtPath stop $jail 2>/dev/null
 resetConfig $jail
 
@@ -147,7 +148,7 @@ if ! $jtPath daemon $jail 2>&1; then
 	echo "Failed to start a daemon with a shell that calls the command double quoted and is put in the foreground"
 	exit 1
 fi
-doCheck $jail || exit 1
+doCheck "with the daemonCommand config double quoted as a shell in the foreground" $jail || exit 1
 $jtPath stop $jail 2>/dev/null
 resetConfig $jail
 
@@ -159,7 +160,7 @@ if ! $jtPath daemon $jail 2>&1; then
 	echo "Failed to start a daemon with a shell that calls multiple instructions"
 	exit 1
 fi
-doCheck $jail || exit 1
+doCheck "with the daemonCommand config with multiple instructions" $jail || exit 1
 $jtPath stop $jail 2>/dev/null
 resetConfig $jail
 
