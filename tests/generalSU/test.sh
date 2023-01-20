@@ -28,6 +28,29 @@ if [ "$jUid" = "0" ]; then
 	exit 1
 fi
 
+# check that the file $jail/run/.isPrivileged is set when we start the jail privileged
+# and if it removed after the jail is stopped.
+
+if [ -e $jail/run/.isPrivileged ]; then
+	echo "the file run/.isPrivileged is not supposed to be present before we even started the jail."
+	exit 1
+fi
+
+lift $jtPath daemon $jail 2>/dev/null
+
+if [ ! -e $jail/run/.isPrivileged ]; then
+	echo "the file run/.isPrivileged is supposed to be present for a privileged jail."
+	lift $jtPath stop $jail 2>/dev/null
+	exit 1
+fi
+
+lift $jtPath stop $jail 2>/dev/null
+
+if [ -e $jail/run/.isPrivileged ]; then
+	echo "the file run/.isPrivileged is not supposed to be present after we started the jail."
+	exit 1
+fi
+
 # check the realRootInJail config which is supposed to provide in jail root.
 # Of course, for an unprivileged instance we only expect the fake root.
 
