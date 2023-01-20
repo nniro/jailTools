@@ -699,22 +699,6 @@ runShell() {
 	return $?
 }
 
-runJail() {
-	local callOptions=""
-	OPTIND=0
-	while getopts rd f 2>/dev/null ; do
-		case $f in
-			r) ;;
-			d) local callOptions="$callOptions -d";;
-		esac
-	done
-	[ $(($OPTIND > 1)) = 1 ] && shift $($bb expr $OPTIND - 1)
-	local rootDir=$1
-	shift
-	runShell -p $callOptions $rootDir $innerNSpid "$@"
-	return $?
-}
-
 stopChroot() {
 	local rootDir=$1
 

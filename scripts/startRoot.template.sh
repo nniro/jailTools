@@ -63,22 +63,16 @@ cmdParse() {
 	case $args in
 		daemon)
 			echo "This command is not meant to be called directly, use the jailtools super script to start the daemon properly, otherwise it will just stay running with no interactivity possible." >&2
-			jArgs="-d"
-			[ "$realRootInJail" = "true" ] && jArgs="$jArgs -r"
 			prepareChroot $ownPath || exit 1
-			$bb sleep 1
-			runJail $jArgs $ownPath $(prepareCmd "$runEnvironment" "$daemonCommand" "$@")
+			runShell -pd $ownPath $($bb cat $ownPath/run/ns.pid) $(prepareCmd "$runEnvironment" "$daemonCommand" "$@")
 			err=$?
 			stopChroot $ownPath
 			exit $err
 		;;
 
 		start)
-			jArgs=""
-			[ "$realRootInJail" = "true" ] && jArgs="$jArgs -r"
 			prepareChroot $ownPath || exit 1
-			$bb sleep 1
-			runJail $jArgs $ownPath $(prepareCmd "$runEnvironment" "$startCommand" "$@")
+			runShell -p $ownPath $($bb cat $ownPath/run/ns.pid) $(prepareCmd "$runEnvironment" "$startCommand" "$@")
 			err=$?
 			stopChroot $ownPath
 			exit $err
