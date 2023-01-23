@@ -438,63 +438,12 @@ isUserNamespaceSupported() {
 	fi
 }
 
-prepareChroot() {
+prepareChrootCore() {
 	local rootDir=$1
 	local unshareArgs=""
+	local preUnshare=""
 	local chrootArgs=""
 	local chrootCmd="sh -c 'while :; do sleep 9999; done'"
-	local preUnshare=""
-
-	if ! isUserNamespaceSupported && ! isPrivileged; then
-		echo "User namespace support is currently disabled." >&2
-		echo "This has to be enabled to support starting a jail unprivileged." >&2
-		printf "Until the change is done, creating a jail requires privileges.\n\n" >&2
-		echo "Please do (as root) :" >&2
-		printf "\techo 1 > /proc/sys/kernel/unprivileged_userns_clone\n\n" >&2
-		echo "or find the method suitable for your distribution to" >&2
-		echo "activate unprivileged user namespace clone." >&2
-		return 1
-	fi
-
-	if ! isPrivileged; then
-		echo "You are running this script unprivileged, most features will not work" >&2
-		if [ "$networking" = "true" ]; then
-			networking="false"
-			echo "Unprivileged jails do not support the setting networking, turning it off" >&2
-		fi
-	else
-		touch $rootDir/run/.isPrivileged
-	fi
-
-	if [ "$netNS" = "false" ] && [ "$jailNet" = "true" ]; then
-		jailNet=false
-		echo "jailNet is set to false automatically as it needs network namespace support which is not available." >&2
-	fi
-
-	if [ "$($bb cat /proc/sys/net/ipv4/ip_forward)" = "0" ] && isPrivileged && [ "$setNetAccess" = "true" ]; then
-		networking=false
-		echo "The ip_forward bit in /proc/sys/net/ipv4/ip_forward is disabled. This has to be enabled to get handled network support. Setting networking to false." >&2
-		echo "\tPlease do (as root) : echo 1 > /proc/sys/net/ipv4/ip_forward  or find the method suitable for your distribution to activate IP forwarding." >&2
-	fi
-
-	if ! isPrivileged && [ "$netNS" = "true" ] && isStartedAsPrivileged $rootDir; then
-		nsenterSupport="$nsenterSupport -n";
-	fi
-
-	if isJailRunning $rootDir; then
-		echo "This jail was already started, bailing out." >&2
-		return 1
-	else
-		if [ -e $rootDir/run/jail.pid ]; then
-			echo "removing dangling run/jail.pid" >&2
-			rm $rootDir/run/jail.pid
-		fi
-
-		if [ -e $rootDir/run/ns.pid ]; then
-			echo "removing dangling run/ns.pid" >&2
-			rm $rootDir/run/ns.pid
-		fi
-	fi
 
 	if isPrivileged && isUserNamespaceSupported && [ "$realRootInJail" = "false" ]; then
 		preUnshare="$bb chpst -u $userCreds"
@@ -555,10 +504,11 @@ prepareChroot() {
 		return 1
 	fi
 
-	echo $innerNSpid > $rootDir/run/ns.pid
-	$bb chmod o+r $rootDir/run/ns.pid
+	return 0
+}
 
-	# dev
+prepareChrootNetworking() {
+	local rootDir=$1
 
 	if [ "$jailNet" = "true" ]; then
 		# loopback device is activated
@@ -622,6 +572,69 @@ prepareChroot() {
 		fi
 	fi
 
+	return 0
+}
+
+prepareChroot() {
+	local rootDir=$1
+
+	if ! isUserNamespaceSupported && ! isPrivileged; then
+		echo "User namespace support is currently disabled." >&2
+		echo "This has to be enabled to support starting a jail unprivileged." >&2
+		printf "Until the change is done, creating a jail requires privileges.\n\n" >&2
+		echo "Please do (as root) :" >&2
+		printf "\techo 1 > /proc/sys/kernel/unprivileged_userns_clone\n\n" >&2
+		echo "or find the method suitable for your distribution to" >&2
+		echo "activate unprivileged user namespace clone." >&2
+		return 1
+	fi
+
+	if ! isPrivileged; then
+		echo "You are running this script unprivileged, most features will not work" >&2
+		if [ "$networking" = "true" ]; then
+			networking="false"
+			echo "Unprivileged jails do not support the setting networking, turning it off" >&2
+		fi
+	else
+		touch $rootDir/run/.isPrivileged
+	fi
+
+	if [ "$netNS" = "false" ] && [ "$jailNet" = "true" ]; then
+		jailNet=false
+		echo "jailNet is set to false automatically as it needs network namespace support which is not available." >&2
+	fi
+
+	if [ "$($bb cat /proc/sys/net/ipv4/ip_forward)" = "0" ] && isPrivileged && [ "$setNetAccess" = "true" ]; then
+		networking=false
+		echo "The ip_forward bit in /proc/sys/net/ipv4/ip_forward is disabled. This has to be enabled to get handled network support. Setting networking to false." >&2
+		echo "\tPlease do (as root) : echo 1 > /proc/sys/net/ipv4/ip_forward  or find the method suitable for your distribution to activate IP forwarding." >&2
+	fi
+
+	if ! isPrivileged && [ "$netNS" = "true" ] && isStartedAsPrivileged $rootDir; then
+		nsenterSupport="$nsenterSupport -n";
+	fi
+
+	if isJailRunning $rootDir; then
+		echo "This jail was already started, bailing out." >&2
+		return 1
+	else
+		if [ -e $rootDir/run/jail.pid ]; then
+			echo "removing dangling run/jail.pid" >&2
+			rm $rootDir/run/jail.pid
+		fi
+
+		if [ -e $rootDir/run/ns.pid ]; then
+			echo "removing dangling run/ns.pid" >&2
+			rm $rootDir/run/ns.pid
+		fi
+	fi
+
+	prepareChrootCore $rootDir || return 1
+
+	echo $innerNSpid > $rootDir/run/ns.pid
+	$bb chmod o+r $rootDir/run/ns.pid
+
+	prepareChrootNetworking $rootDir || return 1
 
 	prepCustom $rootDir || return 1
 
@@ -631,7 +644,6 @@ prepareChroot() {
 runShell() {
 	local primaryShell="false"
 	local daemonize="false"
-	local jailMainMounts=""
 	local preUnshare=""
 	OPTIND=0
 	while getopts dp f 2>/dev/null ; do
@@ -672,29 +684,17 @@ runShell() {
 		fi
 	fi
 
-	preUnshare=""
 	unshareArgs="-U --map-user=$userUID --map-group=$userGID"
-
 	if isPrivileged; then
-		if [ "$realRootInJail" = "true" ]; then
-			unshareArgs=""
-		else
-			:
-		fi
+		[ "$realRootInJail" = "true" ] && unshareArgs=""
 	else
-		if [ "$realRootInJail" = "true" ]; then
-			unshareArgs="-r"
-		fi
-		if isStartedAsPrivileged $rootDir; then
-			if [ "$netNS" = "true" ]; then
-				if [ "$jailNet" = "true" ]; then
-					nsenterSupport="$nsenterSupport -n";
-				fi
-			fi
+		[ "$realRootInJail" = "true" ] && unshareArgs="-r"
+		if isStartedAsPrivileged $rootDir && [ "$netNS" = "true" ] && [ "$jailNet" = "true" ]; then
+			nsenterSupport="$nsenterSupport -n";
 		fi
 	fi
 
-	execRemNS $nsPid $nsBB sh -c "exec $nsBB $preUnshare unshare $unshareArgs $baseEnv $curArgs"
+	execRemNS $nsPid $nsBB sh -c "exec $nsBB unshare $unshareArgs $baseEnv $curArgs"
 
 	return $?
 }
@@ -742,7 +742,6 @@ stopChroot() {
 		eval $remCmd
 	done
 	IFS=$oldIFS
-
 
 	if [ -e $rootDir/run/ns.pid ]; then
 		echo "" > $rootDir/run/isStopping
