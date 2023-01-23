@@ -74,6 +74,10 @@ isJailRunning() {
 	isProcessRunning $nsPid && isValidJailPath "$(getProcessPathFromMountinfo $nsPid)" || return 1
 }
 
+stripQuotes() {
+	sed -e 's/"//g' -e 's/\x27//g'
+}
+
 # substring offset <optional length> string
 # cuts a string at the starting offset and wanted length.
 substring() {
