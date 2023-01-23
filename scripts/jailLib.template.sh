@@ -238,12 +238,12 @@ mountMany() {
 # internalIpNum - a number from 1 to 254 assigned to the vethInternal device. In the same class C network as the bridge.
 # leave externalNetnsId empty if it's to connect to a bridge on the namespace 0 (base system)
 joinBridge() {
-	local isDefaultRoute=$1
-	local vethInternal=$2
-	local vethExternal=$3
-	local externalNetnsId=$4
-	local externalBridgeName=$5
-	local internalIpNum=$6
+	local isDefaultRoute=$(echo $1 | stripQuotes)
+	local vethInternal=$(echo $2 | stripQuotes)
+	local vethExternal=$(echo $3 | stripQuotes)
+	local externalNetnsId=$(echo $4 | stripQuotes)
+	local externalBridgeName=$(echo $5 | stripQuotes)
+	local internalIpNum=$(echo $6 | stripQuotes)
 	local ipIntBitmask=24 # hardcoded for now, we set this very rarely
 
 	if ! isPrivileged; then
@@ -301,9 +301,9 @@ leaveBridge() {
 # internalIpNum - internalIpNum - a number from 1 to 254 assigned to the vethInternal device. In the same class C network as the bridge.
 # this loads data from a jail automatically and connects to their bridge
 joinBridgeByJail() {
-	local jailLocation=$1
-	local isDefaultRoute=$2
-	local internalIpNum=$3
+	local jailLocation=$(echo $1 | stripQuotes)
+	local isDefaultRoute=$(echo $2 | stripQuotes)
+	local internalIpNum=$(echo $3 | stripQuotes)
 
 	if ! isPrivileged; then
 		echo "joinBridgeByJail - Error - This is not possible from an unprivileged jail" >&2
