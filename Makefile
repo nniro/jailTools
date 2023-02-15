@@ -1,5 +1,3 @@
-#! /bin/sh
-
 PROJECTROOT=$(PWD)
 
 MUSLGCC=$(PROJECTROOT)/usr/bin/musl-gcc
