@@ -595,3 +595,7 @@ firewallCLI() {
 		;;
 	esac
 }
+
+if [ "$IS_RUNNING" = "1" ]; then
+	firewallCLI $@
+fi

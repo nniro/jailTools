@@ -100,7 +100,7 @@ runFile() {
 		return 1
 	fi
 
-	\$bb echo "\$embeddedFiles" | \$bb base64 -d | \$bb tar -jxOf - \$path | \$bb sh -s -- \$args
+	\$bb echo "\$embeddedFiles" | \$bb base64 -d | \$bb tar -jxOf - \$path | \$bb env IS_RUNNING=1 \$bb sh -s -- \$args
 	return \$?
 }
 
