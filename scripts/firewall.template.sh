@@ -139,7 +139,7 @@ firewall() {
 		cmd=$1
 		shift
 	else
-		# show some help message
+		# TODO show some help message with a list of the available commands and their valid arguments
 		echo "please provide a command" >&2
 		return 1
 	fi
@@ -552,8 +552,7 @@ resetFirewall() {
 
 # firewall Command Line Interface
 firewallCLI() {
-	if [ "$1" = "" ]; then
-
+	if printf "%s" "$1" | $bb grep -q '^\(help\|firewall\|f\|command\|cmd\|check\|reset\)$'; then
 		instrFile=/tmp/firewallInstructions.txt
 	else
 		instrFile=$1
@@ -565,13 +564,13 @@ firewallCLI() {
 	}
 
 	cmd=$1
-	shift
 	case $cmd in
 		help)
 	                help
 	        ;;
 
 	        firewall|f|command|cmd)
+			shift
 	                firewall $instrFile external $@
 			return $?
 	        ;;
