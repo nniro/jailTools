@@ -126,57 +126,63 @@ setCustomVal() {
 	setCoreVal $jailDir/rootCustomConfig.sh $confVal "$newVal"
 }
 
-jailDir=$1
-shift
+mainCLI() {
+	local jailDir=$1
+	shift
 
-if $bb cat $jailDir/rootCustomConfig.sh | $bb grep -q '^# Command part$'; then
-	echo Please update your jail before you can use this command.
-	exit 1
-fi
+	if $bb cat $jailDir/rootCustomConfig.sh | $bb grep -q '^# Command part$'; then
+		echo Please upgrade your jail before you can use this command.
+		exit 1
+	fi
 
-commandHeader='################# Command part #################'
-if $bb cat $jailDir/rootCustomConfig.sh | $bb grep -q "^$commandHeader$"; then
-	:
-else
-	echo "There has been a modification to your rootCustomConfig.sh file that makes this functionality unable to do it's job"
-	echo "Please don't remove or modify the section headers. They are used by this tool"
-	exit 1
-fi
+	commandHeader='################# Command part #################'
+	if $bb cat $jailDir/rootCustomConfig.sh | $bb grep -q "^$commandHeader$"; then
+		:
+	else
+		echo "There has been a modification to your rootCustomConfig.sh file that makes this functionality unable to do it's job"
+		echo "Please don't remove or modify the section headers. They are used by this tool"
+		exit 1
+	fi
 
-result=$(callGetopt "config [OPTIONS]" \
-	-o "d" "default" "Get the default configuration value" "getDefaultVal" "false" \
-	-o "g" "get" "Get configuration value" "getVal" "true" \
-	-o "s" "set" "Set configuration value" "setVal" "true" \
-	-o "l"  "list" "List configuration values" "listConf" "false" \
-	-o '' '' "" "arg1Data" "true" \
-	-- "$@")
+	local result=$(callGetopt "config [OPTIONS]" \
+		-o "d" "default" "Get the default configuration value" "getDefaultVal" "false" \
+		-o "g" "get" "Get configuration value" "getVal" "true" \
+		-o "s" "set" "Set configuration value" "setVal" "true" \
+		-o "l"  "list" "List configuration values" "listConf" "false" \
+		-o '' '' "" "arg1Data" "true" \
+		-- "$@")
 
-if [ "$?" = "0" ]; then
-	if getVarVal 'listConf' "$result" >/dev/null ; then
-		listConfigs $jailDir
-	elif getVarVal 'getVal' "$result" >/dev/null ; then
-		curConf=$(getVarVal 'getVal' "$result")
+	if [ "$?" = "0" ]; then
+		if getVarVal 'listConf' "$result" >/dev/null ; then
+			listConfigs $jailDir
+		elif getVarVal 'getVal' "$result" >/dev/null ; then
+			curConf=$(getVarVal 'getVal' "$result")
 
-		if getVarVal 'getDefaultVal' "$result" >/dev/null; then
-			getDefaultVal $jailDir $curConf || (echo "Configuration does not seem to exist"; exit 1)
-		else
-			getCurVal $jailDir $curConf || (echo "Configuration does not seem to exist"; exit 1)
-		fi
+			if getVarVal 'getDefaultVal' "$result" >/dev/null; then
+				getDefaultVal $jailDir $curConf || (echo "Configuration does not seem to exist"; exit 1)
+			else
+				getCurVal $jailDir $curConf || (echo "Configuration does not seem to exist"; exit 1)
+			fi
 
-	elif getVarVal 'setVal' "$result" >/dev/null ; then
-		curConf=$(getVarVal 'setVal' "$result")
-		sQuote=$($bb printf "\x27")
-		confVal=$(getVarVal 'arg1Data' "$result" \
-			| $bb sed -e "s/^$sQuote\(.*\)$sQuote$/\1/" \
-				-e "s/\"/$sQuote/g" \
-				-e 's/%3B/;/g')
+		elif getVarVal 'setVal' "$result" >/dev/null ; then
+			curConf=$(getVarVal 'setVal' "$result")
+			sQuote=$($bb printf "\x27")
+			confVal=$(getVarVal 'arg1Data' "$result" \
+				| $bb sed -e "s/^$sQuote\(.*\)$sQuote$/\1/" \
+					-e "s/\"/$sQuote/g" \
+					-e 's/%3B/;/g')
 
-		if getVarVal 'getDefaultVal' "$result" >/dev/null; then
-			echo "Setting the config $curConf to default value"
-			setDefaultVal $jailDir $curConf
-		else
-			echo "Setting the config $curConf with value : $confVal"
-			setCustomVal $jailDir $curConf "$confVal"
+			if getVarVal 'getDefaultVal' "$result" >/dev/null; then
+				echo "Setting the config $curConf to default value"
+				setDefaultVal $jailDir $curConf
+			else
+				echo "Setting the config $curConf with value : $confVal"
+				setCustomVal $jailDir $curConf "$confVal"
+			fi
 		fi
 	fi
+}
+
+if [ "$IS_RUNNING" = "1" ]; then
+	mainCLI "$@"
 fi
