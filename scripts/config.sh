@@ -7,13 +7,13 @@ runner="$JT_RUNNER"
 eval "$($shower jt_utils)"
 
 listCore() {
-	jailScript=$1
+	local jailScript=$1
 
 	$bb cat $jailScript | $bb sed -ne 's/^\([^# =]\+\)=.*$/\1/ p'
 }
 
 listConfigs() {
-	jailDir=$1
+	local jailDir=$1
 
 	listCore $jailDir/rootDefaultConfig.sh
 	listCore $jailDir/rootCustomConfig.sh
@@ -22,14 +22,14 @@ listConfigs() {
 # this is for configurations that include shell scripts.
 # we expand the value before returning it.
 expandVal() {
-	jailDir=$1
-	confVal=$2
+	local jailDir=$1
+	local confVal=$2
 
 	local _JAILTOOLS_RUNNING=1
 	local ownPath=$jailDir
 	. $jailDir/rootCustomConfig.sh
 
-	value=$($bb printf "%s\n" "$res1" \
+	local value=$($bb printf "%s\n" "$res1" \
 		| $bb sed -ne "/^$confVal=[^ ]\+/ { s/^[^=]*=\(.*\)$/\1/ ; p; }" \
 		| $bb sed -e 's/^"\(.*\)"$/\1/' \
 			-e 's/^\x27\(.*\)\x27$/\1/')
@@ -38,11 +38,11 @@ expandVal() {
 }
 
 getCoreVal() {
-	jailDir=$1
-	jailScript=$2
-	confVal=$3
+	local jailDir=$1
+	local jailScript=$2
+	local confVal=$3
 
-	res1=$($bb grep "^$confVal" $jailScript)
+	local res1=$($bb grep "^$confVal" $jailScript)
 
 	[ "$res1" = "" ] && return 1
 
@@ -64,15 +64,15 @@ getCoreVal() {
 }
 
 getDefaultVal() {
-	jailDir=$1
-	confVal=$2
+	local jailDir=$1
+	local confVal=$2
 
 	getCoreVal $jailDir $jailDir/rootDefaultConfig.sh $confVal
 }
 
 getCurVal() {
-	jailDir=$1
-	confVal=$2
+	local jailDir=$1
+	local confVal=$2
 
 	listConfigs $jailDir | $bb grep -q "$confVal" || return 1
 
@@ -81,13 +81,13 @@ getCurVal() {
 }
 
 setCoreVal() {
-	jailScript=$1
-	confVal=$2
-	newVal=$($bb printf "%s" "$3" | $bb sed -e 's/%20/ /g')
+	local jailScript=$1
+	local confVal=$2
+	local newVal=$($bb printf "%s" "$3" | $bb sed -e 's/%20/ /g')
 
 	listConfigs $jailDir | $bb grep -q "$confVal" || return 1
 
-	res1=$($bb grep "^$confVal" $jailScript)
+	local res1=$($bb grep "^$confVal" $jailScript)
 
 	newVal="$($bb printf "%s" "$newVal" \
 		| $bb sed -e 's/\//%2f/g' \
@@ -110,18 +110,18 @@ setCoreVal() {
 }
 
 setDefaultVal() { # this sets to default value
-	jailDir=$1
-	confVal=$2
+	local jailDir=$1
+	local confVal=$2
 
-	defVal=$(getDefaultVal $jailDir $confVal) || return 1
+	local defVal=$(getDefaultVal $jailDir $confVal) || return 1
 
 	setCoreVal $jailDir/rootCustomConfig.sh $confVal "$defVal"
 }
 
 setCustomVal() {
-	jailDir=$1
-	confVal=$2
-	newVal=$3
+	local jailDir=$1
+	local confVal=$2
+	local newVal=$3
 
 	setCoreVal $jailDir/rootCustomConfig.sh $confVal "$newVal"
 }
