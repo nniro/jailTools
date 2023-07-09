@@ -19,17 +19,6 @@ $jtPath config $jail -s realRootInJail true >/dev/null 2>/dev/null
 $jtPath config $jail -s setNetAccess false >/dev/null
 $jtPath config $jail -s rwMountPoints "" >/dev/null
 
-cat - > $jail/root/home/firewallFront.sh << EOF
-#! /bin/sh
-
-eval "\$(jt --show jt_firewall)"
-
-firewallCLI \$@
-
-exit \$?
-
-EOF
-
 iptablesPath=$($bb which iptables 2>/dev/null)
 if [ "$?" != "0" ]; then
 	echo "Mandatory program 'iptables' could not be found."

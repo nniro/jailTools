@@ -20,7 +20,7 @@ fi
 
 # simple test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall allowConnection $proto fwTestOut 172.16.0.2 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall allowConnection $proto fwTestOut 172.16.0.2 8000
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -39,9 +39,9 @@ fi
 
 # checks test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall -c allowConnection $proto fwTestOut 172.16.0.2 8000 >&2 && exit 1
-sh /home/firewallFront.sh \$fwInstrPath firewall allowConnection $proto fwTestOut 172.16.0.2 8000
-sh /home/firewallFront.sh \$fwInstrPath firewall -c allowConnection $proto fwTestOut 172.16.0.2 8000 >&2 || exit 1
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall -c allowConnection $proto fwTestOut 172.16.0.2 8000 >&2 && exit 1
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall allowConnection $proto fwTestOut 172.16.0.2 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall -c allowConnection $proto fwTestOut 172.16.0.2 8000 >&2 || exit 1
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -60,8 +60,8 @@ fi
 
 # duplication test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall allowConnection $proto fwTestOut 172.16.0.2 8000
-sh /home/firewallFront.sh \$fwInstrPath firewall allowConnection $proto fwTestOut 172.16.0.2 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall allowConnection $proto fwTestOut 172.16.0.2 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall allowConnection $proto fwTestOut 172.16.0.2 8000
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -80,12 +80,12 @@ fi
 
 # duplication with the instruction file removed
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall allowConnection $proto fwTestOut 172.16.0.2 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall allowConnection $proto fwTestOut 172.16.0.2 8000
 
 # we remove the entry to see if the function can detect that
 # the entries are already there without using the instructions file.
 [ -e \$fwInstrPath ] && rm \$fwInstrPath
-sh /home/firewallFront.sh \$fwInstrPath firewall allowConnection $proto fwTestOut 172.16.0.2 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall allowConnection $proto fwTestOut 172.16.0.2 8000
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -103,7 +103,7 @@ fi
 
 # rule deletion test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall allowConnection $proto fwTestOut 172.16.0.2 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall allowConnection $proto fwTestOut 172.16.0.2 8000
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -111,7 +111,7 @@ firewall /tmp/firewallInstructions.txt external allowConnection $proto fwTestOut
 EOF
 
 cat - > $jail/root/home/firewallDeleteCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall -d allowConnection $proto fwTestOut 172.16.0.2 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall -d allowConnection $proto fwTestOut 172.16.0.2 8000
 EOF
 
 cat - > $jail/root/home/firewallExpectedDeleteInstr << EOF
@@ -142,7 +142,7 @@ fi
 
 # simple test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall allow${protoName}Connection fwTestOut 172.16.0.2 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall allow${protoName}Connection fwTestOut 172.16.0.2 8000
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -161,9 +161,9 @@ fi
 
 # checks test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall -c allow${protoName}Connection fwTestOut 172.16.0.2 8000 >&2 && exit 1
-sh /home/firewallFront.sh \$fwInstrPath firewall allow${protoName}Connection fwTestOut 172.16.0.2 8000
-sh /home/firewallFront.sh \$fwInstrPath firewall -c allow${protoName}Connection fwTestOut 172.16.0.2 8000 >&2 || exit 1
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall -c allow${protoName}Connection fwTestOut 172.16.0.2 8000 >&2 && exit 1
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall allow${protoName}Connection fwTestOut 172.16.0.2 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall -c allow${protoName}Connection fwTestOut 172.16.0.2 8000 >&2 || exit 1
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -182,8 +182,8 @@ fi
 
 # duplication test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall allow${protoName}Connection fwTestOut 172.16.0.2 8000
-sh /home/firewallFront.sh \$fwInstrPath firewall allow${protoName}Connection fwTestOut 172.16.0.2 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall allow${protoName}Connection fwTestOut 172.16.0.2 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall allow${protoName}Connection fwTestOut 172.16.0.2 8000
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -202,12 +202,12 @@ fi
 
 # duplication with the instruction file removed
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall allow${protoName}Connection fwTestOut 172.16.0.2 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall allow${protoName}Connection fwTestOut 172.16.0.2 8000
 
 # we remove the entry to see if the function can detect that
 # the entries are already there without using the instructions file.
 [ -e \$fwInstrPath ] && rm \$fwInstrPath
-sh /home/firewallFront.sh \$fwInstrPath firewall allow${protoName}Connection fwTestOut 172.16.0.2 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall allow${protoName}Connection fwTestOut 172.16.0.2 8000
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -225,7 +225,7 @@ fi
 
 # rule deletion test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall allow${protoName}Connection fwTestOut 172.16.0.2 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall allow${protoName}Connection fwTestOut 172.16.0.2 8000
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -233,7 +233,7 @@ firewall /tmp/firewallInstructions.txt external allow${protoName}Connection fwTe
 EOF
 
 cat - > $jail/root/home/firewallDeleteCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall -d allow${protoName}Connection fwTestOut 172.16.0.2 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall -d allow${protoName}Connection fwTestOut 172.16.0.2 8000
 EOF
 
 cat - > $jail/root/home/firewallExpectedDeleteInstr << EOF

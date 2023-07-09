@@ -11,7 +11,7 @@ thisPath=$6
 
 # simple blockAll test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall blockAll fwTestIn fwTestIn
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall blockAll fwTestIn fwTestIn
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -32,9 +32,9 @@ fi
 
 # blockAll checks test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall -c blockAll fwTestIn fwTestIn >&2 && exit 1
-sh /home/firewallFront.sh \$fwInstrPath firewall blockAll fwTestIn fwTestIn
-sh /home/firewallFront.sh \$fwInstrPath firewall -c blockAll fwTestIn fwTestIn >&2 || exit 1
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall -c blockAll fwTestIn fwTestIn >&2 && exit 1
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall blockAll fwTestIn fwTestIn
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall -c blockAll fwTestIn fwTestIn >&2 || exit 1
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -55,8 +55,8 @@ fi
 
 # blockAll duplication test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall blockAll fwTestIn fwTestIn
-sh /home/firewallFront.sh \$fwInstrPath firewall blockAll fwTestIn fwTestIn
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall blockAll fwTestIn fwTestIn
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall blockAll fwTestIn fwTestIn
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -77,12 +77,12 @@ fi
 
 # blockAll duplication with the instruction file removed
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall blockAll fwTestIn fwTestIn
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall blockAll fwTestIn fwTestIn
 
 # we remove the entry to see if the function can detect that
 # the entries are already there without using the instructions file.
 [ -e \$fwInstrPath ] && rm \$fwInstrPath
-sh /home/firewallFront.sh \$fwInstrPath firewall blockAll fwTestIn fwTestIn
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall blockAll fwTestIn fwTestIn
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -102,7 +102,7 @@ fi
 
 # rule deletion test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall blockAll fwTestIn fwTestIn
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall blockAll fwTestIn fwTestIn
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -110,7 +110,7 @@ firewall /tmp/firewallInstructions.txt external blockAll fwTestIn fwTestIn;
 EOF
 
 cat - > $jail/root/home/firewallDeleteCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall -d blockAll fwTestIn fwTestIn
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall -d blockAll fwTestIn fwTestIn
 EOF
 
 cat - > $jail/root/home/firewallExpectedDeleteInstr << EOF
@@ -148,7 +148,7 @@ sh /home/singleTest.sh /home/firewallCmd /home/firewallExpectedInstr /home/firew
 __EOF__
 
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall blockAll fwTestIn fwTestIn
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall blockAll fwTestIn fwTestIn
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF

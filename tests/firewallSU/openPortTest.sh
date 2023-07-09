@@ -20,7 +20,7 @@ fi
 
 # simple test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall openPort fwTestIn fwTestOut $proto 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall openPort fwTestIn fwTestOut $proto 8000
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -42,9 +42,9 @@ fi
 
 # checks test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall -c openPort fwTestIn fwTestOut $proto 8000 >&2 && exit 1
-sh /home/firewallFront.sh \$fwInstrPath firewall openPort fwTestIn fwTestOut $proto 8000
-sh /home/firewallFront.sh \$fwInstrPath firewall -c openPort fwTestIn fwTestOut $proto 8000 >&2 || exit 1
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall -c openPort fwTestIn fwTestOut $proto 8000 >&2 && exit 1
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall openPort fwTestIn fwTestOut $proto 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall -c openPort fwTestIn fwTestOut $proto 8000 >&2 || exit 1
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -66,8 +66,8 @@ fi
 
 # duplication test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall openPort fwTestIn fwTestOut $proto 8000
-sh /home/firewallFront.sh \$fwInstrPath firewall openPort fwTestIn fwTestOut $proto 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall openPort fwTestIn fwTestOut $proto 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall openPort fwTestIn fwTestOut $proto 8000
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -89,12 +89,12 @@ fi
 
 # duplication with the instruction file removed
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall openPort fwTestIn fwTestOut $proto 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall openPort fwTestIn fwTestOut $proto 8000
 
 # we remove the entry to see if the function can detect that
 # the entries are already there without using the instructions file.
 [ -e \$fwInstrPath ] && rm \$fwInstrPath
-sh /home/firewallFront.sh \$fwInstrPath firewall openPort fwTestIn fwTestOut $proto 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall openPort fwTestIn fwTestOut $proto 8000
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -115,7 +115,7 @@ fi
 
 # rule deletion test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall openPort fwTestIn fwTestOut $proto 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall openPort fwTestIn fwTestOut $proto 8000
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -123,7 +123,7 @@ firewall /tmp/firewallInstructions.txt external openPort fwTestIn fwTestOut $pro
 EOF
 
 cat - > $jail/root/home/firewallDeleteCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall -d openPort fwTestIn fwTestOut $proto 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall -d openPort fwTestIn fwTestOut $proto 8000
 EOF
 
 cat - > $jail/root/home/firewallExpectedDeleteInstr << EOF
@@ -157,7 +157,7 @@ fi
 
 # simple test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall open${protoName}Port fwTestIn fwTestOut 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall open${protoName}Port fwTestIn fwTestOut 8000
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -179,9 +179,9 @@ fi
 
 # checks test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall -c open${protoName}Port fwTestIn fwTestOut 8000 >&2 && exit 1
-sh /home/firewallFront.sh \$fwInstrPath firewall open${protoName}Port fwTestIn fwTestOut 8000
-sh /home/firewallFront.sh \$fwInstrPath firewall -c open${protoName}Port fwTestIn fwTestOut 8000 >&2 || exit 1
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall -c open${protoName}Port fwTestIn fwTestOut 8000 >&2 && exit 1
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall open${protoName}Port fwTestIn fwTestOut 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall -c open${protoName}Port fwTestIn fwTestOut 8000 >&2 || exit 1
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -203,8 +203,8 @@ fi
 
 # duplication test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall open${protoName}Port fwTestIn fwTestOut 8000
-sh /home/firewallFront.sh \$fwInstrPath firewall open${protoName}Port fwTestIn fwTestOut 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall open${protoName}Port fwTestIn fwTestOut 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall open${protoName}Port fwTestIn fwTestOut 8000
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -226,12 +226,12 @@ fi
 
 # duplication with the instruction file removed
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall open${protoName}Port fwTestIn fwTestOut 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall open${protoName}Port fwTestIn fwTestOut 8000
 
 # we remove the entry to see if the function can detect that
 # the entries are already there without using the instructions file.
 [ -e \$fwInstrPath ] && rm \$fwInstrPath
-sh /home/firewallFront.sh \$fwInstrPath firewall open${protoName}Port fwTestIn fwTestOut 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall open${protoName}Port fwTestIn fwTestOut 8000
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -252,7 +252,7 @@ fi
 
 # rule deletion test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall open${protoName}Port fwTestIn fwTestOut 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall open${protoName}Port fwTestIn fwTestOut 8000
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -260,7 +260,7 @@ firewall /tmp/firewallInstructions.txt external open${protoName}Port fwTestIn fw
 EOF
 
 cat - > $jail/root/home/firewallDeleteCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall -d open${protoName}Port fwTestIn fwTestOut 8000
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall -d open${protoName}Port fwTestIn fwTestOut 8000
 EOF
 
 cat - > $jail/root/home/firewallExpectedDeleteInstr << EOF

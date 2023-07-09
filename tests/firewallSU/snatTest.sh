@@ -11,7 +11,7 @@ thisPath=$6
 
 # simple test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall snat fwTestOut fwTestIn 172.16.33.2 24
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall snat fwTestOut fwTestIn 172.16.33.2 24
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -34,9 +34,9 @@ fi
 
 # checks test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall -c snat fwTestOut fwTestIn 172.16.33.2 24
-sh /home/firewallFront.sh \$fwInstrPath firewall snat fwTestOut fwTestIn 172.16.33.2 24
-sh /home/firewallFront.sh \$fwInstrPath firewall -c snat fwTestOut fwTestIn 172.16.33.2 24
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall -c snat fwTestOut fwTestIn 172.16.33.2 24
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall snat fwTestOut fwTestIn 172.16.33.2 24
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall -c snat fwTestOut fwTestIn 172.16.33.2 24
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -59,8 +59,8 @@ fi
 
 # duplication test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall snat fwTestOut fwTestIn 172.16.33.2 24
-sh /home/firewallFront.sh \$fwInstrPath firewall snat fwTestOut fwTestIn 172.16.33.2 24
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall snat fwTestOut fwTestIn 172.16.33.2 24
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall snat fwTestOut fwTestIn 172.16.33.2 24
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -83,12 +83,12 @@ fi
 
 # duplication with the instruction file removed
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall snat fwTestOut fwTestIn 172.16.33.2 24
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall snat fwTestOut fwTestIn 172.16.33.2 24
 
 # we remove the entry to see if the function can detect that
 # the entries are already there without using the instructions file.
 [ -e \$fwInstrPath ] && rm \$fwInstrPath
-sh /home/firewallFront.sh \$fwInstrPath firewall snat fwTestOut fwTestIn 172.16.33.2 24
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall snat fwTestOut fwTestIn 172.16.33.2 24
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -110,7 +110,7 @@ fi
 
 # rule deletion test
 cat - > $jail/root/home/firewallCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall snat fwTestOut fwTestIn 172.16.33.2 24
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall snat fwTestOut fwTestIn 172.16.33.2 24
 EOF
 
 cat - > $jail/root/home/firewallExpectedInstr << EOF
@@ -118,7 +118,7 @@ firewall /tmp/firewallInstructions.txt external snat fwTestOut fwTestIn 172.16.3
 EOF
 
 cat - > $jail/root/home/firewallDeleteCmd << EOF
-sh /home/firewallFront.sh \$fwInstrPath firewall -d snat fwTestOut fwTestIn 172.16.33.2 24
+/usr/bin/jt --run jt_firewall \$fwInstrPath firewall -d snat fwTestOut fwTestIn 172.16.33.2 24
 EOF
 
 cat - > $jail/root/home/firewallExpectedDeleteInstr << EOF
