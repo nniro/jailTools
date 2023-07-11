@@ -19,7 +19,7 @@ _JAILTOOLS_RUNNING=1
 [ "$ownPath" = "" ] && ownPath=$($bb realpath $($bb dirname $0))
 firewallInstr="run/firewall.instructions"
 
-eval "$($shower jt_utils)" # isValidJailPath substring isPrivileged
+eval "$($shower jt_utils)" # isValidJailPath substring isPrivileged cmkdir
 
 if [ "$privileged" = "" ]; then
 	if ! isPrivileged; then
@@ -85,55 +85,6 @@ fi
 isStartedAsPrivileged() {
 	local rootDir=$1
 	[ -e $rootDir/run/.isPrivileged ]
-}
-
-# mkdir -p with a mode only applies the mode to the last child dir... this function applies the mode to all directories
-# arguments :
-#		-m [directory permission mode in octal]
-#		-e (this makes the function output the commands rather than apply them directly)
-cmkdir() {
-	OPTIND=0
-	local callArgs=""
-	local arguments=""
-	local isOutput="false" # we will output the commands rather than apply them
-	local result=""
-	while getopts m:e f 2>/dev/null; do
-		case $f in
-			m) callArgs="$callArgs --mode=$OPTARG";;
-			e) isOutput="true";;
-		esac
-	done
-	[ $(($OPTIND > 1)) = 1 ] && shift $($bb expr $OPTIND - 1)
-	arguments="$@"
-
-	for dir in $(echo $arguments); do
-		local subdirs="$(echo $dir | $bb sed -e 's/\//\n/g')"
-		if [ "$(substring 0 1 $dir)" = "/" ]; then # checking for an absolute path
-			local parentdir="/"
-		else # relative path
-	                local parentdir=""
-		fi
-		for subdir in $(echo $subdirs); do
-			if [ "$isOutput" = "false" ]; then
-				if test ! -d $parentdir$subdir; then
-					$bb mkdir $callArgs $parentdir$subdir
-					isPrivileged && $bb chown $actualUser $parentdir$subdir
-				fi
-			else
-				result="$result $bb mkdir -p $callArgs $parentdir$subdir;"
-			fi
-
-			if [ "$parentdir" = "" ]; then
-				local parentdir="$subdir/"
-			else
-				local parentdir="$parentdir$subdir/"
-			fi
-		done
-	done
-
-	if [ "$isOutput" = "true" ]; then
-		echo $result
-	fi
 }
 
 addDevices() {
