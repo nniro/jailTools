@@ -17,7 +17,7 @@ fi
 _JAILTOOLS_RUNNING=1
 
 [ "$ownPath" = "" ] && ownPath=$($bb realpath $($bb dirname $0))
-firewallInstr="run/firewall.instructions"
+g_firewallInstr="run/firewall.instructions"
 
 eval "$($shower jt_utils)" # isValidJailPath substring isPrivileged cmkdir
 
@@ -44,35 +44,35 @@ else
 	uBB="$bb"
 fi
 
-baseEnv="$nsBB env - PATH=/usr/bin:/bin USER=$user HOME=/home HOSTNAME=nowhere.here TERM=linux JT_VERSION=$jailVersion"
+g_baseEnv="$nsBB env - PATH=/usr/bin:/bin USER=$user HOME=/home HOSTNAME=nowhere.here TERM=linux JT_VERSION=$jailVersion"
 
-innerNSpid=""
+g_innerNSpid=""
 
-unshareSupport="-$(for ns in m u i n p U C; do $uBB unshare -r$ns $bb sh -c 'echo "Operation not permitted"; exit' 2>&1 | $bb grep -q "Operation not permitted" && $bb printf $ns; done)"
+g_unshareSupport="-$(for ns in m u i n p U C; do $uBB unshare -r$ns $bb sh -c 'echo "Operation not permitted"; exit' 2>&1 | $bb grep -q "Operation not permitted" && $bb printf $ns; done)"
 
-if [ "$unshareSupport" = "-" ]; then # FIXME, we need to support this
+if [ "$g_unshareSupport" = "-" ]; then # FIXME, we need to support this
 	echo "Detected no namespace support at all, this is not tested much so we prefer to bail out." >&2
 	exit 1
 fi
 
-netNS=false
-if echo $unshareSupport | $bb grep -q 'n'; then # check for network namespace support
-	netNS=true
+g_netNS=false
+if echo $g_unshareSupport | $bb grep -q 'n'; then # check for network namespace support
+	g_netNS=true
 	# we remove this bit from the variable because we use it differently from the other namespaces.
-	unshareSupport=$(echo $unshareSupport | $bb sed -e 's/n//')
+	g_unshareSupport=$(echo $g_unshareSupport | $bb sed -e 's/n//')
 fi
 
-nsenterSupport=$(echo "$unshareSupport" | $bb sed -e 's/^-//' | $bb sed -e 's/\(.\)/-\1 /g')
-if [ "$netNS" = "true" ]; then
+g_nsenterSupport=$(echo "$g_unshareSupport" | $bb sed -e 's/^-//' | $bb sed -e 's/\(.\)/-\1 /g')
+if [ "$g_netNS" = "true" ]; then
 	if [ "$jailNet" = "false" ] || (! isPrivileged && [ "$setNetAccess" = "true" ]); then
 		:
 	else
-		nsenterSupport="$nsenterSupport -n";
+		g_nsenterSupport="$g_nsenterSupport -n";
 	fi
 fi
 
 if isPrivileged; then
-	nsenterSupport="$(echo $nsenterSupport | $bb sed -e 's/-U//g')"
+	g_nsenterSupport="$(echo $g_nsenterSupport | $bb sed -e 's/-U//g')"
 fi
 
 isStartedAsPrivileged() {
@@ -197,7 +197,7 @@ joinBridge() {
 
 	$bb ip link add $vethExternal type veth peer name $vethInternal || return 1
 	$bb ip link set $vethExternal up || return 1
-	$bb ip link set $vethInternal netns $innerNSpid || return 1
+	$bb ip link set $vethInternal netns $g_innerNSpid || return 1
 	execNS $nsBB ip link set $vethInternal up || return 1
 
 	if [ "$externalNetnsId" = "" ]; then
@@ -306,9 +306,9 @@ leaveBridgeByJail() {
 eval "$($shower jt_firewall)"
 
 # firewall inside the jail itself
-internalFirewall() { local rootDir=$1; shift; firewall $firewallInstr "internal" $@ ; }
+internalFirewall() { local rootDir=$1; shift; firewall $g_firewallInstr "internal" $@ ; }
 # firewall on the base system
-externalFirewall() { local rootDir=$1; shift; firewall $firewallInstr "external" $@ ; }
+externalFirewall() { local rootDir=$1; shift; firewall $g_firewallInstr "external" $@ ; }
 
 filterCommentedLines() { # and also empty lines
 	IFS=" "
@@ -367,7 +367,7 @@ initializeCoreJail() {
 }
 
 isUserNamespaceSupported() {
-	if echo $unshareSupport | $bb grep -q 'U'; then
+	if echo $g_unshareSupport | $bb grep -q 'U'; then
 		if [ -e /proc/sys/kernel/unprivileged_userns_clone ]; then
 			if [ "$($bb cat /proc/sys/kernel/unprivileged_userns_clone)" = "0" ]; then
 				return 1
@@ -395,11 +395,11 @@ prepareChrootCore() {
 	elif ! isPrivileged && isUserNamespaceSupported; then # unprivileged
 		unshareArgs="-r"
 		chrootArgs=""
-		unshareSupport=$(echo "$unshareSupport" | $nsBB sed -e 's/U//g')
+		g_unshareSupport=$(echo "$g_unshareSupport" | $nsBB sed -e 's/U//g')
 	else # ! isUserNamespaceSupported or $realRootInJail = "true"
 		unshareArgs=""
 		chrootArgs=""
-		unshareSupport=$(echo "$unshareSupport" | $nsBB sed -e 's/U//g')
+		g_unshareSupport=$(echo "$g_unshareSupport" | $nsBB sed -e 's/U//g')
 	fi # ! isUserNamespaceSupported or $realRootInJail = "true"
 
 	if [ "$jailNet" = "true" ]; then
@@ -416,7 +416,7 @@ prepareChrootCore() {
 
 	# ensure these files are owned by the user
 	# we don't touch those that already exist, fix them yourself
-	[ ! -e $rootDir/$firewallInstr ] && $uBB touch $rootDir/$firewallInstr
+	[ ! -e $rootDir/$g_firewallInstr ] && $uBB touch $rootDir/$g_firewallInstr
 	if [ ! -e $rootDir/run/daemon.log ]; then # this file is special, it's created by the superscript
 		$uBB touch $rootDir/run/daemon.log
 	elif [ "$($bb stat -c %U $rootDir/run/daemon.log)" != "$(getBaseUserUID $rootDir)" ]; then
@@ -427,23 +427,23 @@ prepareChrootCore() {
 	[ -e $rootDir/root/var/run/.loadCoreDone ] && rm $rootDir/root/var/run/.loadCoreDone
 	# this is the core jail instance being run in the background
 	(
-		$preUnshare $bb unshare -f $unshareArgs ${unshareSupport} \
+		$preUnshare $bb unshare -f $unshareArgs ${g_unshareSupport} \
 			-- $bb setpriv --bounding-set $corePrivileges \
 			$bb sh -c " \
 				$bb sh -c \". $rootDir/jailLib.sh; initializeCoreJail $rootDir\"; \
 				cd $rootDir/root; \
 				$bb pivot_root . $rootDir/root/root; \
 				exec $nsBB chroot . /bin/sh -c \"$nsBB umount -l /root; \
-					$nsBB setpriv --bounding-set $chrootPrivileges $baseEnv $chrootCmd\"" 2>$rootDir/run/innerCoreLog \
+					$nsBB setpriv --bounding-set $chrootPrivileges $g_baseEnv $chrootCmd\"" 2>$rootDir/run/innerCoreLog \
 	) &
-	innerNSpid=$!
+	g_innerNSpid=$!
 	if waitUntilFileAppears "$rootDir/root/var/run/.loadCoreDone" 5; then
-		innerNSpid=$($bb pgrep -P $innerNSpid)
+		g_innerNSpid=$($bb pgrep -P $g_innerNSpid)
 	else
-		innerNSpid=""
+		g_innerNSpid=""
 	fi
 
-	if [ "$innerNSpid" = "" ] || ! $bb ps | $bb grep -q "^ *$innerNSpid "; then
+	if [ "$g_innerNSpid" = "" ] || ! $bb ps | $bb grep -q "^ *$g_innerNSpid "; then
 		echo "Creating the inner namespace session failed, bailing out" >&2
 		return 1
 	fi
@@ -471,7 +471,7 @@ prepareChrootNetworking() {
 
 			$bb ip link add $vethExt type veth peer name $vethInt
 			$bb ip link set $vethExt up
-			$bb ip link set $vethInt netns $innerNSpid
+			$bb ip link set $vethInt netns $g_innerNSpid
 			execNS $nsBB ip link set $vethInt up
 
 			execNS $nsBB ip addr add $ipInt/$ipIntBitmask dev $vethInt scope link
@@ -545,7 +545,7 @@ prepareChroot() {
 		touch $rootDir/run/.isPrivileged
 	fi
 
-	if [ "$netNS" = "false" ] && [ "$jailNet" = "true" ]; then
+	if [ "$g_netNS" = "false" ] && [ "$jailNet" = "true" ]; then
 		jailNet=false
 		echo "jailNet is set to false automatically as it needs network namespace support which is not available." >&2
 	fi
@@ -556,8 +556,8 @@ prepareChroot() {
 		echo "\tPlease do (as root) : echo 1 > /proc/sys/net/ipv4/ip_forward  or find the method suitable for your distribution to activate IP forwarding." >&2
 	fi
 
-	if ! isPrivileged && [ "$netNS" = "true" ] && isStartedAsPrivileged $rootDir; then
-		nsenterSupport="$nsenterSupport -n";
+	if ! isPrivileged && [ "$g_netNS" = "true" ] && isStartedAsPrivileged $rootDir; then
+		g_nsenterSupport="$g_nsenterSupport -n";
 	fi
 
 	if isJailRunning $rootDir; then
@@ -577,7 +577,7 @@ prepareChroot() {
 
 	prepareChrootCore $rootDir || return 1
 
-	echo $innerNSpid > $rootDir/run/ns.pid
+	echo $g_innerNSpid > $rootDir/run/ns.pid
 	$bb chmod o+r $rootDir/run/ns.pid
 
 	prepareChrootNetworking $rootDir || return 1
@@ -635,12 +635,12 @@ runShell() {
 		[ "$realRootInJail" = "true" ] && unshareArgs=""
 	else
 		[ "$realRootInJail" = "true" ] && unshareArgs="-r"
-		if isStartedAsPrivileged $rootDir && [ "$netNS" = "true" ] && [ "$jailNet" = "true" ]; then
-			nsenterSupport="$nsenterSupport -n";
+		if isStartedAsPrivileged $rootDir && [ "$g_netNS" = "true" ] && [ "$jailNet" = "true" ]; then
+			g_nsenterSupport="$g_nsenterSupport -n";
 		fi
 	fi
 
-	execRemNS $nsPid $nsBB sh -c "exec $nsBB unshare $unshareArgs $baseEnv $curArgs"
+	execRemNS $nsPid $nsBB sh -c "exec $nsBB unshare $unshareArgs $g_baseEnv $curArgs"
 
 	return $?
 }
@@ -663,9 +663,9 @@ stopChroot() {
 		echo "This jail is not running, can't stop it. Bailing out." >&2
 		return 1
 	fi
-	innerNSpid="$($bb cat $rootDir/run/ns.pid)"
+	g_innerNSpid="$($bb cat $rootDir/run/ns.pid)"
 
-	if [ "$innerNSpid" = "" ] || [ "$($bb pstree $innerNSpid)" = "" ]; then
+	if [ "$g_innerNSpid" = "" ] || [ "$($bb pstree $g_innerNSpid)" = "" ]; then
 		echo "This jail doesn't seem to be running anymore, please check lsns to confirm" >&2
 		return 1
 	fi
@@ -681,7 +681,7 @@ stopChroot() {
 	IFS="
 	"
 	# removing the firewall rules inserted into the instructions file
-	for cmd in $(cmdCtl "$rootDir/$firewallInstr" list); do
+	for cmd in $(cmdCtl "$rootDir/$g_firewallInstr" list); do
 		IFS="$oldIFS" # we set back IFS for remCmd
 		remCmd=$(printf "%s" "$cmd" | $bb sed -e 's@firewall \(.*\) \(in\|ex\)ternal \(.*\)$@firewall \1 \2ternal -d \3@')
 
@@ -691,7 +691,7 @@ stopChroot() {
 
 	if [ -e $rootDir/run/ns.pid ]; then
 		echo "" > $rootDir/run/isStopping
-		kill -9 $innerNSpid >/dev/null 2>/dev/null
+		kill -9 $g_innerNSpid >/dev/null 2>/dev/null
 		if [ "$?" = "0" ]; then
 			$bb rm -f $rootDir/run/ns.pid
 			$bb rm -f $rootDir/run/jail.pid
@@ -704,12 +704,12 @@ stopChroot() {
 	return 0
 }
 
-execNS() { execRemNS $innerNSpid "$@"; }
+execNS() { execRemNS $g_innerNSpid "$@"; }
 
 execRemNS() {
 	local nsPid=$1
 	shift
-	#echo "NS [$nsPid] -- args : $nsenterSupport exec : \"$@\"" >&2
+	#echo "NS [$nsPid] -- args : $g_nsenterSupport exec : \"$@\"" >&2
 	extraParams=""
 	preNSenter=""
 	if isPrivileged; then
@@ -718,6 +718,6 @@ execRemNS() {
 			preNSenter="$bb chpst -u $(getBaseUserCredentials $rootDir)"
 		fi
 	fi
-	$preNSenter $bb nsenter --preserve-credentials $extraParams $nsenterSupport -t $nsPid -- "$@"
+	$preNSenter $bb nsenter --preserve-credentials $extraParams $g_nsenterSupport -t $nsPid -- "$@"
 	return $?
 }
