@@ -182,6 +182,8 @@ mountMany() {
 # internalIpNum - a number from 1 to 254 assigned to the vethInternal device. In the same class C network as the bridge.
 # leave externalNetnsId empty if it's to connect to a bridge on the namespace 0 (base system)
 joinBridge() {
+	local rootDir=$1
+	shift
 	local isDefaultRoute=$(echo $1 | stripQuotes)
 	local vethInternal=$(echo $2 | stripQuotes)
 	local vethExternal=$(echo $3 | stripQuotes)
@@ -198,37 +200,39 @@ joinBridge() {
 	$bb ip link add $vethExternal type veth peer name $vethInternal || return 1
 	$bb ip link set $vethExternal up || return 1
 	$bb ip link set $vethInternal netns $g_innerNSpid || return 1
-	execNS $nsBB ip link set $vethInternal up || return 1
+	execNS $rootDir $nsBB ip link set $vethInternal up || return 1
 
 	if [ "$externalNetnsId" = "" ]; then
 		local masterBridgeIp=$($bb ip addr show $externalBridgeName | $bb grep 'inet ' | $bb grep "scope link" | $bb sed -e 's/^.*inet \([^/]*\)\/.*$/\1/')
 	else
-		local masterBridgeIp=$(execRemNS $externalNetnsId $nsBB ip addr show $externalBridgeName | $nsBB grep 'inet ' | $nsBB grep "scope link" | $nsBB sed -e 's/^.*inet \([^/]*\)\/.*$/\1/')
+		local masterBridgeIp=$(execRemNS $rootDir $externalNetnsId $nsBB ip addr show $externalBridgeName | $nsBB grep 'inet ' | $nsBB grep "scope link" | $nsBB sed -e 's/^.*inet \([^/]*\)\/.*$/\1/')
 	fi
 	local masterBridgeIpCore=$(echo $masterBridgeIp | $bb sed -e 's/\(.*\)\.[0-9]*$/\1/')
 	local newIntIp=${masterBridgeIpCore}.$internalIpNum
 
 	if [ "$externalNetnsId" = "" ]; then
-		execNS $nsBB ip addr add $newIntIp/$ipIntBitmask dev $vethInternal scope link
+		execNS $rootDir $nsBB ip addr add $newIntIp/$ipIntBitmask dev $vethInternal scope link
 	else
 		$bb ip link set $vethExternal netns $externalNetnsId
-		execRemNS $externalNetnsId $nsBB ip link set $vethExternal up
-		execNS $nsBB ip addr add $newIntIp/$ipIntBitmask dev $vethInternal scope link
+		execRemNS $rootDir $externalNetnsId $nsBB ip link set $vethExternal up
+		execNS $rootDir $nsBB ip addr add $newIntIp/$ipIntBitmask dev $vethInternal scope link
 	fi
 
 	if [ "$isDefaultRoute" = "true" ]; then
-		execNS $nsBB ip route add default via $masterBridgeIp dev $vethInternal proto kernel src $newIntIp
+		execNS $rootDir $nsBB ip route add default via $masterBridgeIp dev $vethInternal proto kernel src $newIntIp
 	fi
 
 	if [ "$externalNetnsId" = "" ]; then
 		$bb brctl addif $externalBridgeName $vethExternal
 	else
-		execRemNS $externalNetnsId $nsBB brctl addif $externalBridgeName $vethExternal
+		execRemNS $rootDir $externalNetnsId $nsBB brctl addif $externalBridgeName $vethExternal
 	fi
 	return 0
 }
 
 leaveBridge() {
+	local rootDir=$1
+	shift
 	local vethExternal=$1
 	local externalNetnsId=$2
 	local externalBridgeName=$3
@@ -236,7 +240,7 @@ leaveBridge() {
 	if [ "$externalNetnsId" = "" ]; then
 		$bb brctl delif $externalBridgeName $vethExternal
 	else
-		execRemNS $externalNetnsId $nsBB brctl delif $externalBridgeName $vethExternal
+		execRemNS $rootDir $externalNetnsId $nsBB brctl delif $externalBridgeName $vethExternal
 	fi
 }
 
@@ -245,6 +249,8 @@ leaveBridge() {
 # internalIpNum - internalIpNum - a number from 1 to 254 assigned to the vethInternal device. In the same class C network as the bridge.
 # this loads data from a jail automatically and connects to their bridge
 joinBridgeByJail() {
+	local rootDir=$1
+	shift
 	local jailLocation=$(echo $1 | stripQuotes)
 	local isDefaultRoute=$(echo $2 | stripQuotes)
 	local internalIpNum=$(echo $3 | stripQuotes)
@@ -271,7 +277,7 @@ joinBridgeByJail() {
 		remnetnsId=$($bb cat $jailLocation/run/ns.pid)
 
 		# echo "Attempting to join bridge $rembridgeName on jail $remjailName with net ns $remnetnsId" >&2
-		joinBridge "$isDefaultRoute" "$remjailName" "$jailName" "$remnetnsId" "$rembridgeName" "$internalIpNum" || return 1
+		joinBridge $rootDir "$isDefaultRoute" "$remjailName" "$jailName" "$remnetnsId" "$rembridgeName" "$internalIpNum" || return 1
 	else
 		echo "joinBridgeByJail: Supplied jail path '$jailLocation' is not a valid supported jail." >&2
 		return 1
@@ -281,7 +287,8 @@ joinBridgeByJail() {
 
 # jailLocation - The jail that hosts a bridge you wish to disconnect from.
 leaveBridgeByJail() {
-	local jailLocation=$1
+	local rootDir=$1
+	local jailLocation=$2
 
 	if isValidJailPath $jailLocation; then
 		remjailName=$($runner jt_config $jailLocation -g jailName)
@@ -299,7 +306,7 @@ leaveBridgeByJail() {
 		fi
 		remnetnsId=$($bb cat $jailLocation/run/ns.pid)
 
-		leaveBridge "$jailName" "$remnetnsId" "$rembridgeName"
+		leaveBridge $rootDir "$jailName" "$remnetnsId" "$rembridgeName"
 	fi
 }
 
@@ -456,14 +463,14 @@ prepareChrootNetworking() {
 
 	if [ "$jailNet" = "true" ]; then
 		# loopback device is activated
-		execNS $nsBB ip link set up lo
+		execNS $rootDir $nsBB ip link set up lo
 
 		if [ "$createBridge" = "true" ]; then
 			# NOTE that it is perfectly possible to create a bridge unprivileged
 			# setting up the bridge
-			execNS $nsBB brctl addbr $bridgeName
-			execNS $nsBB ip addr add $bridgeIp/$bridgeIpBitmask dev $bridgeName scope link
-			execNS $nsBB ip link set up $bridgeName
+			execNS $rootDir $nsBB brctl addbr $bridgeName
+			execNS $rootDir $nsBB ip addr add $bridgeIp/$bridgeIpBitmask dev $bridgeName scope link
+			execNS $rootDir $nsBB ip link set up $bridgeName
 		fi
 
 		if [ "$networking" = "true" ]; then
@@ -472,13 +479,13 @@ prepareChrootNetworking() {
 			$bb ip link add $vethExt type veth peer name $vethInt
 			$bb ip link set $vethExt up
 			$bb ip link set $vethInt netns $g_innerNSpid
-			execNS $nsBB ip link set $vethInt up
+			execNS $rootDir $nsBB ip link set $vethInt up
 
-			execNS $nsBB ip addr add $ipInt/$ipIntBitmask dev $vethInt scope link
+			execNS $rootDir $nsBB ip addr add $ipInt/$ipIntBitmask dev $vethInt scope link
 
 			$bb ip addr add $extIp/$extIpBitmask dev $vethExt scope link
 			$bb ip link set $vethExt up
-			execNS $nsBB ip route add default via $extIp dev $vethInt proto kernel src $ipInt
+			execNS $rootDir $nsBB ip route add default via $extIp dev $vethInt proto kernel src $ipInt
 
 			if [ "$setNetAccess" = "true" ] && [ "$netInterface" != "" ]; then
 				if [ "$netInterface" = "auto" ]; then
@@ -501,7 +508,7 @@ prepareChrootNetworking() {
 			"
 			for entry in $(printf "%s" "$joinBridgeFromOtherJail" | filterCommentedLines); do
 				IFS=$oldIFS
-				joinBridgeByJail $entry || return 1
+				joinBridgeByJail $rootDir $entry || return 1
 			done
 			IFS=$oldIFS
 		fi
@@ -512,7 +519,7 @@ prepareChrootNetworking() {
 			"
 			for entry in $(printf "%s" "$joinBridge" | filterCommentedLines); do
 				IFS=$oldIFS
-				joinBridge $entry || return 1
+				joinBridge $rootDir $entry || return 1
 			done
 			IFS=$oldIFS
 		fi
@@ -640,7 +647,7 @@ runShell() {
 		fi
 	fi
 
-	execRemNS $nsPid $nsBB sh -c "exec $nsBB unshare $unshareArgs $g_baseEnv $curArgs"
+	execRemNS $rootDir $nsPid $nsBB sh -c "exec $nsBB unshare $unshareArgs $g_baseEnv $curArgs"
 
 	return $?
 }
@@ -672,8 +679,8 @@ stopChroot() {
 
 	if [ "$jailNet" = "true" ]; then
 		if [ "$createBridge" = "true" ]; then
-			execNS $nsBB ip link set down $bridgeName
-			execNS $nsBB brctl delbr $bridgeName
+			execNS $rootDir $nsBB ip link set down $bridgeName
+			execNS $rootDir $nsBB brctl delbr $bridgeName
 		fi
 	fi
 
@@ -704,11 +711,16 @@ stopChroot() {
 	return 0
 }
 
-execNS() { execRemNS $g_innerNSpid "$@"; }
+execNS() {
+	local rootDir=$1
+	shift
+	execRemNS $rootDir $g_innerNSpid "$@"
+}
 
 execRemNS() {
-	local nsPid=$1
-	shift
+	local rootDir=$1
+	local nsPid=$2
+	shift 2
 	#echo "NS [$nsPid] -- args : $g_nsenterSupport exec : \"$@\"" >&2
 	extraParams=""
 	preNSenter=""
