@@ -9,6 +9,21 @@ isPrivileged() {
 	fi
 }
 
+getBaseUserUID() {
+	local rootDir=$1
+	$bb stat -c %u $rootDir/jailLib.sh
+}
+
+getBaseUserGID() {
+	local rootDir=$1
+	$bb stat -c %g $rootDir/jailLib.sh
+}
+
+getBaseUserCredentials() {
+	local rootDir=$1
+	echo "$(getBaseUserUID $rootDir):$(getBaseUserGID $rootDir)"
+}
+
 # detects if the path as argument contains a valid jail
 isValidJailPath() {
 	local jPath=$1
