@@ -35,8 +35,6 @@ fi
 
 . $ownPath/rootCustomConfig.sh
 
-[ "$ipInt" = "" ] && ipInt=$(echo $extIp | $bb sed -e 's/^\(.*\)\.[0-9]*$/\1\./')2
-
 user=@MAINJAILUSERNAME@
 
 if isPrivileged; then
@@ -469,6 +467,8 @@ prepareChrootNetworking() {
 		fi
 
 		if [ "$networking" = "true" ]; then
+			local ipInt=$(echo $extIp | $bb sed -e 's/^\(.*\)\.[0-9]*$/\1\./')2
+
 			$bb ip link add $vethExt type veth peer name $vethInt
 			$bb ip link set $vethExt up
 			$bb ip link set $vethInt netns $innerNSpid
