@@ -75,13 +75,12 @@ netInterface="auto"
 
 # This boolean sets if you want your jail to
 # gain full internet access using a technique called
-# SNAT or Masquerading. This will make the jail able to
-# access the internet and your LAN as if it was on the
-# host system.
-# in the case of an unprivileged jail, setting this to false will
+# SNAT and also called Masquerading. This will forward packets from the
+# jail to the internet back and forth in the same way as
+# it's done on the host system.
+# In the case of an unprivileged jail, setting this to true will
 # disable the network namespace so the jail get the same network
-# access as the host.
-# Only valid if networking=true
+# access as the host, directly.
 setNetAccess="false"
 
 # activate this in case you actually need the real root user in your jail.
