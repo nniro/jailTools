@@ -33,11 +33,6 @@ if [ "$actualUser" = "" ]; then
 	export actualUser=$($bb stat -c %U $ownPath/jailLib.sh)
 fi
 
-# we get the uid and gid of this script, this way even when ran as root, we still get the right credentials
-[ "$userUID" = "" ] && export userUID=$($bb stat -c %u $ownPath/jailLib.sh)
-[ "$userGID" = "" ] && export userGID=$($bb stat -c %g $ownPath/jailLib.sh)
-[ "$userCreds" = "" ] && export userCreds="$userUID:$userGID"
-
 . $ownPath/rootCustomConfig.sh
 
 [ "$ipInt" = "" ] && ipInt=$(echo $extIp | $bb sed -e 's/^\(.*\)\.[0-9]*$/\1\./')2
@@ -46,7 +41,7 @@ user=@MAINJAILUSERNAME@
 
 if isPrivileged; then
 	# unprivileged user bb
-	uBB="$bb chpst -u $userCreds $bb"
+	uBB="$bb chpst -u $(getBaseUserCredentials $ownPath) $bb"
 else
 	uBB="$bb"
 fi
@@ -397,7 +392,7 @@ prepareChrootCore() {
 	local chrootCmd="sh -c 'while :; do sleep 9999; done'"
 
 	if isPrivileged && isUserNamespaceSupported && [ "$realRootInJail" = "false" ]; then
-		preUnshare="$bb chpst -u $userCreds"
+		preUnshare="$bb chpst -u $(getBaseUserCredentials $rootDir)"
 		unshareArgs="-r"
 	elif ! isPrivileged && isUserNamespaceSupported; then # unprivileged
 		unshareArgs="-r"
@@ -426,8 +421,8 @@ prepareChrootCore() {
 	[ ! -e $rootDir/$firewallInstr ] && $uBB touch $rootDir/$firewallInstr
 	if [ ! -e $rootDir/run/daemon.log ]; then # this file is special, it's created by the superscript
 		$uBB touch $rootDir/run/daemon.log
-	elif [ "$($bb stat -c %U $rootDir/run/daemon.log)" != "$userUID" ]; then
-		$bb chown $userUID $rootDir/run/daemon.log
+	elif [ "$($bb stat -c %U $rootDir/run/daemon.log)" != "$(getBaseUserUID $rootDir)" ]; then
+		$bb chown $(getBaseUserUID $rootDir) $rootDir/run/daemon.log
 	fi
 	[ ! -e $rootDir/run/innerCoreLog ] && $uBB touch $rootDir/run/innerCoreLog
 
@@ -635,7 +630,7 @@ runShell() {
 		fi
 	fi
 
-	unshareArgs="-U --map-user=$userUID --map-group=$userGID"
+	local unshareArgs="-U --map-user=$(getBaseUserUID $rootDir) --map-group=$(getBaseUserGID $rootDir)"
 	if isPrivileged; then
 		[ "$realRootInJail" = "true" ] && unshareArgs=""
 	else
@@ -720,7 +715,7 @@ execRemNS() {
 	if isPrivileged; then
 		if [ "$realRootInJail" = "false" ]; then
 			extraParams="-U"
-			preNSenter="$bb chpst -u $userCreds"
+			preNSenter="$bb chpst -u $(getBaseUserCredentials $rootDir)"
 		fi
 	fi
 	$preNSenter $bb nsenter --preserve-credentials $extraParams $nsenterSupport -t $nsPid -- "$@"
