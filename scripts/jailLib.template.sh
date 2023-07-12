@@ -497,7 +497,7 @@ prepareChrootNetworking() {
 					return 1
 				fi
 
-				externalFirewall $rootDir snat $netInterface $vethExt
+				externalFirewall $rootDir snat $netInterface $vethExt $ipInt $(getCurVal $rootDir ipIntBitmask)
 			fi
 		fi
 
