@@ -9,7 +9,7 @@ eval "$($shower jt_utils)"
 listCore() {
 	local jailScript=$1
 
-	$bb cat $jailScript | $bb sed -ne 's/^\([^# =]\+\)=.*$/\1/ p'
+	$bb cat $jailScript | $bb sed -ne 's/^\([^# =]\+\)=.*$/\1/ p' 2>/dev/null
 }
 
 listConfigs() {
@@ -74,7 +74,7 @@ getCurVal() {
 	local jailDir=$1
 	local confVal=$2
 
-	listConfigs $jailDir | $bb grep -q "$confVal" || return 1
+	listConfigs $jailDir | $bb grep -q "$confVal" 2>/dev/null || return 1
 
 	getCoreVal $jailDir $jailDir/rootCustomConfig.sh $confVal && return 0
 	getCoreVal $jailDir $jailDir/rootDefaultConfig.sh $confVal
