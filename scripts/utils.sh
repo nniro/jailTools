@@ -19,6 +19,11 @@ getBaseUserGID() {
 	$bb stat -c %g $rootDir/jailLib.sh
 }
 
+getActualUser() {
+	local rootDir=$1
+	$bb stat -c %U $rootDir/jailLib.sh
+}
+
 getBaseUserCredentials() {
 	local rootDir=$1
 	echo "$(getBaseUserUID $rootDir):$(getBaseUserGID $rootDir)"
