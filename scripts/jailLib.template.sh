@@ -30,8 +30,6 @@ if [ "$privileged" = "" ]; then
 	fi
 fi
 
-. $ownPath/rootCustomConfig.sh
-
 user=@MAINJAILUSERNAME@
 
 if isPrivileged; then
@@ -317,14 +315,27 @@ filterCommentedLines() { # and also empty lines
 	$bb sed -e '/^\( \|\t\)*#.*$/ d' | $bb sed -e '/^\( \|\t\)*$/ d'
 }
 
+expandSafeValues() {
+	local actualUser=$1
+	local userUID=$2
+	local userGID=$3
+	sed -e "s/\$actualUser/$actualUser/g" \
+		-e "s/\$userUID/$userUID/g" \
+		-e "s/\$userGID/$userGID/g"
+}
+
 handleDirectMounts() {
-	rootDir=$1
+	local rootDir=$1
+	local actualUser=$2
+	local userUID=$3
+	local userGID=$4
 
 	oldIFS="$IFS"
+	local directMounts=$(getCurVal $rootDir directMounts)
 	if [ "$directMounts" != "" ]; then
 		IFS="
 "
-		for entry in $(printf "%s" "$directMounts" | filterCommentedLines); do
+		for entry in $(printf "%s" "$directMounts" | filterCommentedLines | expandSafeValues $actualUser $userUID $userGID); do
 			IFS=$oldIFS
 			mountSingle $rootDir $entry
 		done
@@ -333,7 +344,10 @@ handleDirectMounts() {
 }
 
 initializeCoreJail() {
-	rootDir=$1
+	local rootDir=$1
+	local actualUser=$2
+	local userUID=$3
+	local userGID=$4
 
 	$bb mount -o private,bind $rootDir/root $rootDir/root
 	$bb mount -tproc proc $rootDir/root/proc || $bb mount --bind /proc $rootDir/root/proc || return 1
@@ -350,11 +364,11 @@ initializeCoreJail() {
 	$bb mount -o bind,rw $rootDir/root/var $rootDir/root/var
 	$bb mount -o bind,rw $rootDir/root/tmp $rootDir/root/tmp
 
-	mountMany $rootDir/root "rw,noexec" $(printf "%s" "$(getCurVal $rootDir devMountPoints)" | filterCommentedLines)
-	mountMany $rootDir/root "ro,exec" $(printf "%s" "$(getCurVal $rootDir roMountPoints)" | filterCommentedLines)
-	mountMany $rootDir/root "defaults" $(printf "%s" "$(getCurVal $rootDir rwMountPoints)" | filterCommentedLines)
+	mountMany $rootDir/root "rw,noexec" $(printf "%s" "$(getCurVal $rootDir devMountPoints)" | filterCommentedLines | expandSafeValues $actualUser $userUID $userGID)
+	mountMany $rootDir/root "ro,exec" $(printf "%s" "$(getCurVal $rootDir roMountPoints)" | filterCommentedLines | expandSafeValues $actualUser $userUID $userGID)
+	mountMany $rootDir/root "defaults" $(printf "%s" "$(getCurVal $rootDir rwMountPoints)" | filterCommentedLines | expandSafeValues $actualUser $userUID $userGID)
 
-	handleDirectMounts $rootDir
+	handleDirectMounts $rootDir $actualUser $userUID $userGID
 
 	$bb mount -o private,bind,remount,ro $rootDir/root
 	$bb mount -o bind,ro,remount $rootDir/root/dev
@@ -432,7 +446,7 @@ prepareChrootCore() {
 		$preUnshare $bb unshare -f $unshareArgs ${g_unshareSupport} \
 			-- $bb setpriv --bounding-set $(getCurVal $rootDir corePrivileges) \
 			$bb sh -c " \
-				$bb sh -c \". $rootDir/jailLib.sh; initializeCoreJail $rootDir\"; \
+				$bb sh -c \". $rootDir/jailLib.sh; initializeCoreJail $rootDir $(getActualUser $rootDir) $(getBaseUserUID $rootDir) $(getBaseUserGID $rootDir)\"; \
 				cd $rootDir/root; \
 				$bb pivot_root . $rootDir/root/root; \
 				exec $nsBB chroot . /bin/sh -c \"$nsBB umount -l /root; \

@@ -54,6 +54,27 @@ prepareCmd() {
 	echo $result
 }
 
+getRunEnvironment() {
+	local ownPath=$1
+
+	local vars=$(getCurVal $ownPath runEnvironment | $bb sed -e 's/ /\n/g' | $bb sed -e 's/.*\(\$[^ ]\+\)/\1 /' | $bb sed -e 's/^\$//')
+
+	local regexResult=""
+	for var in $vars; do
+		if [ "$var" = "userUID" ]; then
+			regexResult="$regexResult s/\\\\\$$var/$(getBaseUserUID $ownPath)/ ;"
+		elif [ "$var" = "actualUser" ]; then
+			regexResult="$regexResult s/\\\\\$$var/$(getActualUser $ownPath)/ ;"
+		elif [ "$var" = "userGID" ]; then
+			regexResult="$regexResult s/\\\\\$$var/$(getBaseUserGID $ownPath)/ ;"
+		else
+			regexResult="$regexResult s/\\\\\$$var/$($bb env | $bb sed -ne "/^${var}=/ {s/^${var}=\(.\+\)$/\1 / ; p; q}")/ ;"
+		fi
+	done
+
+	getCurVal $ownPath runEnvironment | $bb sed -e "$regexResult"
+}
+
 cmdParse() {
 	local args=$1
 	local ownPath=$2
@@ -64,7 +85,7 @@ cmdParse() {
 		daemon)
 			echo "This command is not meant to be called directly, use the jailtools super script to start the daemon properly, otherwise it will just stay running with no interactivity possible." >&2
 			prepareChroot $ownPath || exit 1
-			runShell -pd $ownPath $($bb cat $ownPath/run/ns.pid) $(prepareCmd "$runEnvironment" "$daemonCommand" "$@")
+			runShell -pd $ownPath $($bb cat $ownPath/run/ns.pid) $(prepareCmd "$(getRunEnvironment $ownPath)" "$(getCurVal $ownPath daemonCommand)" "$@")
 			err=$?
 			stopChroot $ownPath
 			exit $err
@@ -72,7 +93,7 @@ cmdParse() {
 
 		start)
 			prepareChroot $ownPath || exit 1
-			runShell -p $ownPath $($bb cat $ownPath/run/ns.pid) $(prepareCmd "$runEnvironment" "$startCommand" "$@")
+			runShell -p $ownPath $($bb cat $ownPath/run/ns.pid) $(prepareCmd "$(getRunEnvironment $ownPath)" "$(getCurVal $ownPath startCommand)" "$@")
 			err=$?
 			stopChroot $ownPath
 			exit $err
@@ -88,12 +109,12 @@ cmdParse() {
 				local nsPid=$(cat $ownPath/run/ns.pid)
 			
 				if [ "$privileged" = "1" ]; then
-					echo "Entering the already started jail \`$jailName'" >&2
+					echo "Entering the already started jail \`$(getCurVal $ownPath jailName)'" >&2
 				else
-					echo "Entering the already started jail \`$jailName' unprivileged" >&2
+					echo "Entering the already started jail \`$(getCurVal $ownPath jailName)' unprivileged)" >&2
 				fi
 				[ "$nsPid" = "" ] && (echo "Unable to get the running namespace, bailing out" && exit 1)
-				runShell $ownPath $nsPid $(prepareCmd "$runEnvironment" "$shellCommand" "$@")
+				runShell $ownPath $nsPid $(prepareCmd "$(getRunEnvironment $ownPath)" "$(getCurVal $ownPath shellCommand)" "$@")
 				exit $?
 			else # we start a new jail
 				echo "This jail is not started, please start it with the \"daemon\" command" >&2
