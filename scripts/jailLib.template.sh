@@ -312,11 +312,6 @@ leaveBridgeByJail() {
 
 eval "$($shower jt_firewall)"
 
-# firewall inside the jail itself
-internalFirewall() { local rootDir=$1; shift; firewall $g_firewallInstr "internal" $@ ; }
-# firewall on the base system
-externalFirewall() { local rootDir=$1; shift; firewall $g_firewallInstr "external" $@ ; }
-
 filterCommentedLines() { # and also empty lines
 	IFS=" "
 	$bb sed -e '/^\( \|\t\)*#.*$/ d' | $bb sed -e '/^\( \|\t\)*$/ d'
@@ -501,7 +496,7 @@ prepareChrootNetworking() {
 					return 1
 				fi
 
-				externalFirewall $rootDir snat $networkInterface $vethExternal $ipInt $(getCurVal $rootDir ipIntBitmask)
+				firewall $g_firewallInstr "external" snat $networkInterface $vethExternal $ipInt $(getCurVal $rootDir ipIntBitmask)
 			fi
 		fi
 
@@ -595,7 +590,25 @@ prepareChroot() {
 
 	prepareChrootNetworking $rootDir || return 1
 
-	prepCustom $rootDir || return 1
+	local firewallRules=$(getCurVal $rootDir firewallRules)
+	if [ "$firewallRules" != "" ]; then
+		local vethInt=$(getCurVal $rootDir vethInt)
+		local vethExt=$(getCurVal $rootDir vethExt)
+		local ipInt=$(getCurVal $rootDir ipInt)
+		oldIFS="$IFS"
+		IFS="
+		"
+		for entry in $(printf "%s" "$firewallRules" | filterCommentedLines); do
+			IFS=$oldIFS
+
+			entry=$(echo $entry | sed -e "s/\$vethInt/$vethInt/g" \
+				-e "s/\$vethExt/$vethExt/g" \
+				-e "s/\$ipInt/$ipInt/g")
+
+			firewall $g_firewallInstr $entry
+		done
+		IFS=$oldIFS
+	fi
 
 	return 0
 }
@@ -663,7 +676,6 @@ stopChroot() {
 
 	[ -e $rootDir/run/isStopping ] && return 0
 
-	stopCustom $rootDir
 
 	if ! isPrivileged; then
 		if isStartedAsPrivileged $rootDir; then

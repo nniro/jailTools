@@ -145,129 +145,103 @@ joinBridge=$($bb cat << EOF
 EOF
 )
 
+# firewall
+# synopsis :
+# internal/external [command] <command arguments...>
+# 	commands :
+#		dnat - [udp or tcp] [input interface] [output interface] [source port] [destination address] [destination port]
+#			This makes it possible to forward an external port
+#			to one of the port on the jail itself.
+#
+#		dnatTcp - [input interface] [output interface] [source port] [destination address] [destination port]
+#			Tcp variant of dnat
+#			see 'dnat'
+#		dnatUdp - [input interface] [output interface] [source port] [destination address] [destination port]
+#			Udp variant of dnat
+#			see 'dnat'
+#		openPort - [interface from] [interface to] [tcp or udp] [destination port]
+#			opens a port (and also allow communications through
+#			it) from an origin to a destination network interface
+#			on a specific port or a port range using this
+#			format 'min:max'.
+#
+#		openTcpPort - [interface from] [interface to] [destination port]
+#			Tcp variant of openPort
+#			see 'openPort'
+#		openUdpPort - [interface from] [interface to] [destination port]
+#			Udp variant of openPort
+#			see 'openPort'
+#		allowConnection - [tcp or udp] [output interface] [destination address] [destination port]
+#			Note :	This is really meant to be used with
+#				the internal firewall, don't use it
+#				for the external firewall.
+#			In the case that the command blockAll was used,
+#			use this command to fine grain what is allowed.
+#			The argument 'destination port' also supports a
+#			port range using this format 'min:max'.
+#			It is also fully possible to use this multiple times
+#			with a single destination address to set
+#			multiple ports.
+#
+#		allowTcpConnection - [output interface] [destination address] [destination port]
+#			Tcp variant of allowConnection
+#			see 'allowConnection'
+#		allowUdpConnection - [output interface] [destination address] [destination port]
+#			Udp variant of allowConnection
+#			see 'allowConnection'
+#		blockAll [interface from] [interface to]
+#			Note :	This is really meant to be used with
+#				the internal firewall, don't use it
+#				for the external firewall.
+#			block all incoming and outgoing connections to a jail
+#		snat - [the interface connected to the outbound network] [the interface from which the packets originate]
+#			This permits internet access to the jail. It is also called Masquerading.
+#
+firewallRules=$($bb cat << EOF
+## If you want to allow full internet access to the jail but want to limit
+## to what and where to connect, this is the command to use :
+##
+# internal blockAll $vethInt $vethExt
 
-################# Functions #################
+## In case the "blockAll" firewall rule was used, we allow the internal jail
+## to connect to the Google DNS service.
+## Do note that although it is possible to use domain names rather than IPs,
+## it is considered unsafe by the iptables documentation, so use IPs.
+## (IPv6 is not yet supported)
+##
+# internal allowTcpConnection $vethInt 8.8.8.8 53
+# internal allowUdpConnection $vethInt 8.8.8.8 53
 
-# this is called before each command that start a jail (daemon and start)
-# among other, put your firewall rules here
-prepCustom() {
-	local rootDir=$1
+## incoming
 
-	# firewall
-	# synopsis :
-	# externalFirewall $rootDir [command] <command arguments...>
-	# 	commands :
-	#		dnat - [udp or tcp] [input interface] [output interface] [source port] [destination address] [destination port]
-	#			This makes it possible to forward an external port
-	#			to one of the port on the jail itself.
-	#
-	#		dnatTcp - [input interface] [output interface] [source port] [destination address] [destination port]
-	#			Tcp variant of dnat
-	#			see 'dnat'
-	#		dnatUdp - [input interface] [output interface] [source port] [destination address] [destination port]
-	#			Udp variant of dnat
-	#			see 'dnat'
-	#		openPort - [interface from] [interface to] [tcp or udp] [destination port]
-	#			opens a port (and also allow communications through
-	#			it) from an origin to a destination network interface
-	#			on a specific port or a port range using this
-	#			format 'min:max'.
-	#
-	#		openTcpPort - [interface from] [interface to] [destination port]
-	#			Tcp variant of openPort
-	#			see 'openPort'
-	#		openUdpPort - [interface from] [interface to] [destination port]
-	#			Udp variant of openPort
-	#			see 'openPort'
-	#		allowConnection - [tcp or udp] [output interface] [destination address] [destination port]
-	#			Note :	This is really meant to be used with
-	#				the internal firewall, don't use it
-	#				for the external firewall.
-	#			In the case that the command blockAll was used,
-	#			use this command to fine grain what is allowed.
-	#			The argument 'destination port' also supports a
-	#			port range using this format 'min:max'.
-	#			It is also fully possible to use this multiple times
-	#			with a single destination address to set
-	#			multiple ports.
-	#
-	#		allowTcpConnection - [output interface] [destination address] [destination port]
-	#			Tcp variant of allowConnection
-	#			see 'allowConnection'
-	#		allowUdpConnection - [output interface] [destination address] [destination port]
-	#			Udp variant of allowConnection
-	#			see 'allowConnection'
-	#		blockAll
-	#			Note :	This is really meant to be used with
-	#				the internal firewall, don't use it
-	#				for the external firewall.
-	#			block all incoming and outgoing connections to a jail
-	#		snat - [the interface connected to the outbound network] [the interface from which the packets originate]
-	#			This permits internet access to the jail. It is also called Masquerading.
-	#
-	#
-	# examples :
-	#
+## We allow the base system to connect to our jail (all ports) :
+##
+# external openTcpPort $vethExt $vethInt 1:65535
 
-	# If you want to allow full internet access to the jail but want to limit
-	# to what and where to connect, this is the command to use :
-	#
-	# internalFirewall $rootDir blockAll
+## We allow the base system to connect to our jail specifically
+## only to the tcp port 8000 :
+##
+# external openTcpPort $vethExt $vethInt 8000
+##
+## if the "blockAll" firewall rule was used, we also have to set
+## that up for the internal firewall :
+##
+# internal openTcpPort $vethExt $vethInt 8000
 
-	# In case the "blockAll" firewall rule was used, we allow the internal jail
-	# to connect to the Google DNS service.
-	# Do note that although it is possible to use domain names rather than IPs,
-	# it is considered unsafe by the iptables documentation, so use IPs.
-	# (IPv6 is not yet supported)
-	#
-	# internalFirewall $rootDir allowTcpConnection $vethInt 8.8.8.8 53
-	# internalFirewall $rootDir allowUdpConnection $vethInt 8.8.8.8 53
+## We allow the net to connect to our jail specifically to the
+## tcp port 8000 from the port 80 (by dnat) :
+## internet -> port 80 -> firewall's dnat -> jail's port 8000
+##
+# external dnatTcp eth0 $vethExt 80 $ipInt 8000
 
-	# incoming
+## outgoing
 
-	# We allow the base system to connect to our jail (all ports) :
-	#
-	# externalFirewall $rootDir openTcpPort $vethExt $vethInt 1:65535
+## We allow the jail access to the base system's tcp port 25 :
+##
+# external openTcpPort $vethInt $vethExt 25
 
-	# We allow the base system to connect to our jail specifically
-	# only to the tcp port 8000 :
-	#
-	# externalFirewall $rootDir openTcpPort $vethExt $vethInt 8000
-	#
-	# if the "blockAll" firewall rule was used, we also have to set
-	# that up for the internal firewall :
-	#
-	# internalFirewall $rootDir openTcpPort $vethExt $vethInt 8000
-
-	# We allow the net to connect to our jail specifically to the
-	# tcp port 8000 from the port 80 (by dnat) :
-	# internet -> port 80 -> firewall's dnat -> jail's port 8000
-	#
-	# externalFirewall $rootDir dnatTcp eth0 $vethExt 80 $ipInt 8000
-
-	# outgoing
-
-	# We allow the jail access to the base system's tcp port 25 :
-	#
-	# externalFirewall $rootDir openTcpPort $vethInt $vethExt 25
-
-	# We allow the jail all access to the base system (all tcp ports) :
-	#
-	# externalFirewall $rootDir openTcpPort $vethInt $vethExt 1:65535
-}
-
-stopCustom() {
-	local rootDir=$1
-	# put your stop instructions here
-
-	# It's unnecessary to unmount directories or files that were manually mounted in
-	# prepCustom. This is being done automatically.
-
-	# It's unnecessary to remove firewall rules here as this is being done automatically.
-
-	# this is to be used in combination with the joinBridgeByJail line in prepCustom
-	# leaveBridgeByJail /home/yourUser/jails/tor
-
-	# this is to be used in combination with the joinBridge line in prepCustom
-	# leaveBridge "extInt" "" "br0"
-}
+## We allow the jail all access to the base system (all tcp ports) :
+##
+# external openTcpPort $vethInt $vethExt 1:65535
+EOF
+)
