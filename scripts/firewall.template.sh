@@ -97,11 +97,11 @@ cmdCtl() {
 # External is the host system's firewall
 firewall() {
 	if ! _isPrivileged; then
-		echo "This function requires to be run with root privileges." >&2
+		echo "firewall: This function requires to be run with root privileges." >&2
 		return 1
 	fi
 	if [ "$bb" = "" ]; then
-		echo "Unable to find busybox" >&2
+		echo "firewall: Unable to find busybox" >&2
 		return 1
 	fi
 	# this could be checked elsewhere
@@ -111,7 +111,7 @@ firewall() {
 
 	iptablesBin=$(PATH="$PATH:/sbin:/usr/sbin:/usr/local/sbin" $bb sh -c "command $bb which iptables" 2>/dev/null)
 	if [ "$iptablesBin" = "" ]; then
-		echo "unable to find a usable iptables executable" >&2
+		echo "firewall: unable to find a usable iptables executable" >&2
 		return 1
 	fi
 	local fwInstrFile=$1
@@ -571,24 +571,24 @@ firewallCLI() {
 	cmd=$1
 	case $cmd in
 		help)
-	                help
-	        ;;
+			help
+		;;
 
-	        firewall|f|command|cmd)
+		firewall|f|command|cmd)
 			shift
-	                firewall $instrFile external $@
+			firewall $instrFile external $@
 			return $?
-	        ;;
+		;;
 
-	        check)
-	                if checkFirewall $instrFile >/dev/null 2>/dev/null; then
+		check)
+			if checkFirewall $instrFile >/dev/null 2>/dev/null; then
 				echo "All is fine" >&2
 				return 0
 			else
 				echo "Error detected" >&2
 				return 1
 			fi
-	        ;;
+		;;
 
 		reset)
 			resetFirewall $instrFile
