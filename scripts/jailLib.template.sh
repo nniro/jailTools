@@ -20,6 +20,7 @@ _JAILTOOLS_RUNNING=1
 g_firewallInstr="run/firewall.instructions"
 
 eval "$($shower jt_utils)" # isValidJailPath substring isPrivileged cmkdir
+eval "$($shower jt_config)" # getCurVal
 
 if [ "$privileged" = "" ]; then
 	if ! isPrivileged; then
@@ -27,10 +28,6 @@ if [ "$privileged" = "" ]; then
 	else
 		export privileged=1
 	fi
-fi
-
-if [ "$actualUser" = "" ]; then
-	export actualUser=$($bb stat -c %U $ownPath/jailLib.sh)
 fi
 
 . $ownPath/rootCustomConfig.sh
@@ -62,9 +59,12 @@ if echo $g_unshareSupport | $bb grep -q 'n'; then # check for network namespace 
 	g_unshareSupport=$(echo $g_unshareSupport | $bb sed -e 's/n//')
 fi
 
+jailNet=$(getCurVal $ownPath jailNet)
+networking=$(getCurVal $ownPath networking)
+
 g_nsenterSupport=$(echo "$g_unshareSupport" | $bb sed -e 's/^-//' | $bb sed -e 's/\(.\)/-\1 /g')
 if [ "$g_netNS" = "true" ]; then
-	if [ "$jailNet" = "false" ] || (! isPrivileged && [ "$setNetAccess" = "true" ]); then
+	if [ "$jailNet" = "false" ] || (! isPrivileged && [ "$(getCurVal $ownPath setNetAccess)" = "true" ]); then
 		:
 	else
 		g_nsenterSupport="$g_nsenterSupport -n";
@@ -261,9 +261,9 @@ joinBridgeByJail() {
 	fi
 
 	if isValidJailPath $jailLocation; then
-		remjailName=$($runner jt_config $jailLocation -g jailName)
-		remcreateBridge=$($runner jt_config $jailLocation -g createBridge)
-		rembridgeName=$($runner jt_config $jailLocation -g bridgeName)
+		remjailName=$(getCurVal $jailLocation jailName)
+		remcreateBridge=$(getCurVal $jailLocation createBridge)
+		rembridgeName=$(getCurVal $jailLocation bridgeName)
 
 		if [ "$remcreateBridge" != "true" ]; then
 			echo "joinBridgeByJail: This jail does not have a bridge, aborting joining." >&2
@@ -277,7 +277,7 @@ joinBridgeByJail() {
 		remnetnsId=$($bb cat $jailLocation/run/ns.pid)
 
 		# echo "Attempting to join bridge $rembridgeName on jail $remjailName with net ns $remnetnsId" >&2
-		joinBridge $rootDir "$isDefaultRoute" "$remjailName" "$jailName" "$remnetnsId" "$rembridgeName" "$internalIpNum" || return 1
+		joinBridge $rootDir "$isDefaultRoute" "$remjailName" "$(getCurVal $rootDir jailName)" "$remnetnsId" "$rembridgeName" "$internalIpNum" || return 1
 	else
 		echo "joinBridgeByJail: Supplied jail path '$jailLocation' is not a valid supported jail." >&2
 		return 1
@@ -291,9 +291,9 @@ leaveBridgeByJail() {
 	local jailLocation=$2
 
 	if isValidJailPath $jailLocation; then
-		remjailName=$($runner jt_config $jailLocation -g jailName)
-		remcreateBridge=$($runner jt_config $jailLocation -g createBridge)
-		rembridgeName=$($runner jt_config $jailLocation -g bridgeName)
+		remjailName=$(getCurVal $jailLocation jailName)
+		remcreateBridge=$(getCurVal $jailLocation createBridge)
+		rembridgeName=$(getCurVal $jailLocation bridgeName)
 
 		if [ "$remcreateBridge" != "true" ]; then
 			echo "This jail does not have a bridge, bailing out." >&2
@@ -306,7 +306,7 @@ leaveBridgeByJail() {
 		fi
 		remnetnsId=$($bb cat $jailLocation/run/ns.pid)
 
-		leaveBridge $rootDir "$jailName" "$remnetnsId" "$rembridgeName"
+		leaveBridge $rootDir "$(getCurVal $rootDir jailName)" "$remnetnsId" "$rembridgeName"
 	fi
 }
 
@@ -348,24 +348,24 @@ initializeCoreJail() {
 	touch $rootDir/root/dev/ptmx
 	$bb mount -o bind $rootDir/root/dev/pts/ptmx $rootDir/root/dev/ptmx
 	$bb ln -s /proc/self/fd $rootDir/root/dev/fd
-	addDevices $rootDir $availableDevices
+	addDevices $rootDir $(getCurVal $rootDir availableDevices)
 
 	# only these should be writable
 	$bb mount -o bind,rw $rootDir/root/home $rootDir/root/home
 	$bb mount -o bind,rw $rootDir/root/var $rootDir/root/var
 	$bb mount -o bind,rw $rootDir/root/tmp $rootDir/root/tmp
 
-	mountMany $rootDir/root "rw,noexec" $(printf "%s" "$devMountPoints" | filterCommentedLines)
-	mountMany $rootDir/root "ro,exec" $(printf "%s" "$roMountPoints" | filterCommentedLines)
-	mountMany $rootDir/root "defaults" $(printf "%s" "$rwMountPoints" | filterCommentedLines)
+	mountMany $rootDir/root "rw,noexec" $(printf "%s" "$(getCurVal $rootDir devMountPoints)" | filterCommentedLines)
+	mountMany $rootDir/root "ro,exec" $(printf "%s" "$(getCurVal $rootDir roMountPoints)" | filterCommentedLines)
+	mountMany $rootDir/root "defaults" $(printf "%s" "$(getCurVal $rootDir rwMountPoints)" | filterCommentedLines)
 
 	handleDirectMounts $rootDir
 
 	$bb mount -o private,bind,remount,ro $rootDir/root
 	$bb mount -o bind,ro,remount $rootDir/root/dev
 
-	if [ "$mountSys" = "true" ]; then
-		if ! isPrivileged && [ "$setNetAccess" = "true" ]; then
+	if [ "$(getCurVal $rootDir mountSys)" = "true" ]; then
+		if ! isPrivileged && [ "$(getCurVal $rootDir setNetAccess)" = "true" ]; then
 			echo "Could not mount the /sys directory. As an unprivileged user, the only way this is possible is by disabling setNetAccess. Or you can always run this jail as a privileged user." >&2
 		else
 			$bb mount -tsysfs none $rootDir/root/sys
@@ -396,7 +396,7 @@ prepareChrootCore() {
 	local chrootArgs=""
 	local chrootCmd="sh -c 'while :; do sleep 9999; done'"
 
-	if isPrivileged && isUserNamespaceSupported && [ "$realRootInJail" = "false" ]; then
+	if isPrivileged && isUserNamespaceSupported && [ "$(getCurVal $rootDir realRootInJail)" = "false" ]; then
 		preUnshare="$bb chpst -u $(getBaseUserCredentials $rootDir)"
 		unshareArgs="-r"
 	elif ! isPrivileged && isUserNamespaceSupported; then # unprivileged
@@ -410,14 +410,14 @@ prepareChrootCore() {
 	fi # ! isUserNamespaceSupported or $realRootInJail = "true"
 
 	if [ "$jailNet" = "true" ]; then
-		if isPrivileged || (! isPrivileged && [ "$setNetAccess" = "false" ]); then
+		if isPrivileged || (! isPrivileged && [ "$(getCurVal $rootDir setNetAccess)" = "false" ]); then
 			unshareArgs="$unshareArgs -n"
 		fi
 	fi
 
 	chrootCmd="touch /var/run/.loadCoreDone; $chrootCmd"
 
-	if [ "$realRootInJail" = "true" ]; then
+	if [ "$(getCurVal $rootDir realRootInJail)" = "true" ]; then
 		chrootCmd="sleep 1; $chrootCmd"
 	fi
 
@@ -435,13 +435,13 @@ prepareChrootCore() {
 	# this is the core jail instance being run in the background
 	(
 		$preUnshare $bb unshare -f $unshareArgs ${g_unshareSupport} \
-			-- $bb setpriv --bounding-set $corePrivileges \
+			-- $bb setpriv --bounding-set $(getCurVal $rootDir corePrivileges) \
 			$bb sh -c " \
 				$bb sh -c \". $rootDir/jailLib.sh; initializeCoreJail $rootDir\"; \
 				cd $rootDir/root; \
 				$bb pivot_root . $rootDir/root/root; \
 				exec $nsBB chroot . /bin/sh -c \"$nsBB umount -l /root; \
-					$nsBB setpriv --bounding-set $chrootPrivileges $g_baseEnv $chrootCmd\"" 2>$rootDir/run/innerCoreLog \
+					$nsBB setpriv --bounding-set $(getCurVal $rootDir chrootPrivileges) $g_baseEnv $chrootCmd\"" 2>$rootDir/run/innerCoreLog \
 	) &
 	g_innerNSpid=$!
 	if waitUntilFileAppears "$rootDir/root/var/run/.loadCoreDone" 5; then
@@ -474,34 +474,39 @@ prepareChrootNetworking() {
 		fi
 
 		if [ "$networking" = "true" ]; then
-			local ipInt=$(echo $extIp | $bb sed -e 's/^\(.*\)\.[0-9]*$/\1\./')2
+			local externalIp=$(getCurVal $rootDir extIp)
+			local ipInt=$(echo $externalIp | $bb sed -e 's/^\(.*\)\.[0-9]*$/\1\./')2
+			local vethExternal=$(getCurVal $rootDir vethExt)
+			local vethInternal=$(getCurVal $rootDir vethInt)
 
-			$bb ip link add $vethExt type veth peer name $vethInt
-			$bb ip link set $vethExt up
-			$bb ip link set $vethInt netns $g_innerNSpid
-			execNS $rootDir $nsBB ip link set $vethInt up
+			$bb ip link add $vethExternal type veth peer name $vethInternal
+			$bb ip link set $vethExternal up
+			$bb ip link set $vethInternal netns $g_innerNSpid
+			execNS $rootDir $nsBB ip link set $vethInternal up
 
-			execNS $rootDir $nsBB ip addr add $ipInt/$ipIntBitmask dev $vethInt scope link
+			execNS $rootDir $nsBB ip addr add $ipInt/$(getCurVal $rootDir ipIntBitmask) dev $vethInternal scope link
 
-			$bb ip addr add $extIp/$extIpBitmask dev $vethExt scope link
-			$bb ip link set $vethExt up
-			execNS $rootDir $nsBB ip route add default via $extIp dev $vethInt proto kernel src $ipInt
+			$bb ip addr add $externalIp/$(getCurVal $rootDir extIpBitmask) dev $vethExternal scope link
+			$bb ip link set $vethExternal up
+			execNS $rootDir $nsBB ip route add default via $externalIp dev $vethInternal proto kernel src $ipInt
 
-			if [ "$setNetAccess" = "true" ] && [ "$netInterface" != "" ]; then
-				if [ "$netInterface" = "auto" ]; then
-					netInterface=$($bb ip route | $bb grep '^default' | $bb sed -e 's/^.* dev \([^ ]*\) .*$/\1/')
+			local networkInterface=$(getCurVal $rootDir netInterface)
+			if [ "$(getCurVal $rootDir setNetAccess)" = "true" ] && [ "$networkInterface" != "" ]; then
+				if [ "$networkInterface" = "auto" ]; then
+					networkInterface=$($bb ip route | $bb grep '^default' | $bb sed -e 's/^.* dev \([^ ]*\) .*$/\1/')
 				fi
 
-				if [ "$netInterface" = "" ]; then
+				if [ "$networkInterface" = "" ]; then
 					echo "Could not find a default route network interface, is the network up?" >&2
 					return 1
 				fi
 
-				externalFirewall $rootDir snat $netInterface $vethExt $ipInt $(getCurVal $rootDir ipIntBitmask)
+				externalFirewall $rootDir snat $networkInterface $vethExternal $ipInt $(getCurVal $rootDir ipIntBitmask)
 			fi
 		fi
 
 		# do note that networking is not necessary for this to work.
+		local joinBridgeFromOtherJail=$(getCurVal $rootDir joinBridgeFromOtherJail)
 		if [ "$joinBridgeFromOtherJail" != "" ]; then
 			oldIFS="$IFS"
 			IFS="
@@ -513,6 +518,7 @@ prepareChrootNetworking() {
 			IFS=$oldIFS
 		fi
 
+		local joinBridge=$(getCurVal $rootDir joinBridge)
 		if [ "$joinBridge" != "" ]; then
 			oldIFS="$IFS"
 			IFS="
@@ -553,12 +559,12 @@ prepareChroot() {
 	fi
 
 	if [ "$g_netNS" = "false" ] && [ "$jailNet" = "true" ]; then
-		jailNet=false
+		jailNet="false"
 		echo "jailNet is set to false automatically as it needs network namespace support which is not available." >&2
 	fi
 
-	if [ "$($bb cat /proc/sys/net/ipv4/ip_forward)" = "0" ] && isPrivileged && [ "$setNetAccess" = "true" ]; then
-		networking=false
+	if [ "$($bb cat /proc/sys/net/ipv4/ip_forward)" = "0" ] && isPrivileged && [ "$(getCurVal $rootDir setNetAccess)" = "true" ]; then
+		networking="false"
 		echo "The ip_forward bit in /proc/sys/net/ipv4/ip_forward is disabled. This has to be enabled to get handled network support. Setting networking to false." >&2
 		echo "\tPlease do (as root) : echo 1 > /proc/sys/net/ipv4/ip_forward  or find the method suitable for your distribution to activate IP forwarding." >&2
 	fi
@@ -639,9 +645,9 @@ runShell() {
 
 	local unshareArgs="-U --map-user=$(getBaseUserUID $rootDir) --map-group=$(getBaseUserGID $rootDir)"
 	if isPrivileged; then
-		[ "$realRootInJail" = "true" ] && unshareArgs=""
+		[ "$(getCurVal $rootDir realRootInJail)" = "true" ] && unshareArgs=""
 	else
-		[ "$realRootInJail" = "true" ] && unshareArgs="-r"
+		[ "$(getCurVal $rootDir realRootInJail)" = "true" ] && unshareArgs="-r"
 		if isStartedAsPrivileged $rootDir && [ "$g_netNS" = "true" ] && [ "$jailNet" = "true" ]; then
 			g_nsenterSupport="$g_nsenterSupport -n";
 		fi
@@ -725,7 +731,7 @@ execRemNS() {
 	extraParams=""
 	preNSenter=""
 	if isPrivileged; then
-		if [ "$realRootInJail" = "false" ]; then
+		if [ "$(getCurVal $rootDir realRootInJail)" = "false" ]; then
 			extraParams="-U"
 			preNSenter="$bb chpst -u $(getBaseUserCredentials $rootDir)"
 		fi
