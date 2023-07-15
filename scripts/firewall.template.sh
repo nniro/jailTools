@@ -145,7 +145,12 @@ firewall() {
 	fi
 	case "$fwType" in
 		"internal")
-			fwCmd="execNS $nsBB $iptablesBin"
+			if [ "$networking" = "true" ] && [ "$jailNet" = "true" ]; then
+				fwCmd="$bb nsenter --preserve-credentials -n -t $g_innerNSpid -- $iptablesBin"
+			else
+				echo "Setting an internal firewall only works when the network namespace is used and networking is activated" >&2
+				return 1
+			fi
 		;;
 
 		"external")
