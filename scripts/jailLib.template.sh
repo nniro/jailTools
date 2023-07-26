@@ -604,24 +604,28 @@ prepareChroot() {
 
 	prepareChrootNetworking $rootDir || return 1
 
-	local firewallRules=$(getCurVal $rootDir firewallRules)
+	local firewallRules=$(getCurVal $rootDir firewallRules | filterCommentedLines)
 	if [ "$firewallRules" != "" ]; then
-		local vethInt=$(getCurVal $rootDir vethInt)
-		local vethExt=$(getCurVal $rootDir vethExt)
-		local ipInt=$(getCurVal $rootDir ipInt)
-		oldIFS="$IFS"
-		IFS="
-		"
-		for entry in $(printf "%s" "$firewallRules" | filterCommentedLines); do
+		if ! isPrivileged; then
+			echo "Unprivileged jails can't setup firewall rules" >&2
+		else
+			local vethInt=$(getCurVal $rootDir vethInt)
+			local vethExt=$(getCurVal $rootDir vethExt)
+			local ipInt=$(getCurVal $rootDir ipInt)
+			oldIFS="$IFS"
+			IFS="
+			"
+			for entry in $(printf "%s" "$firewallRules"); do
+				IFS=$oldIFS
+
+				entry=$(echo $entry | sed -e "s/\$vethInt/$vethInt/g" \
+					-e "s/\$vethExt/$vethExt/g" \
+					-e "s/\$ipInt/$ipInt/g")
+
+				firewall $g_firewallInstr $entry
+			done
 			IFS=$oldIFS
-
-			entry=$(echo $entry | sed -e "s/\$vethInt/$vethInt/g" \
-				-e "s/\$vethExt/$vethExt/g" \
-				-e "s/\$ipInt/$ipInt/g")
-
-			firewall $g_firewallInstr $entry
-		done
-		IFS=$oldIFS
+		fi
 	fi
 
 	return 0
