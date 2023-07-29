@@ -7,8 +7,6 @@ runner="$JT_RUNNER"
 
 nsBB="/bin/busybox"
 
-jailVersion="@JAIL_VERSION@"
-
 if [ "$bb" = "" ] || [ "$shower" = "" ] || [ "$runner" = "" ]; then
 	echo "It is no longer possible to run this script directly. The 'jt' command has to be used."
 	exit 1
@@ -20,7 +18,7 @@ _JAILTOOLS_RUNNING=1
 g_firewallInstr="run/firewall.instructions"
 
 eval "$($shower jt_utils)" # isValidJailPath substring isPrivileged cmkdir
-eval "$($shower jt_config)" # getCurVal
+eval "$($shower jt_config)" # getCurVal getDefaultVal
 
 if [ "$privileged" = "" ]; then
 	if ! isPrivileged; then
@@ -30,8 +28,6 @@ if [ "$privileged" = "" ]; then
 	fi
 fi
 
-user=@MAINJAILUSERNAME@
-
 if isPrivileged; then
 	# unprivileged user bb
 	uBB="$bb chpst -u $(getBaseUserCredentials $ownPath) $bb"
@@ -39,7 +35,7 @@ else
 	uBB="$bb"
 fi
 
-g_baseEnv="$nsBB env - PATH=/usr/bin:/bin USER=$user HOME=/home HOSTNAME=nowhere.here TERM=linux JT_VERSION=$jailVersion"
+g_baseEnv="$nsBB env - PATH=/usr/bin:/bin USER=$(getDefaultVal $ownPath user) HOME=/home HOSTNAME=nowhere.here TERM=linux JT_VERSION=$(getDefaultVal $ownPath jailVersion)"
 
 g_innerNSpid=""
 

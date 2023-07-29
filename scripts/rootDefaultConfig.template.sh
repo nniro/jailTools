@@ -13,6 +13,12 @@ substring() {
 # the name of the jail, leaving this at the default is recommended.
 jailName="@JAILNAME@"
 
+# the name of the main user in the jail. This can not be changed.
+user="@MAINJAILUSERNAME@"
+
+# the version of jailTools. This can not be changed.
+jailVersion="@JAIL_VERSION@"
+
 # If set to true, this will create a new network namespace for the jail
 # enabling the jail to have it's own "private" network access.
 # When false, the jail gets exactly the same network access as the

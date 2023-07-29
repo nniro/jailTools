@@ -119,12 +119,12 @@ $shower jt_startRoot_template > $ownPath/startRoot.template.sh
 $shower jt_rootDefaultConfig_template > $ownPath/rootDefaultConfig.template.sh
 $shower jt_rootCustomConfig_template > $ownPath/rootCustomConfig.template.sh
 
-populateFile $ownPath/jailLib.template.sh @SHELL@ "$bb sh" @MAINJAILUSERNAME@ "$mainJailUsername" @JAIL_VERSION@ "$JT_VERSION" > $newChrootHolder/jailLib.sh
+populateFile $ownPath/jailLib.template.sh @SHELL@ "$bb sh" > $newChrootHolder/jailLib.sh
 
 populateFile $ownPath/startRoot.template.sh @SHELL@ "$bb sh" > $newChrootHolder/startRoot.sh
 
-populateFile $ownPath/rootDefaultConfig.template.sh @SHELL@ "$bb sh" @JAILNAME@ "$jailName" > $newChrootHolder/rootDefaultConfig.sh
-populateFile $ownPath/rootCustomConfig.template.sh @SHELL@ "$bb sh" @JAILNAME@ "$jailName" > $newChrootHolder/rootCustomConfig.sh
+populateFile $ownPath/rootDefaultConfig.template.sh @SHELL@ "$bb sh" @JAILNAME@ "$jailName" @MAINJAILUSERNAME@ "$mainJailUsername" @JAIL_VERSION@ "$JT_VERSION" > $newChrootHolder/rootDefaultConfig.sh
+populateFile $ownPath/rootCustomConfig.template.sh @SHELL@ "$bb sh" > $newChrootHolder/rootCustomConfig.sh
 
 $bb rm $ownPath/jailLib.template.sh
 $bb rm $ownPath/startRoot.template.sh
