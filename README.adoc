@@ -1,13 +1,13 @@
 :icons:
 
-Here's the link for the official TODO list. It's using a Wekan board and hosted on the sandstorm platform : https://nuage.xroutine.net/shared/a2O5DxqQ4BMQT9Cm_P_PYSGLHDszUBPknscCIR9KOCh
+Here's the link for the official TODO list. It's using a kanban board and hosted on the sandstorm platform : https://nuage.xroutine.net/shared/a2O5DxqQ4BMQT9Cm_P_PYSGLHDszUBPknscCIR9KOCh
 
 = JailTools - create and manage jails (containers)
 
 == What is JailTools?
 
 It's a tool to isolate programs from your host system.
-So called jails contain a directory structure similar to a normal OS (like it contains /home, /etc, /dev, etc)
+So called jails contain a directory structure similar to a normal OS (they contains /home, /etc, /dev, etc)
 and it is possible to control internet access for the programs inside the jail (you can easily remove internet access from jails).
 
 
@@ -27,16 +27,20 @@ with jails.
 It has tools for copying applications and libraries to the jail, so as to also copy
 the shared objects they depend on to run correctly.
 
-JailTools creates a minimal filesystem (about 6MB in size) which is meant to include
+JailTools creates a minimal filesystem (about 2MB in size) which is meant to include
 only the bare minimum for applications or libraries to do their job. This way, in case
-the service is compromized, the adversary will only get access to that filesystem rather
+the service is compromized, adversaries will only get access to that filesystem rather
 than the host system directly.
+
+Also, jailTools makes it trivial to "re-enter" an already started jail and start jails
+as a daemon.
 
 == Compilation and Installation
 
 JailTools relies on busybox and to compile busybox the slim musl libc library is used.
 Busybox is compiled statically to limit to a maximum the amount of shared objects required for
-bare jails.
+bare jails. JailTools is now embedded as script command inside the compiled busybox (which we renamed 'jt').
+It is possible to call busybox from the 'jt' executable by doing : `jt busybox <command>`
 
 === Quick steps :
 
@@ -55,7 +59,7 @@ Get jailTools from the git repository:
 git clone https://github.com/nniro/jailTools
 ----
 
-This will download the repository to the directory `jailTools`.
+This will clone the git repository to the directory `jailTools`.
 
 ==== Step 2:
 The project relies on musl (libc) and busybox. The latter provides the underlying filesystem shell and commands inside each jail.
@@ -77,7 +81,7 @@ do this:
 sh ./install.sh ~/bin
 ----
 
-This will install the super script inside your user's bin directory. Make sure that you have ~/bin in your "PATH" environment variable.
+This will install the super script inside your user's bin directory. Make sure that you have /home/<youruser>/bin in your "PATH" environment variable.
 
 === System wide installation:
 
@@ -199,10 +203,48 @@ the application without doing any more work than that.
 
 IMPORTANT: Certain applications also requires specific devices (in /dev) and/or directories to be present, the command *cp* can not provide those. You will need to figure these either from the manual of these programs or by using the strace program (we purposefully shown how to copy it to a jail for this reason).
 
+=== *What a created jail contains*
+
+Although the content changes from time to time with development, at this moment, a created jail contains these files and directories :
+
+* root/
+
+	This directory contains the filesystem of the underlying jail.
+
+* rootCustomConfig.sh
+
+	The primary configuration file of the jail. This is where you can configure your jails.
+	You can either edit this file manually or use the 'jt config' command.
+
+* rootDefaultConfig.sh
+
+	The default configuration file for the jail. It is not to be edited.
+	You values presented in this section have to be modified in rootCustomConfig.sh, in the section 'Configuration'.
+
+* run/
+
+	Contains logs, pids and anything else in relation to the jail.
+	It is safe to add more files to this directory.
+
+* jailLib.sh
+
+	This is the library for the various functions available to jails. It is not meant to be called directly.
+
+* startRoot.sh
+
+	This contains the jail startup code and it is not meant to be called directly anymore. Use the command 'jt'
+	to interact with the jail.
+
+* update.sh
+
+	This contains the commands that was used to copy files over to the jail with the 'jt cp' command.
+	It was meant to make it easy to redo the same commands in the future to install newer versions of the
+	applications. It is somewhat deprecated.
+
 
 === *How to Customize the jail*
 
-There are 4 vectors of customization for jails. Each
+There are 5 vectors of customization for jails. Each
 in their own section in `rootCustomConfig.sh`.
 
 They are :
@@ -212,12 +254,22 @@ They are :
         These are used to toggle features provided in the jail and set various values
         for configurating for example : the network IP of the jail and if the jail should get internet access.
 
+. The jail commands
+
+	It is possible to customize what program to start with the 3 start points of jails : start, daemon and shell.
+	(Do note that "shell" does not start a jail but rejoins an already started jail)
+
 . The mount points
 
         These are used specifically to mount external directories inside the jail itself,
         making the files/directories accessible to the jailed applications. There are 4 kinds
         of mount points each with their section.
 
-. the functions
+. Bridge
 
-        These are used to customize firewall rules.
+	You can join a bridge using the parameters of this section. Starting a bridge is done in the first section.
+
+. Firewall
+
+	You can set what firewall rules you want applied to the jail, internally or externally (external is on the host system)
+
