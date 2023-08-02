@@ -29,6 +29,15 @@ getBaseUserCredentials() {
 	echo "$(getBaseUserUID $rootDir):$(getBaseUserGID $rootDir)"
 }
 
+getUtime() {
+	local raw=$($bb adjtimex)
+
+	local seconds=$(printf "%s" "$raw" | $bb sed -ne '/time.tv_sec/ {s/[^0-9]//g ; p}')
+	local microseconds=$(printf "%s" "$raw" | $bb sed -ne '/time.tv_usec/ {s/[^0-9]//g ; p}')
+
+	echo ${seconds}.$microseconds
+}
+
 # detects if the path as argument contains a valid jail
 isValidJailPath() {
 	local jPath=$1

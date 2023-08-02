@@ -448,16 +448,21 @@ prepareChrootCore() {
 				exec $nsBB chroot . /bin/sh -c \"$nsBB umount -l /root; \
 					$nsBB setpriv --bounding-set $(getCurVal $rootDir chrootPrivileges) $g_baseEnv $chrootCmd\"" 2>$rootDir/run/innerCoreLog \
 	) &
+	start="$(getUtime)"
 	g_innerNSpid=$!
-	if waitUntilFileAppears "$rootDir/root/var/run/.loadCoreDone" 5; then
+	if waitUntilFileAppears "$rootDir/root/var/run/.loadCoreDone" 6; then
 		g_innerNSpid=$($bb pgrep -P $g_innerNSpid)
 	else
+		echo "Timed out waiting for the core inner namespace session to start" >&2
 		g_innerNSpid=""
 	fi
+	local end="$(getUtime)"
 
 	if [ "$g_innerNSpid" = "" ] || ! $bb ps | $bb grep -q "^ *$g_innerNSpid "; then
 		echo "Creating the inner namespace session failed, bailing out" >&2
 		return 1
+	else
+		echo "Core creation took $(echo "$end - $start" | $bb bc -l) seconds" >> $rootDir/run/innerCoreLog
 	fi
 
 	return 0
