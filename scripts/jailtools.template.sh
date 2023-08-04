@@ -294,7 +294,7 @@ case $cmd in
 			if [ "$1" != "-j" ]; then
 				echo "jt version $JT_VERSION"
 			fi
-			$bb sh -c "cd $rPath; source ./jailLib.sh 2>/dev/null; echo \"jail jt version \$jailVersion\""
+			$bb sh -c "cd $rPath; source ./jailLib.sh 2>/dev/null; echo \"jail jt version \$(getDefaultVal \$ownPath jailVersion)\""
 		else
 			echo "jt version $JT_VERSION"
 		fi
