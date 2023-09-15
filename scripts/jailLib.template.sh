@@ -475,12 +475,12 @@ prepareChrootNetworking() {
 		# loopback device is activated
 		execNS $rootDir $nsBB ip link set up lo
 
-		if [ "$createBridge" = "true" ]; then
+		if [ "$(getCurVal $rootDir createBridge)" = "true" ]; then
 			# NOTE that it is perfectly possible to create a bridge unprivileged
 			# setting up the bridge
-			execNS $rootDir $nsBB brctl addbr $bridgeName
-			execNS $rootDir $nsBB ip addr add $bridgeIp/$bridgeIpBitmask dev $bridgeName scope link
-			execNS $rootDir $nsBB ip link set up $bridgeName
+			execNS $rootDir $nsBB brctl addbr $(getCurVal $rootDir bridgeName)
+			execNS $rootDir $nsBB ip addr add $(getCurVal $rootDir bridgeIp)/$(getCurVal $rootDir bridgeIpBitmask) dev $(getCurVal $rootDir bridgeName) scope link
+			execNS $rootDir $nsBB ip link set up $(getCurVal $rootDir bridgeName)
 		fi
 
 		if [ "$networking" = "true" ]; then
@@ -715,9 +715,9 @@ stopChroot() {
 	fi
 
 	if [ "$jailNet" = "true" ]; then
-		if [ "$createBridge" = "true" ]; then
-			execNS $rootDir $nsBB ip link set down $bridgeName
-			execNS $rootDir $nsBB brctl delbr $bridgeName
+		if [ "$(getCurVal $rootDir createBridge)" = "true" ]; then
+			execNS $rootDir $nsBB ip link set down $(getCurVal $rootDir bridgeName)
+			execNS $rootDir $nsBB brctl delbr $(getCurVal $rootDir bridgeName)
 		fi
 	fi
 
