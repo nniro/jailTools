@@ -69,7 +69,7 @@ testGet() {
 				return 0
 			else
 				echo "Test : $description -- failed"
-				echo "\"$confFile\" does not contain the right configuration entry : \"$conf\" and/or the right value \"$expectedVal\" which should be \"$result2\""
+				echo "\"$confFile\" does not contain the right configuration entry : \"$conf\" and/or the right value \"$expectedVal\". Instead we got : \"$result2\""
 				return 1
 			fi
 		fi
