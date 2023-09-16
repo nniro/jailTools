@@ -320,6 +320,19 @@ expandSafeValues() {
 		-e "s/\$userGID/$userGID/g"
 }
 
+expandSafeValues2() {
+	$bb awk -v inputArgs="$*" '
+{
+	total = split(inputArgs, args, " ")
+
+	for (i=1; i <= total; i+=2) {
+		gsub(args[i], args[i + 1])
+	}
+	print
+}
+'
+}
+
 handleDirectMounts() {
 	local rootDir=$1
 	local actualUser=$2
@@ -518,10 +531,11 @@ prepareChrootNetworking() {
 		# do note that networking is not necessary for this to work.
 		local joinBridgeFromOtherJail=$(getCurVal $rootDir joinBridgeFromOtherJail)
 		if [ "$joinBridgeFromOtherJail" != "" ]; then
+			local entries="$(printf "%s" "$joinBridgeFromOtherJail" | filterCommentedLines | expandSafeValues2 '\\$actualUser' $(getActualUser $rootDir))"
 			oldIFS="$IFS"
 			IFS="
 			"
-			for entry in $(printf "%s" "$joinBridgeFromOtherJail" | filterCommentedLines); do
+			for entry in $entries; do
 				IFS=$oldIFS
 				joinBridgeByJail $rootDir $entry || return 1
 			done
