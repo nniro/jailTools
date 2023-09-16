@@ -48,7 +48,7 @@ getCoreVal() {
 
 	if $bb printf "%s" "$res1" | $bb grep -q "EOF"; then
 		$bb cat $jailScript \
-			| $bb sed -ne "/^$confVal/ { s/.*// ; be ; :e ; N; $ p; /EOF/ { s/EOF// ; p; b; } ; be; }" \
+			| $bb sed -ne "/^$confVal=/ { s/.*// ; be ; :e ; N; $ p; /EOF/ { s/EOF// ; p; b; } ; be; }" \
 			| $bb sed -e '/^$/ d'
 	else
 		if $bb printf "%s" "$res1" | $bb grep -q '\$('; then
@@ -101,7 +101,7 @@ setCoreVal() {
 			-i $jailScript
 	else
 		if echo $res1 | $bb grep -q "EOF"; then
-			$bb sed -e "/^$confVal/ { s/.*// ; :e ; N; /EOF/ { s/.*/@CONFIG_CHANGE_ME@\\nEOF/ ; { :a ; N ; $ q; ba; }}; be; }" -i $jailScript
+			$bb sed -e "/^$confVal=/ { s/.*// ; :e ; N; /EOF/ { s/.*/@CONFIG_CHANGE_ME@\\nEOF/ ; { :a ; N ; $ q; ba; }}; be; }" -i $jailScript
 			$bb sed -e "s/@CONFIG_CHANGE_ME@/$confVal=$\(cat << EOF\\n$newVal/" -e 's/%2f/\//g' -e 's/%0a/\n/g' -i $jailScript
 		else
 			$bb sed -e "s/^\($confVal\)=.*$/\1=\"$newVal\"/" -e 's/%2f/\//g' -i $jailScript
