@@ -197,7 +197,7 @@ case $cmd in
 		(cd $jPath; $bb chpst -0 -1 $bb sh ./startRoot.sh 'daemon' $@ 2>./run/daemon.log) &
 		#if [ "$?" != "0" ]; then echo "There was an error starting the daemon, it may already be running."; fi
 
-		$bb timeout 10 sh -c "while :; do [ -e $jPath/run/ns.pid ] && [ -e $jPath/run/jail.pid ] && break ; done"
+		$bb timeout 20 sh -c "while :; do [ -e $jPath/run/ns.pid ] && [ -e $jPath/run/jail.pid ] && break ; done"
 
 		if [ ! -e $jPath/run/ns.pid ] || [ ! -e $jPath/run/jail.pid ]; then
 			echo "The daemonized jail is not running, run/ns.pid or run/jail.pid is missing" >&2

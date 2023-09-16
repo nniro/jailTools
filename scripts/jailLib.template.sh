@@ -463,7 +463,7 @@ prepareChrootCore() {
 	) &
 	start="$(getUtime)"
 	g_innerNSpid=$!
-	if waitUntilFileAppears "$rootDir/root/var/run/.loadCoreDone" 6; then
+	if waitUntilFileAppears "$rootDir/root/var/run/.loadCoreDone" 15; then
 		g_innerNSpid=$($bb pgrep -P $g_innerNSpid)
 	else
 		echo "Timed out waiting for the core inner namespace session to start" >&2
