@@ -88,6 +88,20 @@ cd $jail
 # Checking if the command 'config' exists
 $jtPath config 2>&1 | $bb grep -q 'Invalid command' && exit 1
 
+$jtPath config --set joinBridgeFromOtherJail "This here" >/dev/null
+testGet -p "initial value of joinBridgeFromOtherJail" joinBridgeFromOtherJail "^This here$" >/dev/null
+
+# we change the value of joinBridge and test joinBridgeFromOtherJail again
+# we had an issue where that one was changed rather than the real joinBridge entry
+
+$jtPath config --set joinBridge "foo bar" >/dev/null
+testGet "joinBridgeFromOtherJail, after having set joinBridge" joinBridgeFromOtherJail "^This here$" >/dev/null
+
+$jtPath config --set somejoinBridge "Bogus Value" >/dev/null
+
+testGet "2 variables with the same prefix name" joinBridge "^foo bar$" || exit 1
+testGet "2 variables with the same prefix name - this one shouldn't be a problem" joinBridgeFromOtherJail "^This here$" || exit 1
+
 testGet "Checking if the latest jail config can do config" "networking" "^true$" || exit 1
 
 # done a backup of rootCustomConfig.sh. Will manipulate 'Command part' to be like it was before the upgrade.
