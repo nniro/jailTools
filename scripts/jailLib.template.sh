@@ -626,7 +626,8 @@ prepareChroot() {
 		else
 			local vethInt=$(getCurVal $rootDir vethInt)
 			local vethExt=$(getCurVal $rootDir vethExt)
-			local ipInt=$(getCurVal $rootDir ipInt)
+			local externalIp=$(getCurVal $rootDir extIp)
+			local ipInt=$(echo $externalIp | $bb sed -e 's/^\(.*\)\.[0-9]*$/\1\./')2
 			oldIFS="$IFS"
 			IFS="
 			"
