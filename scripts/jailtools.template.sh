@@ -231,17 +231,11 @@ case $cmd in
 		       -- "$@")
 
 		if [ "$?" = "0" ]; then
-			#eval $result
-
-			runInNS() {
-				$bb sh -c "cd $rPath; source ./jailLib.sh; execRemNS $($bb cat $jPath/run/ns.pid) $bb chroot $rPath/root $1" 2>/dev/null
-			}
-
 			if isJailRunning $rPath; then # we check if the jail is running
 				if getVarVal 'showProcessStats' "$result" >/dev/null; then
 					$bb jt shell $rPath ps 2>/dev/null
 				elif getVarVal 'showIp' "$result" >/dev/null; then
-					runInNS "/sbin/ip addr show dev \$vethInt" | $bb sed -ne 's/ *inet \([0-9\.]*\).*/\1/ p'
+					$bb jt shell $rPath sh -c "/sbin/ip addr show dev $($bb jt config $rPath -g vethInt)" 2>/dev/null | $bb sed -ne 's/ *inet \([0-9\.]*\).*/\1/ p'
 				elif getVarVal 'showFirewallStatus' "$result" > /dev/null; then
 					$bb sh -c "cd $rPath; source ./jailLib.sh; checkFirewall $firewallInstr" 2>/dev/null
 					result=$?
