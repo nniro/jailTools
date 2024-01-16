@@ -366,6 +366,9 @@ initializeCoreJail() {
 	touch $rootDir/root/dev/ptmx
 	$bb mount -o bind $rootDir/root/dev/pts/ptmx $rootDir/root/dev/ptmx
 	$bb ln -s /proc/self/fd $rootDir/root/dev/fd
+	$bb ln -s /proc/self/fd/0 $rootDir/root/dev/stdin
+	$bb ln -s /proc/self/fd/1 $rootDir/root/dev/stdout
+	$bb ln -s /proc/self/fd/2 $rootDir/root/dev/stderr
 	addDevices $rootDir $(getCurVal $rootDir availableDevices)
 
 	# only these should be writable
