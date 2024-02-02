@@ -11,17 +11,17 @@ isPrivileged() {
 
 getBaseUserUID() {
 	local rootDir=$1
-	$bb stat -c %u $rootDir/jailLib.sh
+	$bb stat -c %u $rootDir/rootDefaultConfig.sh
 }
 
 getBaseUserGID() {
 	local rootDir=$1
-	$bb stat -c %g $rootDir/jailLib.sh
+	$bb stat -c %g $rootDir/rootDefaultConfig.sh
 }
 
 getActualUser() {
 	local rootDir=$1
-	$bb stat -c %U $rootDir/jailLib.sh
+	$bb stat -c %U $rootDir/rootDefaultConfig.sh
 }
 
 getBaseUserCredentials() {
@@ -43,8 +43,9 @@ isValidJailPath() {
 	local jPath=$1
 	if [ -d $jPath/root ] \
 		&& [ -d $jPath/run ] \
-		&& [ -f $jPath/startRoot.sh ] \
+		&& [ -f $jPath/rootDefaultConfig.sh ] \
 		&& [ -f $jPath/rootCustomConfig.sh ] \
+		&& [ -f $jPath/._rootCustomConfig.sh.initial ] \
 		&& [ -x $jPath/root/bin/busybox ]; then
 		return 0
 	else
