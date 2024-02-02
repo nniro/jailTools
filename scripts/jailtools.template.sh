@@ -128,10 +128,8 @@ if [ "$cmd" = "" ]; then
 fi
 shift
 
+# this also embed jt_utils (utils.sh) in this script - isValidJailPath callGetopt
 @EMBEDDEDFILES_LOCATION@
-
-eval "$($shower jt_utils)" # isValidJailPath callGetopt
-eval "$($shower jt_firewall)" # firewall functions
 
 jPath="."
 

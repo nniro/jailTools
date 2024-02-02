@@ -1,5 +1,9 @@
 #! /bin/sh
 
+# this script prepares the 'jt' superscript before it is embedded into busybox.
+# It encodes all the scripts of the jailTools project into itself and adds
+# means to '--show' and '--run' them.
+
 # this is an internal script, please don't use it
 
 case "$(readlink -f /proc/$$/exe)" in
@@ -159,9 +163,10 @@ case \$cmd in
 	;;
 esac
 
+$(cat $ownPath/scripts/utils.sh)
+
 $(cat $ownPath/scripts/jailtools.template.sh | sed -ne '/^@EMBEDDEDFILES_LOCATION@/ { s/.*// ; :e ; $ { p; q }; N; be }')
 EOF
-
 }
 
 if [ "$1" != "" ] && [ "$2" != "" ]; then
