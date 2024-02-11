@@ -68,11 +68,20 @@ getRunEnvironment() {
 	getCurVal $ownPath runEnvironment | $bb sed -e "$regexResult"
 }
 
+showHelp() {
+	echo "startRoot <Jail PATH> <start|stop|shell|daemon>"
+}
+
 cmdParse() {
-	local args=$1
-	local ownPath=$2
-	shift 2
+	local ownPath=$1
+	local args=$2
 	local err=0
+
+	if [ "$args" = "" ]; then
+		showHelp
+		exit 1
+	fi
+	shift 2
 
 	case $args in
 		daemon)
@@ -116,7 +125,8 @@ cmdParse() {
 		;;
 
 		*)
-			echo "$0 : start|stop|shell|daemon"
+			showHelp
+			exit 1
 		;;
 	esac
 }
@@ -131,6 +141,6 @@ case $1 in
 			shift
 		fi
 
-		cmdParse $s1 $ownPath "$@"
+		cmdParse $ownPath $s1 "$@"
 	;;
 esac
