@@ -53,6 +53,28 @@ isValidJailPath() {
 	fi
 }
 
+# this runs the script in the path first
+# if not available, it runs the script using
+# the runner (embedded). This function will block so you will
+# have to call it in another thread.
+# this cats either the local file first and if not available
+# the embedded file to a fifo which is created by this function.
+# Callers can then run the prepared script by doing :
+#	$bb sh $rootDir/run/instrFile <arguments>
+prepareScriptInFifo() {
+	local rootDir=$1
+	local fifoName=$2
+	local localFilename=$3
+	local embedFilename=$4
+	[ ! -p $rootDir/run/$fifoName ] && mkfifo $rootDir/run/$fifoName && chmod 700 $rootDir/run/$fifoName
+
+	if [ "$localFilename" != "" ] && [ -r $rootDir/$localFilename ]; then
+		cat $rootDir/$localFilename > $rootDir/run/$fifoName
+	else
+		$JT_SHOWER $embedFilename > $rootDir/run/$fifoName
+	fi
+}
+
 getProcessPathFromMountinfo() {
 	local pid=$1
 	local prefix=$2
@@ -499,3 +521,17 @@ callGetopt() {
 #		echo "arg2 Data : $arg2Data"
 #	fi
 #fi
+
+if [ "$IS_RUNNING" = "1" ]; then
+	if [ "$1" = "" ]; then
+		exit
+	fi
+	cmd=$1
+	shift
+
+	case $cmd in
+		prepareScriptInFifo)
+			prepareScriptInFifo "$@"
+		;;
+	esac
+fi
