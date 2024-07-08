@@ -7,6 +7,8 @@
 /lib/tls
 /lib/security
 /home
+/home/.config
+/home/.local/share
 /mnt
 /opt
 /proc
