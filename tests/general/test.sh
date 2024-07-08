@@ -51,6 +51,11 @@ fi
 
 $jtPath daemon $jail || exit 1
 
+if ! $jtPath status $jail >/dev/null; then
+	echo "the jail should be running but it's not, bailing out"
+	exit 1
+fi
+
 $jtPath start $jail sh -c 'exit' 2>/dev/null && _err=1 || _err=0
 
 if [ "$_err" = "1" ] || ! $jtPath status $jail; then
