@@ -109,7 +109,7 @@ getProcessPathFromPwdx() {
 isProcessRunning() {
 	local pid=$1
 
-	$bb ps | $bb grep -q "^ *$pid "
+	$bb ps | $bb grep -q "^$pid *[^ ]\+ *[0-9]\+ *[^ ]* *sh -c while :; do sleep 9999; done"
 }
 
 isJailRunning() {
