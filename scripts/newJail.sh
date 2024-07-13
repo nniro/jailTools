@@ -45,8 +45,7 @@ fi
 
 # optional commands
 
-jailName=$($bb basename $1)
-newChrootHolder=$1
+newChrootHolder=$jailPath/$jailName
 newChrootDir=$newChrootHolder/root
 echo "Instantiating directory : " $newChrootDir
 
@@ -60,7 +59,6 @@ exe=$(echo $JT_CALLER | sed -e 's/^\([^ ]*\) .*/\1/')
 cp $exe $newChrootHolder/root/bin/busybox
 bb=$newChrootHolder/root/bin/busybox
 
-$bb touch $newChrootHolder/startRoot.sh # this is to make cpDep detect the new style jail
 $bb touch $newChrootHolder/rootCustomConfig.sh
 
 fsData="$shower jt_filesystem_template"
@@ -81,6 +79,21 @@ genPass() {
 	len=$1
 	$bb cat /dev/urandom | $bb head -c $(($len * 2)) | $bb base64 | $bb tr '/' '@' | $bb head -c $len
 }
+
+ownPath=$newChrootHolder
+
+$shower jt_rootDefaultConfig_template > $ownPath/rootDefaultConfig.template.sh
+$shower jt_rootCustomConfig_template > $ownPath/rootCustomConfig.template.sh
+
+
+populateFile $ownPath/rootDefaultConfig.template.sh @SHELL@ "$bb sh" @JAILNAME@ "$jailName" @MAINJAILUSERNAME@ "$mainJailUsername" @JAIL_VERSION@ "$JT_VERSION" > $newChrootHolder/rootDefaultConfig.sh
+populateFile $ownPath/rootCustomConfig.template.sh @SHELL@ "$bb sh" > $newChrootHolder/rootCustomConfig.sh
+
+$bb rm $ownPath/rootDefaultConfig.template.sh
+$bb rm $ownPath/rootCustomConfig.template.sh
+
+# we save the default initial rootCustomConfig for update purposes
+$bb cp $newChrootHolder/rootCustomConfig.sh $newChrootHolder/._rootCustomConfig.sh.initial
 
 echo "Populating the /etc configuration files"
 # localtime
@@ -111,28 +124,6 @@ $bb cat >> $newChrootDir/etc/shells << EOF
 /bin/sh
 /bin/false
 EOF
-
-ownPath=$newChrootHolder
-
-$shower jt_jailLib_template > $ownPath/jailLib.template.sh
-$shower jt_startRoot_template > $ownPath/startRoot.template.sh
-$shower jt_rootDefaultConfig_template > $ownPath/rootDefaultConfig.template.sh
-$shower jt_rootCustomConfig_template > $ownPath/rootCustomConfig.template.sh
-
-populateFile $ownPath/jailLib.template.sh @SHELL@ "$bb sh" > $newChrootHolder/jailLib.sh
-
-populateFile $ownPath/startRoot.template.sh @SHELL@ "$bb sh" > $newChrootHolder/startRoot.sh
-
-populateFile $ownPath/rootDefaultConfig.template.sh @SHELL@ "$bb sh" @JAILNAME@ "$jailName" @MAINJAILUSERNAME@ "$mainJailUsername" @JAIL_VERSION@ "$JT_VERSION" > $newChrootHolder/rootDefaultConfig.sh
-populateFile $ownPath/rootCustomConfig.template.sh @SHELL@ "$bb sh" > $newChrootHolder/rootCustomConfig.sh
-
-$bb rm $ownPath/jailLib.template.sh
-$bb rm $ownPath/startRoot.template.sh
-$bb rm $ownPath/rootDefaultConfig.template.sh
-$bb rm $ownPath/rootCustomConfig.template.sh
-
-# we save the default initial rootCustomConfig for update purposes
-$bb cp $newChrootHolder/rootCustomConfig.sh $newChrootHolder/._rootCustomConfig.sh.initial
 
 echo "Copying /etc data"
 etcFiles=""
