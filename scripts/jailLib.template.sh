@@ -307,17 +307,22 @@ leaveBridgeByJail() {
 eval "$($shower jt_firewall)"
 
 filterCommentedLines() { # and also empty lines
+	local oldIFS=$IFS
 	IFS=" "
 	$bb sed -e '/^\( \|\t\)*#.*$/ d' | $bb sed -e '/^\( \|\t\)*$/ d'
+	IFS=$oldIFS
 }
 
 expandSafeValues() {
 	local actualUser=$1
 	local userUID=$2
 	local userGID=$3
+	local oldIFS=$IFS
+	IFS=" "
 	sed -e "s/\$actualUser/$actualUser/g" \
 		-e "s/\$userUID/$userUID/g" \
 		-e "s/\$userGID/$userGID/g"
+	IFS=$oldIFS
 }
 
 expandSafeValues2() {
