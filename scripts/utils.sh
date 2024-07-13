@@ -66,10 +66,10 @@ prepareScriptInFifo() {
 	local fifoName=$2
 	local localFilename=$3
 	local embedFilename=$4
-	[ ! -p $rootDir/run/$fifoName ] && mkfifo $rootDir/run/$fifoName && chmod 700 $rootDir/run/$fifoName
+	[ ! -p $rootDir/run/$fifoName ] && $bb mkfifo $rootDir/run/$fifoName && $bb chmod 700 $rootDir/run/$fifoName
 
 	if [ "$localFilename" != "" ] && [ -r $rootDir/$localFilename ]; then
-		cat $rootDir/$localFilename > $rootDir/run/$fifoName
+		$bb cat $rootDir/$localFilename > $rootDir/run/$fifoName
 	else
 		$JT_SHOWER $embedFilename > $rootDir/run/$fifoName
 	fi
@@ -94,7 +94,7 @@ getProcessPathFromMountinfo() {
 isProcessAValidJail() {
 	local pid=$1
 
-	cat /proc/$pid/environ 2>/dev/null | $bb grep "JT_VERSION" >/dev/null || return 1
+	$bb cat /proc/$pid/environ 2>/dev/null | $bb grep "JT_VERSION" >/dev/null || return 1
 
 	return 0
 }
@@ -127,7 +127,7 @@ isJailRunning() {
 }
 
 stripQuotes() {
-	sed -e 's/"//g' -e 's/\x27//g'
+	$bb sed -e 's/"//g' -e 's/\x27//g'
 }
 
 # substring offset <optional length> string
@@ -168,7 +168,7 @@ waitUntilFileAppears() {
 		if [ $(($($bb date +"%s") >= $endTime )) = 1 ]; then
 			return 1
 		fi
-		sleep 0.1
+		$bb sleep 0.1
 	done
 	rm $eventFile
 	return 0
