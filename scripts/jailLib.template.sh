@@ -419,7 +419,7 @@ prepareChrootCore() {
 	local rootDir=$1
 	local unshareArgs=""
 	local preUnshare=""
-	local chrootCmd="sh -c 'while :; do sleep 9999; done'"
+	local chrootCmd="$nsBB env - $g_baseEnv JT_LOCATION=$rootDir JT_VERSION=$(getDefaultVal $rootDir jailVersion) JT_JAILPID=$$ sh -c 'while :; do sleep 9999; done'"
 
 	if isPrivileged && isUserNamespaceSupported && [ "$(getCurVal $rootDir realRootInJail)" = "false" ]; then
 		preUnshare="$bb chpst -u $(getBaseUserCredentials $rootDir)"
