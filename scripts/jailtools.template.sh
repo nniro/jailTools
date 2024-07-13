@@ -128,7 +128,7 @@ if [ "$cmd" = "" ]; then
 fi
 shift
 
-# this also embed jt_utils (utils.sh) in this script - isValidJailPath callGetopt
+# this also embed jt_utils (utils.sh) in this script - isValidJailPath callGetopt prepareScriptInFifo waitUntilFileAppears
 @EMBEDDEDFILES_LOCATION@
 
 jPath="."
@@ -178,26 +178,47 @@ case $cmd in
 	start|stop|shell)
 		checkJailPath $1 && jPath="$1" && shift
 		[ "$jPath" != "." ] || isValidJailPath $jPath || showJailPathError
+		rPath=$($bb realpath $jPath)
 
-		(cd $jPath; $bb sh ./startRoot.sh $cmd $@)
-		exit $?
+		prepareScriptInFifo $rPath instrFileJT "startRoot.sh" "jt_startRoot_template" &
+		if ! waitUntilFileAppears "$rPath/run/instrFileJT" 2 1; then
+			echo "Timed out waiting for FIFO to be created" >&2
+			exit 1
+		fi
+
+		(export IS_RUNNING=1; $bb sh $rPath/run/instrFileJT "$rPath" $cmd $@)
+		_res=$?
+
+		rm $rPath/run/instrFileJT 2>/dev/null
+		exit $_res
 	;;
 
 	daemon)
 		checkJailPath $1 && jPath="$1" && shift
 		[ "$jPath" != "." ] || isValidJailPath $jPath || showJailPathError
+		rPath=$($bb realpath $jPath)
 
-		if isJailRunning $jPath; then
+		if isJailRunning $rPath; then
 			echo "This jail is already running." >&2
 			exit 1
 		fi
 
-		(cd $jPath; $bb chpst -0 -1 $bb sh ./startRoot.sh 'daemon' $@ 2>./run/daemon.log) &
+		prepareScriptInFifo $rPath instrFileJT "startRoot.sh" "jt_startRoot_template" &
+		if ! waitUntilFileAppears "$rPath/run/instrFileJT" 2 1; then
+			echo "Timed out waiting for FIFO to be created" >&2
+			exit 1
+		fi
+
+		(export IS_RUNNING=1; $bb chpst -0 -1 \
+			$bb sh $rPath/run/instrFileJT "$rPath" 'daemon' $@ 2>$rPath/run/daemon.log) &
+
 		#if [ "$?" != "0" ]; then echo "There was an error starting the daemon, it may already be running."; fi
 
-		$bb timeout 20 sh -c "while :; do [ -e $jPath/run/ns.pid ] && [ -e $jPath/run/jail.pid ] && break ; done"
+		$bb timeout 20 sh -c "while :; do [ -e $rPath/run/ns.pid ] && [ -e $rPath/run/jail.pid ] && break ; done"
 
-		if [ ! -e $jPath/run/ns.pid ] || [ ! -e $jPath/run/jail.pid ]; then
+		rm $rPath/run/instrFileJT 2>/dev/null
+
+		if [ ! -e $rPath/run/ns.pid ] || [ ! -e $rPath/run/jail.pid ]; then
 			echo "The daemonized jail is not running, run/ns.pid or run/jail.pid is missing" >&2
 			exit 1
 		fi
