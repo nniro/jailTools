@@ -75,7 +75,7 @@ getCurVal() {
 	listConfigs $jailDir | $bb grep -q "$confVal" 2>/dev/null || return 1
 
 	getCoreVal $jailDir $jailDir/rootCustomConfig.sh $confVal && return 0
-	getCoreVal $jailDir $jailDir/rootDefaultConfig.sh $confVal
+	getDefaultVal $jailDir $confVal
 }
 
 setCoreVal() {
