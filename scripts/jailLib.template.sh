@@ -419,7 +419,6 @@ prepareChrootCore() {
 	local rootDir=$1
 	local unshareArgs=""
 	local preUnshare=""
-	local chrootArgs=""
 	local chrootCmd="sh -c 'while :; do sleep 9999; done'"
 
 	if isPrivileged && isUserNamespaceSupported && [ "$(getCurVal $rootDir realRootInJail)" = "false" ]; then
@@ -427,11 +426,9 @@ prepareChrootCore() {
 		unshareArgs="-r"
 	elif ! isPrivileged && isUserNamespaceSupported; then # unprivileged
 		unshareArgs="-r"
-		chrootArgs=""
 		g_unshareSupport=$(echo "$g_unshareSupport" | $bb sed -e 's/U//g')
 	else # ! isUserNamespaceSupported or $realRootInJail = "true"
 		unshareArgs=""
-		chrootArgs=""
 		g_unshareSupport=$(echo "$g_unshareSupport" | $bb sed -e 's/U//g')
 	fi # ! isUserNamespaceSupported or $realRootInJail = "true"
 
