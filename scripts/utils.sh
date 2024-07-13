@@ -75,6 +75,16 @@ prepareScriptInFifo() {
 	fi
 }
 
+getProcessPathFromEnviron() {
+	local pid=$1
+	local prefix=$2
+	[ ! -d /proc ] || [ ! -d /proc/$pid ] || [ ! -e /proc/$pid/environ ] && return 1
+
+	local result=$($bb cat /proc/$pid/environ | $bb sed -e 's/\x00/\n/g' | $bb grep '^JT_LOCATION' | $bb sed -e 's/JT_LOCATION=//')
+	[ "$result" != "" ] && echo ${result##$prefix} || return 1
+	return 0
+}
+
 getProcessPathFromMountinfo() {
 	local pid=$1
 	local prefix=$2
