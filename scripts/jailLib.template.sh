@@ -480,8 +480,8 @@ EOF
 			-- $bb setpriv --bounding-set $(getCurVal $rootDir corePrivileges) \
 				$bb sh -c "$innerCoreCreator" 2>$rootDir/run/innerCoreLog
 	) &
-	start="$(getUtime)"
 	g_innerNSpid=$!
+	start="$(getUtime)"
 	if waitUntilFileAppears "$rootDir/root/var/run/.loadCoreDone" 15; then
 		g_innerNSpid=$($bb pgrep -P $g_innerNSpid)
 	else
