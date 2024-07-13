@@ -319,7 +319,7 @@ expandSafeValues() {
 	local userGID=$3
 	local oldIFS=$IFS
 	IFS=" "
-	sed -e "s/\$actualUser/$actualUser/g" \
+	$bb sed -e "s/\$actualUser/$actualUser/g" \
 		-e "s/\$userUID/$userUID/g" \
 		-e "s/\$userGID/$userGID/g"
 	IFS=$oldIFS
@@ -366,9 +366,9 @@ initializeCoreJail() {
 	$bb mount -o private,bind $rootDir/root $rootDir/root
 	$bb mount -tproc proc $rootDir/root/proc || $bb mount --bind /proc $rootDir/root/proc || return 1
 	$bb mount -t tmpfs -o size=256k,mode=775 tmpfs $rootDir/root/dev
-	mkdir $rootDir/root/dev/pts
+	$bb mkdir $rootDir/root/dev/pts
 	$bb mount -t devpts -o ptmxmode=0666 none $rootDir/root/dev/pts
-	touch $rootDir/root/dev/ptmx
+	$bb touch $rootDir/root/dev/ptmx
 	$bb mount -o bind $rootDir/root/dev/pts/ptmx $rootDir/root/dev/ptmx
 	$bb ln -s /proc/self/fd $rootDir/root/dev/fd
 	$bb ln -s /proc/self/fd/0 $rootDir/root/dev/stdin
@@ -454,7 +454,7 @@ prepareChrootCore() {
 	fi
 	[ ! -e $rootDir/run/innerCoreLog ] && $uBB touch $rootDir/run/innerCoreLog
 
-	[ -e $rootDir/root/var/run/.loadCoreDone ] && rm $rootDir/root/var/run/.loadCoreDone
+	[ -e $rootDir/root/var/run/.loadCoreDone ] && $bb rm $rootDir/root/var/run/.loadCoreDone
 
 	if isPrivileged; then
 		bb=$bb $bb chpst -u $(getBaseUserCredentials $ownPath) $runner jt_utils prepareScriptInFifo $rootDir "instrFileInnerCore" "jailLib.sh" "jt_jailLib_template" &
@@ -622,12 +622,12 @@ prepareChroot() {
 	else
 		if [ -e $rootDir/run/jail.pid ]; then
 			echo "removing dangling run/jail.pid" >&2
-			rm $rootDir/run/jail.pid
+			$bb rm $rootDir/run/jail.pid
 		fi
 
 		if [ -e $rootDir/run/ns.pid ]; then
 			echo "removing dangling run/ns.pid" >&2
-			rm $rootDir/run/ns.pid
+			$bb rm $rootDir/run/ns.pid
 		fi
 	fi
 
