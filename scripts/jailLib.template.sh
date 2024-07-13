@@ -455,16 +455,30 @@ prepareChrootCore() {
 	[ ! -e $rootDir/run/innerCoreLog ] && $uBB touch $rootDir/run/innerCoreLog
 
 	[ -e $rootDir/root/var/run/.loadCoreDone ] && rm $rootDir/root/var/run/.loadCoreDone
+
+	if isPrivileged; then
+		bb=$bb $bb chpst -u $(getBaseUserCredentials $ownPath) $runner jt_utils prepareScriptInFifo $rootDir "instrFileInnerCore" "jailLib.sh" "jt_jailLib_template" &
+	else
+		bb=$bb $runner jt_utils prepareScriptInFifo $rootDir "instrFileInnerCore" "jailLib.sh" "jt_jailLib_template" &
+	fi
+	innerCoreCreator=$($bb cat - << EOF
+while [ ! -e $rootDir/run/instrFileInnerCore ]; do $bb sleep 0.1; done;
+ownPath=$rootDir . $rootDir/run/instrFileInnerCore;
+$bb rm $rootDir/run/instrFileInnerCore;
+initializeCoreJail $rootDir $(getActualUser $rootDir) \
+	$(getBaseUserUID $rootDir) $(getBaseUserGID $rootDir)\";
+cd $rootDir/root;
+$bb pivot_root . $rootDir/root/root;
+exec $nsBB chroot . /bin/sh -c "$nsBB umount -l /root; \
+	$nsBB setpriv --bounding-set $(getCurVal $rootDir \
+		chrootPrivileges) $chrootCmd"
+EOF
+)
 	# this is the core jail instance being run in the background
 	(
 		$preUnshare $bb unshare -f $unshareArgs ${g_unshareSupport} \
 			-- $bb setpriv --bounding-set $(getCurVal $rootDir corePrivileges) \
-			$bb sh -c " \
-				$bb sh -c \". $rootDir/jailLib.sh; initializeCoreJail $rootDir $(getActualUser $rootDir) $(getBaseUserUID $rootDir) $(getBaseUserGID $rootDir)\"; \
-				cd $rootDir/root; \
-				$bb pivot_root . $rootDir/root/root; \
-				exec $nsBB chroot . /bin/sh -c \"$nsBB umount -l /root; \
-					$nsBB setpriv --bounding-set $(getCurVal $rootDir chrootPrivileges) $g_baseEnv $chrootCmd\"" 2>$rootDir/run/innerCoreLog \
+				$bb sh -c "$innerCoreCreator" 2>$rootDir/run/innerCoreLog
 	) &
 	start="$(getUtime)"
 	g_innerNSpid=$!
