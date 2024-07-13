@@ -10,22 +10,17 @@ if [ "$bb" = "" ] || [ "$shower" = "" ] || [ "$runner" = "" ]; then
 	exit 1
 fi
 
-ownPath=$($bb dirname $0)
-
-
-if [ "$ownPath" = "." ]; then
-	ownPath=$PWD
-else
-	if echo $ownPath | grep -q '^\/'; then
-		# absolute path, we do nothing
-		:
-	else
-		# relative path
-		ownPath=$PWD/$ownPath
-	fi
+if [ "$IS_RUNNING" = "1" ]; then
+	IS_RUNNING=0
 fi
 
-. $ownPath/jailLib.sh
+ownPath=$1
+
+if [ "$ownPath" = "" ] || [ ! -d $ownPath ]; then
+	echo "First argument must be the directory path of the jail" >&2
+	exit 1
+fi
+shift
 
 prepareCmd() {
 	local env="$1"
@@ -83,6 +78,13 @@ cmdParse() {
 	fi
 	shift 2
 
+	bb=$bb $runner jt_utils prepareScriptInFifo $ownPath instrFileStartRoot "jailLib.sh" "jt_jailLib_template" &
+	while [ ! -e $ownPath/run/instrFileStartRoot ]; do
+		$bb sleep 0.1
+	done
+	. $ownPath/run/instrFileStartRoot
+	$bb rm $ownPath/run/instrFileStartRoot
+
 	case $args in
 		daemon)
 			echo "This command is not meant to be called directly, use the jailtools super script to start the daemon properly, otherwise it will just stay running with no interactivity possible." >&2
@@ -131,16 +133,4 @@ cmdParse() {
 	esac
 }
 
-case $1 in
-
-	*)
-		if [ "$1" = "" ]; then
-			s1="."
-		else
-			s1=$1
-			shift
-		fi
-
-		cmdParse $ownPath $s1 "$@"
-	;;
-esac
+cmdParse $ownPath "$@"
