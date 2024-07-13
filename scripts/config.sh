@@ -4,8 +4,6 @@ bb="$BB"
 shower="$JT_SHOWER"
 runner="$JT_RUNNER"
 
-eval "$($shower jt_utils)"
-
 listCore() {
 	local jailScript=$1
 
@@ -127,8 +125,15 @@ setCustomVal() {
 }
 
 mainCLI() {
-	local jailDir=$1
+	local jailDir="$1"
 	shift
+
+	$runner jt_utils prepareScriptInFifo $jailDir "instrFileConfig" "utils.sh" "jt_utils" &
+	while [ ! -e $jailDir/run/instrFileConfig ]; do
+		sleep 0.1
+	done
+	. $jailDir/run/instrFileConfig
+	rm $jailDir/run/instrFileConfig
 
 	if $bb cat $jailDir/rootCustomConfig.sh | $bb grep -q '^# Command part$'; then
 		echo Please upgrade your jail before you can use this command.
@@ -184,5 +189,6 @@ mainCLI() {
 }
 
 if [ "$IS_RUNNING" = "1" ]; then
+	IS_RUNNING=0
 	mainCLI "$@"
 fi
