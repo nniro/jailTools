@@ -55,8 +55,8 @@ $bb mkdir $newChrootDir
 
 $bb mkdir $newChrootDir/bin
 echo "copying jt over to the jail - '$JT_CALLER'"
-exe=$(echo $JT_CALLER | sed -e 's/^\([^ ]*\) .*/\1/')
-cp $exe $newChrootHolder/root/bin/busybox
+exe=$(echo $JT_CALLER | $bb sed -e 's/^\([^ ]*\) .*/\1/')
+$bb cp $exe $newChrootHolder/root/bin/busybox
 bb=$newChrootHolder/root/bin/busybox
 
 $bb touch $newChrootHolder/rootCustomConfig.sh
