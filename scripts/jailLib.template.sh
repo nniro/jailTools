@@ -35,7 +35,7 @@ else
 	uBB="$bb"
 fi
 
-g_baseEnv="$nsBB env - PATH=/usr/bin:/bin USER=$(getDefaultVal $ownPath user) HOME=/home HOSTNAME=nowhere.here TERM=linux JT_VERSION=$(getDefaultVal $ownPath jailVersion)"
+g_baseEnv="PATH=/usr/bin:/bin USER=$(getDefaultVal $ownPath user) HOME=/home HOSTNAME=nowhere.here TERM=linux"
 
 g_innerNSpid=""
 
@@ -703,7 +703,7 @@ runShell() {
 		fi
 	fi
 
-	execRemNS $rootDir $nsPid $nsBB sh -c "exec $nsBB unshare $unshareArgs $g_baseEnv $curArgs"
+	execRemNS $rootDir $nsPid $nsBB sh -c "exec $nsBB unshare $unshareArgs $nsBB env - $g_baseEnv $curArgs"
 
 	return $?
 }
