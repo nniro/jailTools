@@ -122,18 +122,25 @@ isProcessRunning() {
 	$bb ps | $bb grep -q "^$pid *[^ ]\+ *[0-9]\+ *[^ ]* *sh -c while :; do sleep 9999; done"
 }
 
+# this is specifically when we absolutely know the jail's inner core process id like what we get
+# from 'run/ns.pid'
 isJailRunning() {
 	local jailPath=$1 # this has to be an absolute path
 
 	# the files exist and the size is more than zero
 	[ -s $jailPath/run/jail.pid ] && [ -s $jailPath/run/ns.pid ] || return 1
-	local nsPid=$(cat $jailPath/run/ns.pid)
-	local jailPid=$(cat $jailPath/run/jail.pid)
+	local nsPid=$($bb cat $jailPath/run/ns.pid)
+	local jailPid=$($bb cat $jailPath/run/jail.pid)
+
+	if ! $bb ps | $bb grep -q "^$nsPid "; then
+		return 1
+	fi
 
 	getProcessPathFromPwdx $nsPid | $bb grep -q "^$jailPath$" && return 0
 	getProcessPathFromPwdx $jailPid | $bb grep -q "^$jailPath$" && return 0
 
-	isProcessRunning $nsPid && isValidJailPath "$(getProcessPathFromMountinfo $nsPid)" || return 1
+	isProcessRunning $nsPid || return 1
+	isValidJailPath "$(getProcessPathFromEnviron $nsPid)" || return 1
 }
 
 stripQuotes() {
