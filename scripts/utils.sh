@@ -163,6 +163,7 @@ populateFile() {
 waitUntilFileAppears() {
 	local eventFile="$1"
 	local endTime="$(($($bb date +"%s") + $2))"
+	local noDelete="$3"
 
 	while [ ! -e $eventFile ]; do
 		if [ $(($($bb date +"%s") >= $endTime )) = 1 ]; then
@@ -170,7 +171,7 @@ waitUntilFileAppears() {
 		fi
 		$bb sleep 0.1
 	done
-	rm $eventFile
+	[ "$noDelete" = "0" ] && $bb rm $eventFile
 	return 0
 }
 
