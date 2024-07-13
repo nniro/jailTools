@@ -9,8 +9,6 @@ configFile=rootCustomConfig.sh
 filesUpgrade=$(cat << EOF
 ._rootCustomConfig.sh.initial
 rootDefaultConfig.sh
-jailLib.sh
-startRoot.sh
 EOF
 )
 
