@@ -428,11 +428,11 @@ prepareChrootCore() {
 	elif ! isPrivileged && isUserNamespaceSupported; then # unprivileged
 		unshareArgs="-r"
 		chrootArgs=""
-		g_unshareSupport=$(echo "$g_unshareSupport" | $nsBB sed -e 's/U//g')
+		g_unshareSupport=$(echo "$g_unshareSupport" | $bb sed -e 's/U//g')
 	else # ! isUserNamespaceSupported or $realRootInJail = "true"
 		unshareArgs=""
 		chrootArgs=""
-		g_unshareSupport=$(echo "$g_unshareSupport" | $nsBB sed -e 's/U//g')
+		g_unshareSupport=$(echo "$g_unshareSupport" | $bb sed -e 's/U//g')
 	fi # ! isUserNamespaceSupported or $realRootInJail = "true"
 
 	if [ "$jailNet" = "true" ]; then
