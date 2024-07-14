@@ -79,9 +79,7 @@ cmdParse() {
 	shift 2
 
 	bb=$bb $runner jt_utils prepareScriptInFifo $ownPath instrFileStartRoot "jailLib.sh" "jt_jailLib_template" &
-	while [ ! -e $ownPath/run/instrFileStartRoot ]; do
-		$bb sleep 0.1
-	done
+	bb=$bb $runner jt_utils waitUntilFileAppears "$rPath/run/instrFileStartRoot" 5 1
 	. $ownPath/run/instrFileStartRoot
 	$bb rm $ownPath/run/instrFileStartRoot
 

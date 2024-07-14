@@ -1,6 +1,13 @@
+# This module takes care of creating a new jail.
+#
+# direct call :
+# jt --run jt_new
+
 bb="$BB"
 shower="$JT_SHOWER"
 runner="$JT_RUNNER"
+
+IS_RUNNING=0
 
 sh="$bb sh"
 

@@ -1,4 +1,9 @@
 #! /bin/sh
+#
+# library to get and set configuration of jails.
+#
+# direct call :
+# jt --run jt_config
 
 bb="$BB"
 shower="$JT_SHOWER"
@@ -125,13 +130,20 @@ setCustomVal() {
 }
 
 mainCLI() {
-	local jailDir="$1"
-	shift
+	if [ "$1" = "" ] || echo "$1" | $bb grep -q "^-"; then
+		jailDir="."
+	else
+		jailDir="$1"
+		shift
+	fi
 
-	$runner jt_utils prepareScriptInFifo $jailDir "instrFileConfig" "utils.sh" "jt_utils" &
-	while [ ! -e $jailDir/run/instrFileConfig ]; do
-		sleep 0.1
-	done
+	if [ ! -d $jailDir ] || ! bb=$bb $runner jt_utils isValidJailPath "$jailDir"; then
+		echo "Input a valid jail directory" >&2
+		exit 1
+	fi
+
+	bb=$bb $runner jt_utils prepareScriptInFifo $jailDir "instrFileConfig" "utils.sh" "jt_utils" &
+	bb=$bb $runner jt_utils waitUntilFileAppears "$jailDir/run/instrFileConfig" 2 1
 	. $jailDir/run/instrFileConfig
 	rm $jailDir/run/instrFileConfig
 
@@ -148,6 +160,8 @@ mainCLI() {
 		echo "Please don't remove or modify the section headers. They are used by this tool"
 		exit 1
 	fi
+
+	[ "$1" = "" ] && set -- -h
 
 	local result=$(callGetopt "config [OPTIONS]" \
 		-o "d" "default" "Get the default configuration value" "getDefaultVal" "false" \

@@ -1,3 +1,8 @@
+# Miscellaneous functions library used by most other modules.
+#
+# direct call :
+# jt --run jt_utils
+#
 # we expect the 'bb' variable to be provided by the script that includes this
 
 isPrivileged() {
@@ -61,6 +66,7 @@ isValidJailPath() {
 # the embedded file to a fifo which is created by this function.
 # Callers can then run the prepared script by doing :
 #	$bb sh $rootDir/run/instrFile <arguments>
+#	(here 'instrFile' is the FIFO file)
 prepareScriptInFifo() {
 	local rootDir=$1
 	local fifoName=$2
@@ -548,8 +554,8 @@ if [ "$IS_RUNNING" = "1" ]; then
 	shift
 
 	case $cmd in
-		prepareScriptInFifo)
-			prepareScriptInFifo "$@"
+		*)
+			$cmd "$@"
 		;;
 	esac
 fi
