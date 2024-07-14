@@ -47,7 +47,7 @@ if [ "$jailPidProcess" = "" ] \
 fi
 
 if [ "$nsPidProcess" = "" ] \
-	|| ! echo "$nsPidProcess" | grep -q '^[0-9]\+ *[^ ]\+ *[0-9]\+ *[^ ]* *sh -c while :; do sleep 9999; done'; then
+	|| ! echo "$nsPidProcess" | grep -q '^[0-9]\+ *[^ ]\+ *[0-9]\+ *[^ ]* *sh -c while :; do /bin/busybox sleep 9999; done'; then
 	echo "The ns Pid Process is not correct, the jail is not running"
 	exit 1
 fi

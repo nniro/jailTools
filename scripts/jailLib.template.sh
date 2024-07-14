@@ -419,7 +419,7 @@ prepareChrootCore() {
 	local rootDir=$1
 	local unshareArgs=""
 	local preUnshare=""
-	local chrootCmd="$nsBB env - $g_baseEnv JT_LOCATION=$rootDir JT_VERSION=$(getDefaultVal $rootDir jailVersion) JT_JAILPID=$$ sh -c 'while :; do sleep 9999; done'"
+	local chrootCmd="$nsBB env - $g_baseEnv JT_LOCATION=$rootDir JT_VERSION=$(getDefaultVal $rootDir jailVersion) JT_JAILPID=$$ sh -c 'while :; do $nsBB sleep 9999; done'"
 
 	if isPrivileged && isUserNamespaceSupported && [ "$(getCurVal $rootDir realRootInJail)" = "false" ]; then
 		preUnshare="$bb chpst -u $(getBaseUserCredentials $rootDir)"
@@ -441,7 +441,7 @@ prepareChrootCore() {
 	chrootCmd="touch /var/run/.loadCoreDone; $chrootCmd"
 
 	if [ "$(getCurVal $rootDir realRootInJail)" = "true" ]; then
-		chrootCmd="sleep 1; $chrootCmd"
+		chrootCmd="$nsBB sleep 1; $chrootCmd"
 	fi
 
 	# ensure these files are owned by the user
@@ -702,10 +702,10 @@ runShell() {
 
 	if [ "$daemonize" = "true" ]; then
 		if [ "$curArgs" = "" ]; then
-			curArgs="sh -c 'while :; do sleep 9999; done'"
+			curArgs="sh -c 'while :; do $nsBB sleep 9999; done'"
 		else
 			curArgs=$(printf "%s" "$curArgs" | $bb sed -e 's/\x27/"/g') # replace all ' with "
-			curArgs="sh -c '${curArgs}; while :; do sleep 9999; done'"
+			curArgs="sh -c '${curArgs}; while :; do $nsBB sleep 9999; done'"
 		fi
 	fi
 

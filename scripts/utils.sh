@@ -125,7 +125,7 @@ getProcessPathFromPwdx() {
 isProcessRunning() {
 	local pid=$1
 
-	$bb ps | $bb grep -q "^$pid *[^ ]\+ *[0-9]\+ *[^ ]* *sh -c while :; do sleep 9999; done"
+	$bb ps | $bb grep -q "^$pid *[^ ]\+ *[0-9]\+ *[^ ]* *sh -c while :; do /bin/busybox sleep 9999; done"
 }
 
 # this is specifically when we absolutely know the jail's inner core process id like what we get
