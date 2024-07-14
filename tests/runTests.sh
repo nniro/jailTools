@@ -191,12 +191,13 @@ for shell in $shells; do
 				echo "Attempting to automatically cleanse the test"
 				$bb timeout 5 sh -c 'while :; do if [ -e run/jail.pid ]; then break; fi ; done'
 				$shell $cTest/onFail.sh $shellPath $PWD/$tf/$cTest $jtPath
+				_err=$?
 
 				for dir in $($bb ls -d $PWD/$tf/$cTest/*); do
 					$jtPath stop $dir
 				done
 
-				if [ "$?" = "1" ]; then
+				if [ "$_err" = "1" ]; then
 					echo "Automatic cleanse failed"
 					echo "This test has failed and we didn't manage to stop it : Please manually stop it and delete it's files manually, they are in $tf/$cTest"
 					break
