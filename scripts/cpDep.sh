@@ -1,10 +1,15 @@
+# copy files and its dependencies to a jail (for shared objects or shared binaries).
+#
+# direct call :
+# jt --run jt_cpDep
+#
 bb="$BB"
 shower="$JT_SHOWER"
 runner="$JT_RUNNER"
 
 if [ $(($# < 3)) = 1 ]; then
-	echo "Synopsis: $0 <chroot directory> <destination directory inside the jail> <file or directory> [files or directories]"
-	echo "please input a destination chroot, a destination and files or directories to compute and copy"
+	echo "Synopsis: $0 <jail path> <destination directory inside the jail> [file ...]"
+	echo "please input a destination jail, a destination and files or directories to compute and copy"
 	exit 1
 fi
 
@@ -17,17 +22,12 @@ files=$@
 
 ownPath=$($bb dirname $0)
 
-[ "$debugging" = "1" ] && echo "$files -> $destJail/$destInJail"
-
-if [ ! -e $destJail ]; then
-	#echo "destination root does not exist, please create one first"
-	#exit 1
-	$bb mkdir $destJail
-fi
-
-if [ -d $destJail/root ] && [ -d $destJail/run ] && [ -f $destJail/startRoot.sh ] && [ -f $destJail/rootCustomConfig.sh ]; then
+if bb=$bb $runner jt_utils isValidJailPath $destJail; then
 	isJail=1
 	destJail=$destJail/root
+else
+	echo "destination PATH is either not a valid jail directory or doesn't exist." >&2
+	exit 1
 fi
 
 createNewDir () {
