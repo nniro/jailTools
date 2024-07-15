@@ -40,8 +40,6 @@ bb="$BB"
 shower="$JT_SHOWER"
 runner="$JT_RUNNER"
 
-eval "$($shower jt_utils)"
-
 # check the kernel's namespace support
 unshareSupport=$(for ns in m u i n p U C; do $bb unshare -$ns 'echo "Operation not permitted"; exit' 2>&1 | $bb grep -q "Operation not permitted" && printf $ns; done)
 
@@ -92,9 +90,10 @@ ownPath=$newChrootHolder
 $shower jt_rootDefaultConfig_template > $ownPath/rootDefaultConfig.template.sh
 $shower jt_rootCustomConfig_template > $ownPath/rootCustomConfig.template.sh
 
+echo "Populating the jail configuration files"
+bb=$bb $runner jt_utils populateFile $ownPath/rootDefaultConfig.template.sh @SHELL@ "$bb sh" @JAILNAME@ "$jailName" @MAINJAILUSERNAME@ "$mainJailUsername" @JAIL_VERSION@ "$JT_VERSION" > $newChrootHolder/rootDefaultConfig.sh
 
-populateFile $ownPath/rootDefaultConfig.template.sh @SHELL@ "$bb sh" @JAILNAME@ "$jailName" @MAINJAILUSERNAME@ "$mainJailUsername" @JAIL_VERSION@ "$JT_VERSION" > $newChrootHolder/rootDefaultConfig.sh
-populateFile $ownPath/rootCustomConfig.template.sh @SHELL@ "$bb sh" > $newChrootHolder/rootCustomConfig.sh
+bb=$bb $runner jt_utils populateFile $ownPath/rootCustomConfig.template.sh @SHELL@ "$bb sh" > $newChrootHolder/rootCustomConfig.sh
 
 $bb rm $ownPath/rootDefaultConfig.template.sh
 $bb rm $ownPath/rootCustomConfig.template.sh
