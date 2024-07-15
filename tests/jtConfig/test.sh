@@ -86,16 +86,20 @@ testGet() {
 cd $jail
 
 # Checking if the command 'config' exists
-$jtPath config 2>&1 | $bb grep -q 'Invalid command' && exit 1
+if $jtPath config 2>&1 | $bb grep -q 'Invalid command'; then
+	echo "The command 'config' doesn't exist"
+	exit 1
+fi
 
 $jtPath config --set joinBridgeFromOtherJail "This here" >/dev/null
-testGet -p "initial value of joinBridgeFromOtherJail" joinBridgeFromOtherJail "^This here$" >/dev/null
+
+testGet "initial value of joinBridgeFromOtherJail" joinBridgeFromOtherJail "^This here$" || exit 1
 
 # we change the value of joinBridge and test joinBridgeFromOtherJail again
 # we had an issue where that one was changed rather than the real joinBridge entry
 
 $jtPath config --set joinBridge "foo bar" >/dev/null
-testGet "joinBridgeFromOtherJail, after having set joinBridge" joinBridgeFromOtherJail "^This here$" >/dev/null
+testGet "joinBridgeFromOtherJail, after having set joinBridge" joinBridgeFromOtherJail "^This here$" || exit 1
 
 $jtPath config --set somejoinBridge "Bogus Value" >/dev/null
 
