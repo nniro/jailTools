@@ -89,17 +89,15 @@ runFile() {
 	local file=\$1
 	local path=""
 	shift
-	args="\$@"
 	local oldIFS=\$IFS
 
 	IFS="
 "
 	for st in \$embedTable; do
-		IFS=" "
-		set -- \$st
-
-		if [ "\$file" = "\$2" ]; then
-			path=\$1
+		local one=\${st%% *}
+		local two=\${st##* }
+		if [ "\$file" = "\$two" ]; then
+			path=\$one
 			break
 		fi
 	done
@@ -109,7 +107,7 @@ runFile() {
 		return 1
 	fi
 
-	echo "\$embeddedFiles" | \$bb base64 -d | \$bb tar -jxOf - \$path | \$bb env IS_RUNNING=1 \$bb sh -s -- \$args
+	echo "\$embeddedFiles" | \$bb base64 -d | \$bb tar -jxOf - \$path | \$bb env IS_RUNNING=1 \$bb sh -s -- "\$@"
 	return \$?
 }
 
