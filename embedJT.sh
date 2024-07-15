@@ -66,7 +66,8 @@ $(cd $ownPath; $bb tar -jcf - $filesToEmbed | $bb base64)
 )
 
 existsFile() {
-	file=\$1
+	local file=\$1
+	local oldIFS=\$IFS
 
 	IFS="
 "
@@ -75,18 +76,21 @@ existsFile() {
 		set -- \$st
 
 		if [ "\$file" = "\$2" ]; then
+			IFS=\$oldIFS
 			return 0
 		fi
 	done
+	IFS=\$oldIFS
 
 	return 1
 }
 
 runFile() {
-	file=\$1
-	path=""
+	local file=\$1
+	local path=""
 	shift
 	args="\$@"
+	local oldIFS=\$IFS
 
 	IFS="
 "
@@ -99,18 +103,20 @@ runFile() {
 			break
 		fi
 	done
+	IFS=\$oldIFS
 
 	if [ "\$path" = "" ]; then
 		return 1
 	fi
 
-	\$bb echo "\$embeddedFiles" | \$bb base64 -d | \$bb tar -jxOf - \$path | \$bb env IS_RUNNING=1 \$bb sh -s -- \$args
+	echo "\$embeddedFiles" | \$bb base64 -d | \$bb tar -jxOf - \$path | \$bb env IS_RUNNING=1 \$bb sh -s -- \$args
 	return \$?
 }
 
 showFile() {
-	file=\$1
-	path=""
+	local file=\$1
+	local path=""
+	local oldIFS=\$IFS
 
 	IFS="
 "
@@ -123,12 +129,13 @@ showFile() {
 			break
 		fi
 	done
+	IFS=\$oldIFS
 
 	if [ "\$path" = "" ]; then
 		return 1
 	fi
 
-	\$bb echo "\$embeddedFiles" | \$bb base64 -d | \$bb tar -jxOf - \$path
+	echo "\$embeddedFiles" | \$bb base64 -d | \$bb tar -jxOf - \$path
 	return 0
 }
 
