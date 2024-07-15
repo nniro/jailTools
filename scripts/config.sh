@@ -137,7 +137,7 @@ mainCLI() {
 		shift
 	fi
 
-	if [ ! -d $jailDir ] || ! bb=$bb $runner jt_utils isValidJailPath "$jailDir"; then
+	if ! bb=$bb $runner jt_utils isValidJailPath "$jailDir"; then
 		echo "Input a valid jail directory" >&2
 		exit 1
 	fi

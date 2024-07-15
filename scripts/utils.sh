@@ -46,7 +46,7 @@ getUtime() {
 # detects if the path as argument contains a valid jail
 isValidJailPath() {
 	local jPath=$1
-	if [ -d $jPath/root ] \
+	if [ -d $jPath ] && [ -d $jPath/root ] \
 		&& [ -d $jPath/run ] \
 		&& [ -f $jPath/rootDefaultConfig.sh ] \
 		&& [ -f $jPath/rootCustomConfig.sh ] \
