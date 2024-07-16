@@ -1,24 +1,12 @@
-# globals :
-#	*jailNet
-#	bb
-#	nsBB
+# Firewall module
+#
+# direct call :
+# jt --run jt_firewall
 
 bb="$BB"
 shower="$JT_SHOWER"
 runner="$JT_RUNNER"
 
-if [ "$bb" = "" ]; then
-	bb=busybox
-	nsBB=busybox
-fi
-
-_isPrivileged() {
-	if [ "$privileged" = "" ]; then
-		test $($bb id -u) = "0"
-	else
-		[ "$privileged" = "1" ] && return 0 || return 1
-	fi
-}
 
 parseArgs() {
 	OPTIND=0
@@ -96,7 +84,7 @@ cmdCtl() {
 # Internal is the firewall inside the jail
 # External is the host system's firewall
 firewall() {
-	if ! _isPrivileged; then
+	if ! bb=$bb $runner jt_utils isPrivileged; then
 		echo "firewall: This function requires to be run with root privileges." >&2
 		return 1
 	fi
@@ -533,7 +521,7 @@ checkFirewall() {
 resetFirewall() {
 	firewallInstr=$1
 
-	if ! _isPrivileged; then
+	if ! bb=$bb $runner jt_utils isPrivileged; then
 		echo "This function requires superuser privileges" >&2
 		return
 	fi
@@ -602,5 +590,21 @@ firewallCLI() {
 }
 
 if [ "$IS_RUNNING" = "1" ]; then
-	firewallCLI $@
+	IS_RUNNING=0
+	cmd=$1
+	case $cmd in
+		cmdCtl)
+			shift
+			cmdCtl "$@"
+		;;
+
+		firewall)
+			shift
+			firewall "$@"
+		;;
+
+		*)
+			firewallCLI "$@"
+		;;
+	esac
 fi
