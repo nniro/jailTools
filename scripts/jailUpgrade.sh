@@ -1,4 +1,9 @@
 #! /bin/sh
+#
+# jail upgrade module
+#
+# direct call :
+# jt --run jt_upgrade
 
 bb="$BB"
 shower="$JT_SHOWER"
@@ -23,7 +28,7 @@ startUpgrade() {
 	local updateInternalBusybox="false"
 
 	local result=""
-	result=$(callGetopt "upgrade [OPTIONS]" \
+	result=$(bb=$bb $runner jt_utils callGetopt "upgrade [OPTIONS]" \
 		-o 'b' 'busybox' "update the jail's /bin/busybox as well" 'doBusybox' 'false' \
 		-o '' 'continue' 'continue an upgrade process' 'doContinue' 'false' \
 		-o '' 'abort' 'abort the current upgrade process' 'doAbort' 'false' \
@@ -31,11 +36,11 @@ startUpgrade() {
 	local err="$?"
 
 	if [ "$err" = "0" ]; then
-		if getVarVal 'doBusybox' "$result" >/dev/null; then
+		if bb=$bb $runner jt_utils getVarVal 'doBusybox' "$result" >/dev/null; then
 			updateInternalBusybox="true"
 		fi
 
-		if getVarVal 'doContinue' "$result" >/dev/null; then
+		if bb=$bb $runner jt_utils getVarVal 'doContinue' "$result" >/dev/null; then
 			if [ ! -e $jPath/$configFile.merged ]; then
 				echo "This command is to continue a failed automatic upgrade session."
 				echo "It is not currently the case, bailing out."
@@ -53,7 +58,7 @@ startUpgrade() {
 
 			echo "Done upgrading jail. Thank you for using the jailUpgrade service."
 			exit 0
-		elif getVarVal 'doAbort' "$result" >/dev/null; then
+		elif bb=$bb $runner jt_utils getVarVal 'doAbort' "$result" >/dev/null; then
 			[ -e $jPath/$configFile.new ] && rm $jPath/$configFile.new
 			[ -e $jPath/$configFile.patch ] && rm $jPath/$configFile.patch
 			for file in $filesUpgrade; do
@@ -225,3 +230,17 @@ EOF
 		rmdir $njD
 	fi
 }
+
+if [ "$IS_RUNNING" = "1" ]; then
+	IS_RUNNING=0
+	cmd=$1
+	case $cmd in
+		startUpgrade)
+			shift
+			startUpgrade "$@"
+		;;
+
+		*)
+		;;
+	esac
+fi

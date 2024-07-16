@@ -282,8 +282,7 @@ case $cmd in
 		[ "$jPath" != "." ] || isValidJailPath $jPath || showJailPathError
 		rPath=$($bb realpath $jPath)
 
-		eval "$($shower jt_upgrade)"
-		startUpgrade $rPath $@
+		$runner jt_upgrade startUpgrade "$rPath" "$@"
 	;;
 
 	config)
