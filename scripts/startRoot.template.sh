@@ -1,5 +1,10 @@
 #! @SHELL@
 # Don't change anything in this script! Use rootCustomConfig.sh for your changes!
+#
+# Jail management script.
+#
+# direct call :
+# jt --run jt_startRoot_template
 
 bb="$BB"
 shower="$JT_SHOWER"
@@ -21,6 +26,11 @@ if [ "$ownPath" = "" ] || [ ! -d $ownPath ]; then
 	exit 1
 fi
 shift
+
+
+cConfig() {
+	bb=$bb $runner jt_config "$@"
+}
 
 prepareCmd() {
 	local env="$1"
@@ -45,22 +55,22 @@ prepareCmd() {
 getRunEnvironment() {
 	local ownPath=$1
 
-	local vars=$(getCurVal $ownPath runEnvironment | $bb sed -e 's/ /\n/g' | $bb sed -e 's/.*\(\$[^ ]\+\)/\1 /' | $bb sed -e 's/^\$//')
+	local vars=$(cConfig getCurVal $ownPath runEnvironment | $bb sed -e 's/ /\n/g' | $bb sed -e 's/.*\(\$[^ ]\+\)/\1 /' | $bb sed -e 's/^\$//')
 
 	local regexResult=""
 	for var in $vars; do
 		if [ "$var" = "userUID" ]; then
-			regexResult="$regexResult s/\\\\\$$var/$(getBaseUserUID $ownPath)/ ;"
+			regexResult="$regexResult s/\\\\\$$var/$(bb=$bb $runner jt_utils getBaseUserUID $ownPath)/ ;"
 		elif [ "$var" = "actualUser" ]; then
-			regexResult="$regexResult s/\\\\\$$var/$(getActualUser $ownPath)/ ;"
+			regexResult="$regexResult s/\\\\\$$var/$(bb=$bb $runner jt_utils getActualUser $ownPath)/ ;"
 		elif [ "$var" = "userGID" ]; then
-			regexResult="$regexResult s/\\\\\$$var/$(getBaseUserGID $ownPath)/ ;"
+			regexResult="$regexResult s/\\\\\$$var/$(bb=$bb $runner jt_utils getBaseUserGID $ownPath)/ ;"
 		else
 			regexResult="$regexResult s/\\\\\$$var/$($bb env | $bb sed -ne "/^${var}=/ {s/^${var}=\(.\+\)$/\1 / ; p; q}")/ ;"
 		fi
 	done
 
-	getCurVal $ownPath runEnvironment | $bb sed -e "$regexResult"
+	cConfig getCurVal $ownPath runEnvironment | $bb sed -e "$regexResult"
 }
 
 showHelp() {
@@ -87,7 +97,7 @@ cmdParse() {
 		daemon)
 			echo "This command is not meant to be called directly, use the jailtools super script to start the daemon properly, otherwise it will just stay running with no interactivity possible." >&2
 			prepareChroot $ownPath || exit 1
-			runShell -pd $ownPath $($bb cat $ownPath/run/ns.pid) $(prepareCmd "$(getRunEnvironment $ownPath)" "$(getCurVal $ownPath daemonCommand)" "$@")
+			runShell -pd $ownPath $($bb cat $ownPath/run/ns.pid) $(prepareCmd "$(getRunEnvironment $ownPath)" "$(cConfig getCurVal $ownPath daemonCommand)" "$@")
 			err=$?
 			stopChroot $ownPath
 			exit $err
@@ -95,7 +105,7 @@ cmdParse() {
 
 		start)
 			prepareChroot $ownPath || exit 1
-			runShell -p $ownPath $($bb cat $ownPath/run/ns.pid) $(prepareCmd "$(getRunEnvironment $ownPath)" "$(getCurVal $ownPath startCommand)" "$@")
+			runShell -p $ownPath $($bb cat $ownPath/run/ns.pid) $(prepareCmd "$(getRunEnvironment $ownPath)" "$(cConfig getCurVal $ownPath startCommand)" "$@")
 			err=$?
 			stopChroot $ownPath
 			exit $err
@@ -110,13 +120,13 @@ cmdParse() {
 			if [ -e $ownPath/run/ns.pid ]; then
 				local nsPid=$(cat $ownPath/run/ns.pid)
 			
-				if [ "$privileged" = "1" ]; then
-					echo "Entering the already started jail \`$(getCurVal $ownPath jailName)'" >&2
+				if bb=$bb $runner jt_utils isPrivileged; then
+					echo "Entering the already started jail \`$(cConfig getCurVal $ownPath jailName)'" >&2
 				else
-					echo "Entering the already started jail \`$(getCurVal $ownPath jailName)' unprivileged)" >&2
+					echo "Entering the already started jail \`$(cConfig getCurVal $ownPath jailName)' unprivileged" >&2
 				fi
 				[ "$nsPid" = "" ] && (echo "Unable to get the running namespace, bailing out" && exit 1)
-				runShell $ownPath $nsPid $(prepareCmd "$(getRunEnvironment $ownPath)" "$(getCurVal $ownPath shellCommand)" "$@")
+				runShell $ownPath $nsPid $(prepareCmd "$(getRunEnvironment $ownPath)" "$(cConfig getCurVal $ownPath shellCommand)" "$@")
 				exit $?
 			else # we start a new jail
 				echo "This jail is not started, please start it with the \"daemon\" command" >&2
