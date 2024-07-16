@@ -204,5 +204,20 @@ mainCLI() {
 
 if [ "$IS_RUNNING" = "1" ]; then
 	IS_RUNNING=0
-	mainCLI "$@"
+	cmd=$1
+	case $cmd in
+		getCurVal)
+			shift
+			getCurVal "$@"
+		;;
+
+		getDefaultVal)
+			shift
+			getDefaultVal "$@"
+		;;
+
+		*)
+			mainCLI "$@"
+		;;
+	esac
 fi
