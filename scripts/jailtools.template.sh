@@ -231,9 +231,11 @@ case $cmd in
 		[ "$jPath" != "." ] || isValidJailPath $jPath || showJailPathError
 		rPath=$($bb realpath $jPath)
 
-		$bb sh -c "cd $rPath; source ./jailLib.sh; firewallCLI $firewallInstr $@" 2>/dev/null
+		# TODO this has to be rewritten, firewallInstr no longer exists and should be
+		# in the configurations of jails.
+		#$bb sh -c "cd $rPath; source ./jailLib.sh; firewallCLI $firewallInstr $@" 2>/dev/null
+		echo "this command was temporarily disabled." >&2
 		_err=$?
-
 
 		exit $_err
 	;;
