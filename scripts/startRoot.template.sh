@@ -89,7 +89,11 @@ cmdParse() {
 	shift 2
 
 	bb=$bb $runner jt_utils prepareScriptInFifo $ownPath instrFileStartRoot "jailLib.sh" "jt_jailLib_template" &
-	bb=$bb $runner jt_utils waitUntilFileAppears "$rPath/run/instrFileStartRoot" 5 1
+	if ! bb=$bb $runner jt_utils waitUntilFileAppears "$ownPath/run/instrFileStartRoot" 2 1; then
+		echo "StartRoot - Timed out waiting for FIFO to be created" >&2
+		exit 1
+	fi
+
 	. $ownPath/run/instrFileStartRoot
 	$bb rm $ownPath/run/instrFileStartRoot
 
