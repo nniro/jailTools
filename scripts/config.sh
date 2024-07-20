@@ -142,10 +142,9 @@ mainCLI() {
 		exit 1
 	fi
 
-	bb=$bb $runner jt_utils prepareScriptInFifo $jailDir "instrFileConfig" "utils.sh" "jt_utils" &
+	bb=$bb $runner jt_utils prepareScriptInFifo "$jailDir/run/instrFileConfig" "utils.sh" "jt_utils" &
 	bb=$bb $runner jt_utils waitUntilFileAppears "$jailDir/run/instrFileConfig" 2 1
 	. $jailDir/run/instrFileConfig
-	rm $jailDir/run/instrFileConfig
 
 	if $bb cat $jailDir/rootCustomConfig.sh | $bb grep -q '^# Command part$'; then
 		echo Please upgrade your jail before you can use this command.

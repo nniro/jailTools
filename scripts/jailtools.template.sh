@@ -180,7 +180,7 @@ case $cmd in
 		[ "$jPath" != "." ] || isValidJailPath $jPath || showJailPathError
 		rPath=$($bb realpath $jPath)
 
-		prepareScriptInFifo $rPath instrFileJT "startRoot.sh" "jt_startRoot_template" &
+		prepareScriptInFifo "$rPath/run/instrFileJT" "startRoot.sh" "jt_startRoot_template" &
 		if ! waitUntilFileAppears "$rPath/run/instrFileJT" 2 1; then
 			echo "Timed out waiting for FIFO to be created" >&2
 			exit 1
@@ -189,7 +189,6 @@ case $cmd in
 		(export IS_RUNNING=1; $bb sh $rPath/run/instrFileJT "$rPath" $cmd $@)
 		_res=$?
 
-		rm $rPath/run/instrFileJT 2>/dev/null
 		exit $_res
 	;;
 
@@ -203,7 +202,7 @@ case $cmd in
 			exit 1
 		fi
 
-		prepareScriptInFifo $rPath instrFileJT "startRoot.sh" "jt_startRoot_template" &
+		prepareScriptInFifo "$rPath/run/instrFileJT" "startRoot.sh" "jt_startRoot_template" &
 		if ! waitUntilFileAppears "$rPath/run/instrFileJT" 2 1; then
 			echo "Timed out waiting for FIFO to be created" >&2
 			exit 1
@@ -215,8 +214,6 @@ case $cmd in
 		#if [ "$?" != "0" ]; then echo "There was an error starting the daemon, it may already be running."; fi
 
 		$bb timeout 20 sh -c "while :; do [ -e $rPath/run/ns.pid ] && [ -e $rPath/run/jail.pid ] && break ; done"
-
-		rm $rPath/run/instrFileJT 2>/dev/null
 
 		if [ ! -e $rPath/run/ns.pid ] || [ ! -e $rPath/run/jail.pid ]; then
 			echo "The daemonized jail is not running, run/ns.pid or run/jail.pid is missing" >&2

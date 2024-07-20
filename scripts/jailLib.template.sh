@@ -460,14 +460,13 @@ prepareChrootCore() {
 	[ -e $rootDir/root/var/run/.loadCoreDone ] && $bb rm $rootDir/root/var/run/.loadCoreDone
 
 	if bb=$bb $g_utilsCmd isPrivileged; then
-		bb=$bb $bb chpst -u $(bb=$bb $g_utilsCmd getBaseUserCredentials $ownPath) $runner jt_utils prepareScriptInFifo $rootDir "instrFileInnerCore" "jailLib.sh" "jt_jailLib_template" &
+		bb=$bb $bb chpst -u $(bb=$bb $g_utilsCmd getBaseUserCredentials $ownPath) $runner jt_utils prepareScriptInFifo "$rootDir/run/instrFileInnerCore" "jailLib.sh" "jt_jailLib_template" &
 	else
-		bb=$bb $runner jt_utils prepareScriptInFifo $rootDir "instrFileInnerCore" "jailLib.sh" "jt_jailLib_template" &
+		bb=$bb $runner jt_utils prepareScriptInFifo "$rootDir/run/instrFileInnerCore" "jailLib.sh" "jt_jailLib_template" &
 	fi
 	innerCoreCreator=$($bb cat - << EOF
 while [ ! -e $rootDir/run/instrFileInnerCore ]; do $bb sleep 0.1; done;
 ownPath=$rootDir . $rootDir/run/instrFileInnerCore;
-$bb rm $rootDir/run/instrFileInnerCore;
 initializeCoreJail $rootDir $(bb=$bb $g_utilsCmd getActualUser $rootDir) \
 	$(bb=$bb $g_utilsCmd getBaseUserUID $rootDir) $(bb=$bb $g_utilsCmd getBaseUserGID $rootDir)\";
 cd $rootDir/root;
@@ -584,7 +583,7 @@ prepareChroot() {
 	local rootDir=$1
 
 	# importing utils.sh
-	bb=$bb $runner jt_utils prepareScriptInFifo $rootDir instrFileLibJT "utils.sh" "jt_utils" &
+	bb=$bb $runner jt_utils prepareScriptInFifo "$rootDir/run/instrFileLibJT" "utils.sh" "jt_utils" &
 	if ! bb=$bb $runner jt_utils waitUntilFileAppears "$rootDir/run/instrFileLibJT" 2 1; then
 		echo "Timed out waiting for FIFO to be created" >&2
 		return 1
@@ -593,10 +592,8 @@ prepareChroot() {
 	. $rootDir/run/instrFileLibJT
 	g_utilsCmd=""
 
-	rm $rootDir/run/instrFileLibJT 2>/dev/null
-
 	# importing config.sh
-	bb=$bb $runner jt_utils prepareScriptInFifo $rootDir instrFileLibJT "config.sh" "jt_config" &
+	bb=$bb $runner jt_utils prepareScriptInFifo "$rootDir/run/instrFileLibJT" "config.sh" "jt_config" &
 	if ! bb=$bb $runner jt_utils waitUntilFileAppears "$rootDir/run/instrFileLibJT" 2 1; then
 		echo "Timed out waiting for FIFO to be created" >&2
 		return 1
@@ -604,8 +601,6 @@ prepareChroot() {
 
 	. $rootDir/run/instrFileLibJT
 	g_configCmd=""
-
-	rm $rootDir/run/instrFileLibJT 2>/dev/null
 
 	if ! isUserNamespaceSupported && ! bb=$bb $g_utilsCmd isPrivileged; then
 		echo "User namespace support is currently disabled." >&2

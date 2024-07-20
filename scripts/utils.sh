@@ -68,17 +68,30 @@ isValidJailPath() {
 #	$bb sh $rootDir/run/instrFile <arguments>
 #	(here 'instrFile' is the FIFO file)
 prepareScriptInFifo() {
-	local rootDir=$1
-	local fifoName=$2
-	local localFilename=$3
-	local embedFilename=$4
-	[ ! -p $rootDir/run/$fifoName ] && $bb mkfifo $rootDir/run/$fifoName && $bb chmod 700 $rootDir/run/$fifoName
-
-	if [ "$localFilename" != "" ] && [ -r $rootDir/$localFilename ]; then
-		$bb cat $rootDir/$localFilename > $rootDir/run/$fifoName
-	else
-		$JT_SHOWER $embedFilename > $rootDir/run/$fifoName
+	local fifoPath=$1
+	local localFilename=$2
+	local embedFilename=$3
+	
+	if [ ! -d $($bb dirname $fifoPath) ]; then
+		echo "Error - prepareScriptInFifo - Provided path is not valid" >&2
+		return 1
 	fi
+
+	if [ -p $fifoPath ]; then
+		echo "Error - prepareScriptInFifo - FIFO file already exists, bailing out" >&2
+		return 1
+	else
+		$bb mkfifo $fifoPath
+		$bb chmod 700 $fifoPath
+		if [ "$localFilename" != "" ] && [ -r $localFilename ]; then
+			$bb cat $localFilename > $fifoPath
+		else
+			$JT_SHOWER $embedFilename > $fifoPath
+		fi
+		# fifo are a one-shot deal anyway, at least the way we use them
+		rm $fifoPath
+	fi
+	return 0
 }
 
 getProcessPathFromEnviron() {
