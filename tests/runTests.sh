@@ -10,7 +10,22 @@ tf=tests
 # POWERBOX
 user=
 
-bb="$PWD/../build/busybox/busybox"
+if [ "$bb" = "" ]; then
+	bb="$PWD/../build/busybox/busybox"
+fi
+
+if [ ! -e "$bb" ]; then
+	echo "Please build jailTools first" >&2
+	exit 1
+fi
+
+if [ "$(basename $bb)" = "jt" ]; then
+	jt="$bb"
+	bb="$bb busybox"
+	TESTING_JT_DIRECTLY=1
+else
+	TESTING_JT_DIRECTLY=0
+fi
 
 privileged=0
 
@@ -88,7 +103,11 @@ fi
 mkdir $tf/bin
 
 # we provide our own busybox
-cp $bb $tf/bin
+if [ "$TESTING_JT_DIRECTLY" = "0" ]; then
+	cp $bb $tf/bin
+else
+	cp $jt $tf/bin/busybox
+fi
 (cd $tf/bin; ln -s busybox sh)
 
 # list all available shells that we support
@@ -128,7 +147,11 @@ done
 for shell in $shells; do
 	#echo "$tf/bin/$shell $([ -e $tf/bin/$shell ] && echo yes || echo no)"
 	[ ! -d $tf/bin/jt/$shell ] && mkdir $tf/bin/jt/$shell
-	[ ! -e $tf/bin/jt/$shell/jt ] && $tf/bin/$shell ../install.sh $PWD/$tf/bin/jt/$shell/ >/dev/null 2>/dev/null
+	if [ "$TESTING_JT_DIRECTLY" = "0" ]; then
+		[ ! -e $tf/bin/jt/$shell/jt ] && $tf/bin/$shell ../install.sh $PWD/$tf/bin/jt/$shell/ >/dev/null 2>/dev/null
+	else
+		$bb cp $jt $PWD/$tf/bin/jt/$shell/
+	fi
 done
 
 availTests=$(cat << EOF
