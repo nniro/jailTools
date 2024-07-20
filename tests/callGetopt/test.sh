@@ -5,11 +5,18 @@
 sh=$1
 testPath=$2
 jtPath=$3
-scriptsPath=../scripts
 
 bb=$testPath/../bin/busybox
 
-. $scriptsPath/utils.sh
+
+# importing utils.sh
+bb=$bb $jtPath --run jt_utils prepareScriptInFifo "$testPath/instrFileTestGetopt" "" jt_utils &
+if ! bb=$bb $jtPath --run jt_utils waitUntilFileAppears "$testPath/instrFileTestGetopt" 2 1; then
+	echo "Timed out waiting for FIFO to be created" >&2
+	exit 1
+fi
+
+. $testPath/instrFileTestGetopt
 
 standardCLIOptions() {
 	# note we may be tempted to put local on the result assignation below but
