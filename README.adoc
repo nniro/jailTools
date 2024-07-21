@@ -1,7 +1,5 @@
 :icons:
 
-Here's the link for the official TODO list. It's using a kanban board and hosted on the sandstorm platform : https://nuage.xroutine.net/shared/a2O5DxqQ4BMQT9Cm_P_PYSGLHDszUBPknscCIR9KOCh
-
 = JailTools - create and manage jails (containers)
 
 == What is JailTools?
