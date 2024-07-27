@@ -606,8 +606,8 @@ prepareChroot() {
 	g_utilsCmd=""
 
 	# importing config.sh
-	bb=$bb $runner jt_utils prepareScriptInFifo "$rootDir/run/instrFileLibJT" "config.sh" "jt_config" &
-	if ! bb=$bb $runner jt_utils waitUntilFileAppears "$rootDir/run/instrFileLibJT" 2 1; then
+	prepareScriptInFifo "$rootDir/run/instrFileLibJT" "config.sh" "jt_config" &
+	if ! waitUntilFileAppears "$rootDir/run/instrFileLibJT" 2 1; then
 		echo "Timed out waiting for FIFO to be created" >&2
 		return 1
 	fi
