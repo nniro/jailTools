@@ -164,28 +164,27 @@ mountMany() {
 	local mountOps=$1
 	shift
 
-	for mount in $(echo $@); do
-		if [ -e $mount ]; then
-			if [ "$isOutput" = "false" ]; then
-				if test ! -d "$rootDir/$mount"; then
+	if [ "$isOutput" = "false" ]; then
+		for mount in $(echo $@); do
+			if [ -e $mount ]; then
+				if [ ! -d "$rootDir/$mount" ]; then
 					echo $rootDir/$mount does not exist, creating it >&2
 					bb=$bb $g_utilsCmd cmkdir -m 755 $rootDir/$mount
 				fi
-				$bb sh -c "$bb mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $bb mount -o $mountOps,bind $mount $rootDir/$mount"
+				$bb mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $bb mount -o $mountOps,bind $mount $rootDir/$mount
 				# gotta remount for the options to take effect
-				$bb sh -c "$bb mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $bb mount -o $mountOps,remount,bind $rootDir/$mount $rootDir/$mount"
-			else # isOutput = true
-				result="$result if [ ! -d \"$rootDir/$mount\" ]; then $(bb=$bb $g_utilsCmd cmkdir -e -m 755 $rootDir/$mount) fi;"
-				result="$result $bb mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $bb mount -o $mountOps,bind $mount $rootDir/$mount;"
-				# gotta remount for the options to take effect
-				result="$result $bb mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $bb mount -o $mountOps,remount,bind $rootDir/$mount $rootDir/$mount;"
+				$bb mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $bb mount -o $mountOps,remount,bind $rootDir/$mount $rootDir/$mount
+			else
+				echo "mountMany: Warning - Path \`$mount' doesn't exist on the base system, can't mount it in the jail." >&2
 			fi
-		else
-			echo "mountMany: Warning - Path \`$mount' doesn't exist on the base system, can't mount it in the jail." >&2
-		fi
-	done
-
-	if [ "$isOutput" = "true" ]; then
+		done
+	else # isOutput = true
+		for mount in $(echo $@); do
+			result="$result if [ ! -d \"$rootDir/$mount\" ]; then $(bb=$bb $g_utilsCmd cmkdir -e -m 755 $rootDir/$mount) fi;"
+			result="$result $bb mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $bb mount -o $mountOps,bind $mount $rootDir/$mount;"
+			# gotta remount for the options to take effect
+			result="$result $bb mountpoint $rootDir/$mount >/dev/null 2>/dev/null || $bb mount -o $mountOps,remount,bind $rootDir/$mount $rootDir/$mount;"
+		done
 		echo $result
 	fi
 }
