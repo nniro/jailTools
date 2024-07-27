@@ -151,7 +151,7 @@ isJailRunning() {
 	local nsPid=$($bb cat $jailPath/run/ns.pid)
 	local jailPid=$($bb cat $jailPath/run/jail.pid)
 
-	if ! $bb ps | $bb grep -q "^$nsPid "; then
+	if ! $bb ps | $bb grep -q "^ *$nsPid "; then
 		return 1
 	fi
 
