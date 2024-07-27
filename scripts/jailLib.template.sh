@@ -17,61 +17,78 @@ if [ "$bb" = "" ] || [ "$shower" = "" ] || [ "$runner" = "" ]; then
 	exit 1
 fi
 
-_JAILTOOLS_RUNNING=1
+if [ "$IS_RUNNING" != "1" ]; then
+	_JAILTOOLS_RUNNING=1
 
-[ "$ownPath" = "" ] && ownPath=$($bb realpath $($bb dirname $0))
-g_firewallInstr="run/firewall.instructions"
+	[ "$ownPath" = "" ] && ownPath=$($bb realpath $($bb dirname $0))
+	g_firewallInstr="run/firewall.instructions"
 
-g_utilsCmd="$runner jt_utils"
-g_configCmd="$runner jt_config"
-
-if [ "$privileged" = "" ]; then
-	if ! bb=$bb $g_utilsCmd isPrivileged; then
-		export privileged=0
+	type isPrivileged >/dev/null 2>/dev/null
+	if [ "$?" = "0" ]; then # function is available, so utils.sh was imported
+		#echo "DEBUG - detected that g_utilsCmd is not necessary" >&2
+		g_utilsCmd=""
 	else
-		export privileged=1
+		g_utilsCmd="$runner jt_utils"
 	fi
-fi
-
-if bb=$bb $g_utilsCmd isPrivileged; then
-	# unprivileged user bb
-	uBB="$bb chpst -u $(bb=$bb $g_utilsCmd getBaseUserCredentials $ownPath) $bb"
-else
-	uBB="$bb"
-fi
-
-g_baseEnv="PATH=/usr/bin:/bin USER=$(bb=$bb $g_configCmd getDefaultVal $ownPath user) HOME=/home HOSTNAME=nowhere.here TERM=linux"
-
-g_innerNSpid=""
-
-g_unshareSupport="-$(for ns in m u i n p U C; do $uBB unshare -r$ns $bb sh -c 'echo "Operation not permitted"; exit' 2>&1 | $bb grep -q "Operation not permitted" && $bb printf $ns; done)"
-
-if [ "$g_unshareSupport" = "-" ]; then # FIXME, we need to support this
-	echo "Detected no namespace support at all, this is not tested much so we prefer to bail out." >&2
-	exit 1
-fi
-
-g_netNS=false
-if echo $g_unshareSupport | $bb grep -q 'n'; then # check for network namespace support
-	g_netNS=true
-	# we remove this bit from the variable because we use it differently from the other namespaces.
-	g_unshareSupport=$(echo $g_unshareSupport | $bb sed -e 's/n//')
-fi
-
-jailNet=$(bb=$bb $g_configCmd getCurVal $ownPath jailNet)
-networking=$(bb=$bb $g_configCmd getCurVal $ownPath networking)
-
-g_nsenterSupport=$(echo "$g_unshareSupport" | $bb sed -e 's/^-//' | $bb sed -e 's/\(.\)/-\1 /g')
-if [ "$g_netNS" = "true" ]; then
-	if [ "$jailNet" = "false" ] || (! bb=$bb $g_utilsCmd isPrivileged && [ "$(bb=$bb $g_configCmd getCurVal $ownPath setNetAccess)" = "true" ]); then
-		:
+	type getCurVal >/dev/null 2>/dev/null
+	if [ "$?" = "0" ]; then # function is available, so config.sh was imported
+		#echo "DEBUG - detected that g_configCmd is not necessary" >&2
+		g_configCmd=""
 	else
-		g_nsenterSupport="$g_nsenterSupport -n";
+		g_configCmd="$runner jt_config"
 	fi
-fi
 
-if bb=$bb $g_utilsCmd isPrivileged; then
-	g_nsenterSupport="$(echo $g_nsenterSupport | $bb sed -e 's/-U//g')"
+	if [ "$privileged" = "" ]; then
+		if ! bb=$bb $g_utilsCmd isPrivileged; then
+			export privileged=0
+		else
+			export privileged=1
+		fi
+	fi
+
+	if bb=$bb $g_utilsCmd isPrivileged; then
+		# unprivileged user bb
+		uBB="$bb chpst -u $(bb=$bb $g_utilsCmd getBaseUserCredentials $ownPath) $bb"
+	else
+		uBB="$bb"
+	fi
+
+	g_baseEnv="PATH=/usr/bin:/bin USER=$(bb=$bb $g_configCmd getDefaultVal $ownPath user) HOME=/home HOSTNAME=nowhere.here TERM=linux"
+
+	g_innerNSpid=""
+
+	# used by isUserNamespaceSupported prepareChrootCore
+	g_unshareSupport="-$(for ns in m u i n p U C; do $uBB unshare -r$ns $bb sh -c 'echo "Operation not permitted"; exit' 2>&1 | $bb grep -q "Operation not permitted" && $bb printf $ns; done)"
+
+	if [ "$g_unshareSupport" = "-" ]; then # FIXME, we need to support this
+		echo "Detected no namespace support at all, this is not tested much so we prefer to bail out." >&2
+		exit 1
+	fi
+
+	# used by prepareChroot and runShell
+	g_netNS=false
+	if echo $g_unshareSupport | $bb grep -q 'n'; then # check for network namespace support
+		g_netNS=true
+		# we remove this bit from the variable because we use it differently from the other namespaces.
+		g_unshareSupport=$(echo $g_unshareSupport | $bb sed -e 's/n//')
+	fi
+
+	jailNet=$(bb=$bb $g_configCmd getCurVal $ownPath jailNet)
+	networking=$(bb=$bb $g_configCmd getCurVal $ownPath networking)
+
+	# used by prepareChroot runShell execRemNS
+	g_nsenterSupport=$(echo "$g_unshareSupport" | $bb sed -e 's/^-//' | $bb sed -e 's/\(.\)/-\1 /g')
+	if [ "$g_netNS" = "true" ]; then
+		if [ "$jailNet" = "false" ] || (! bb=$bb $g_utilsCmd isPrivileged && [ "$(bb=$bb $g_configCmd getCurVal $ownPath setNetAccess)" = "true" ]); then
+			:
+		else
+			g_nsenterSupport="$g_nsenterSupport -n";
+		fi
+	fi
+
+	if bb=$bb $g_utilsCmd isPrivileged; then
+		g_nsenterSupport="$(echo $g_nsenterSupport | $bb sed -e 's/-U//g')"
+	fi
 fi
 
 isStartedAsPrivileged() {
@@ -459,21 +476,18 @@ prepareChrootCore() {
 
 	[ -e $rootDir/root/var/run/.loadCoreDone ] && $bb rm $rootDir/root/var/run/.loadCoreDone
 
-	if bb=$bb $g_utilsCmd isPrivileged; then
-		bb=$bb $bb chpst -u $(bb=$bb $g_utilsCmd getBaseUserCredentials $ownPath) $runner jt_utils prepareScriptInFifo "$rootDir/run/instrFileInnerCore" "jailLib.sh" "jt_jailLib_template" &
-	else
-		bb=$bb $runner jt_utils prepareScriptInFifo "$rootDir/run/instrFileInnerCore" "jailLib.sh" "jt_jailLib_template" &
-	fi
 	innerCoreCreator=$($bb cat - << EOF
-while [ ! -e $rootDir/run/instrFileInnerCore ]; do $bb sleep 0.1; done;
-ownPath=$rootDir . $rootDir/run/instrFileInnerCore;
-initializeCoreJail $rootDir $(bb=$bb $g_utilsCmd getActualUser $rootDir) \
+export BB="$bb";
+export bb="$bb";
+export JT_SHOWER="$shower";
+export JT_RUNNER="$runner";
+$runner jt_jailLib_template initializeCoreJail $rootDir $(bb=$bb $g_utilsCmd getActualUser $rootDir) \
 	$(bb=$bb $g_utilsCmd getBaseUserUID $rootDir) $(bb=$bb $g_utilsCmd getBaseUserGID $rootDir)\";
 cd $rootDir/root;
 $bb pivot_root . $rootDir/root/root;
 exec $nsBB chroot . /bin/sh -c "$nsBB umount -l /root; \
-	$nsBB setpriv --bounding-set $(bb=$bb $g_configCmd getCurVal $rootDir \
-		chrootPrivileges) $chrootCmd"
+	$nsBB setpriv --bounding-set $(bb=$bb $g_configCmd getCurVal $rootDir chrootPrivileges) \
+	$chrootCmd"
 EOF
 )
 	# this is the core jail instance being run in the background
@@ -828,3 +842,37 @@ execRemNS() {
 	$preNSenter $bb nsenter --preserve-credentials $extraParams $g_nsenterSupport -t $nsPid -- "$@"
 	return $?
 }
+
+if [ "$IS_RUNNING" = "1" ]; then
+	IS_RUNNING=0
+	cmd=$1
+	shift
+	case $cmd in
+		initializeCoreJail)
+			rootDir="$1"
+
+			# importing utils.sh
+			bb=$bb $runner jt_utils prepareScriptInFifo "$rootDir/run/instrFileLibJT" "utils.sh" "jt_utils" &
+			if ! bb=$bb $runner jt_utils waitUntilFileAppears "$rootDir/run/instrFileLibJT" 2 1; then
+				echo "Timed out waiting for FIFO to be created" >&2
+				return 1
+			fi
+
+			. $rootDir/run/instrFileLibJT
+			g_utilsCmd=""
+
+			# importing config.sh
+			prepareScriptInFifo "$rootDir/run/instrFileLibJT" "config.sh" "jt_config" &
+			if ! waitUntilFileAppears "$rootDir/run/instrFileLibJT" 2 1; then
+				echo "Timed out waiting for FIFO to be created" >&2
+				return 1
+			fi
+
+			. $rootDir/run/instrFileLibJT
+			g_configCmd=""
+
+			initializeCoreJail "$@"
+			exit 0
+		;;
+	esac
+fi
