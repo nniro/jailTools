@@ -26,12 +26,15 @@ if $jtPath status $jail >/dev/null; then
 	exit 1
 fi
 
-$jtPath start $jail sh -c 'while :; do sleep 9999; done' >/dev/null 2>/dev/null &
+$jtPath daemon $jail
 
-$bb timeout 20 sh -c "while :; do [ -e $jail/run/ns.pid ] && [ -e $jail/run/jail.pid ] && break ; done"
+if ! $bb timeout 20 sh -c "while :; do [ -e $jail/run/ns.pid ] && [ -e $jail/run/jail.pid ] && break ; done"; then
+	echo "Timed out waiting for the jail to start"
+	exit 1
+fi
 
 if [ ! -e $jail/run/ns.pid ] || [ ! -e $jail/run/jail.pid ]; then
-	echo "The jail is not running, run/ns.pid or run/jail.pid is missing" >&2
+	echo "The jail is not running, run/ns.pid or run/jail.pid is missing"
 	exit 1
 fi
 
@@ -61,7 +64,11 @@ if ! $jtPath status $jail >/dev/null; then
 	exit 1
 fi
 
-$jtPath stop $jail
+if ! $jtPath stop $jail; then
+	echo "Trying to stop the jail should work at this point"
+	echo "jailPid : $jailPid -> $($bb ps | $bb grep "^$jailPid")"
+	exit 1
+fi
 
 # test simply starting a jail as a daemon
 $jtPath daemon $jail || exit 1
