@@ -794,13 +794,11 @@ stopChroot() {
 	IFS="
 	"
 	# removing the firewall rules inserted into the instructions file
-	# TODO this part could be made in a manner that is much nicer and more secure than
-	# using 'eval'
 	for cmd in $(IFS=$oldIFS; bb=$bb $runner jt_firewall cmdCtl "$rootDir/$g_firewallInstr" list); do
 		IFS="$oldIFS" # we set back IFS for remCmd
 		remCmd=$(printf "%s" "$cmd" | $bb sed -e 's@firewall \(.*\) \(in\|ex\)ternal \(.*\)$@firewall \1 \2ternal -d \3@')
 
-		eval bb=$bb $runner jt_firewall $remCmd
+		bb=$bb $runner jt_firewall $remCmd
 	done
 	IFS=$oldIFS
 
