@@ -81,4 +81,27 @@ fi
 
 $jtPath stop $jail >/dev/null 2>/dev/null
 
+# test if environment variables work correctly when shared with the jail
+
+export BLAH=nothing
+
+$jtPath config $jail -s runEnvironment "BLAH=\$BLAH" >/dev/null 2>/dev/null
+
+if [ "$($jtPath start $jail sh -c 'echo $BLAH' 2>/dev/null)" != "nothing" ]; then
+	echo "Simple environment variable substitution test failed."
+
+	exit 1
+fi
+
+# we try to put an absolute path in the variable now
+export BLAH="/var/log/mailling"
+
+$jtPath config $jail -s runEnvironment "BLAH=\$BLAH" >/dev/null 2>/dev/null
+
+if [ "$($jtPath start $jail sh -c 'echo $BLAH' 2>/dev/null)" != "/var/log/mailling" ]; then
+	echo "Environment variable substitution with an absolute path test failed."
+
+	exit 1
+fi
+
 exit 0
