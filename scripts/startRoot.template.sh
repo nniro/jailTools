@@ -66,7 +66,7 @@ getRunEnvironment() {
 		elif [ "$var" = "userGID" ]; then
 			regexResult="$regexResult s/\\\\\$$var/$(bb=$bb $runner jt_utils getBaseUserGID $ownPath)/ ;"
 		else
-			regexResult="$regexResult s/\\\\\$$var/$($bb env | $bb sed -ne "/^${var}=/ {s/^${var}=\(.\+\)$/\1 / ; p; q}")/ ;"
+			regexResult="$regexResult s@\\\\\$$var@$($bb env | $bb sed -ne "/^${var}=/ {s/^${var}=\(.\+\)$/\1 / ; p; q}")@ ;"
 		fi
 	done
 
