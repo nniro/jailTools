@@ -550,7 +550,7 @@ prepareChrootNetworking() {
 			local networkInterface=$(bb=$bb $g_configCmd getCurVal $rootDir netInterface)
 			if [ "$(bb=$bb $g_configCmd getCurVal $rootDir setNetAccess)" = "true" ] && [ "$networkInterface" != "" ]; then
 				if [ "$networkInterface" = "auto" ]; then
-					networkInterface=$($bb ip route | $bb grep '^default' | $bb sed -e 's/^.* dev \([^ ]*\) .*$/\1/')
+					networkInterface=$($bb ip route | $bb grep '^default' | $bb head -n 1 | $bb sed -e 's/^.* dev \([^ ]*\) .*$/\1/')
 				fi
 
 				if [ "$networkInterface" = "" ]; then
