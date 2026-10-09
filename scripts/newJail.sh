@@ -73,7 +73,7 @@ for fPath in $($fsData); do
 	$bb chmod 705 $newChrootDir/$fPath
 done
 
-if [ -h /lib64 ]; then
+if [ -h /lib64 ] && $bb readlink /lib64 | $bb grep -q '^lib$'; then
 	echo "Linking /lib to /lib64"
 	$bb ln -s lib $newChrootDir/lib64
 else
